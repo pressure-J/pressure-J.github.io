@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>文章 · pressure-J 的技术笔记</title>
+<meta name="description" content="网络安全 · 应急响应 · 流量分析 · 密码学">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <a class="logo" href="index.html">pressure-J<span>.</span></a>
+    <nav>
+      <a href="index.html">首页</a>
+      <a href="posts.html" class="on">文章</a>
+      <a href="https://github.com/pressure-J">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="hero" style="padding-bottom:0">
+    <h1>技术文章</h1>
+    <p class="sub">共 6 篇 · 应急响应 / 流量分析 / Web 安全</p>
+  </div>
+  <div class="sec-title">全部文章</div>
+  <article class="card">
+    <h3><a href="posts/shiro-deserialization-traffic.html">Shiro RememberMe 反序列化 RCE 流量分析</a></h3>
+    <p>从抓包流量中定位 Shiro 默认密钥攻击：指纹识别（rememberMe=deleteMe）、AES-CBC 解密 Cookie、Java 序列化魔数识别，到通过 CAFEBABE 字节码提取恶意类名。</p>
+    <div class="meta"><span class="cat">应急响应</span>2026-07-10</div>
+  </article>
+  <article class="card">
+    <h3><a href="posts/webshell-encrypted-tunnel.html">Webshell 上传与加密隧道流量分析</a></h3>
+    <p>还原一条完整的入侵链：端口扫描 → Web 路径探活 → 上传 Webshell → 加载 PHP 后门框架 → 添加后门用户，以及如何从加密流量中识别隧道特征。</p>
+    <div class="meta"><span class="cat">应急响应</span>2026-07-08</div>
+  </article>
+  <article class="card">
+    <h3><a href="posts/ssh-bruteforce-log-analysis.html">SSH 暴力破解与日志分析</a></h3>
+    <p>认证日志 + 防火墙日志 + 审计日志三源关联：定位真实攻击 IP、识别混淆执行的恶意命令、还原下载的脚本与授予的执行权限。</p>
+    <div class="meta"><span class="cat">应急响应</span>2026-07-08</div>
+  </article>
+  <article class="card">
+    <h3><a href="posts/windows-rdp-bruteforce-log.html">Windows 安全日志分析：RDP 暴力破解识别</a></h3>
+    <p>事件 ID 与 LogonType 速查，XML 日志的 Excel / Power Query / PowerShell 三种分析路径，如何用 IP 分组统计从 177 条失败记录中锁定攻击源。</p>
+    <div class="meta"><span class="cat">应急响应</span>2026-07-08</div>
+  </article>
+  <article class="card">
+    <h3><a href="posts/sql-injection-waf-bypass.html">SQL 盲注与 WAF 黑名单绕过</a></h3>
+    <p>WAF 黑名单绕过的手法拆解：用制表符替代空格、用异或替代 and/or、分析黑名单的子串匹配逻辑，以及布尔盲注的二分探测方法。</p>
+    <div class="meta"><span class="cat">Web 安全</span>2026-07-15</div>
+  </article>
+  <article class="card">
+    <h3><a href="posts/linux-log-analysis-basics.html">Linux 日志分析基础</a></h3>
+    <p>应急响应中 Linux 侧的核心日志位置与判读方法：auth.log / secure 的认证记录、Web 访问日志的异常特征、以及快速筛出可疑行为的方法。</p>
+    <div class="meta"><span class="cat">应急响应</span>2026-07-08</div>
+  </article>
+
+</div>
+
+<footer>
+  <div class="wrap">
+    <div>&copy; 2026 pressure-J · 网络安全方向</div>
+    <div><a href="https://github.com/pressure-J">GitHub</a></div>
+  </div>
+</footer>
+</body>
+</html>

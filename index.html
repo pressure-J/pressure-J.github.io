@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>pressure-J 的技术笔记</title>
+<meta name="description" content="网络安全 · 应急响应 · 流量分析 · 密码学">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <a class="logo" href="index.html">pressure-J<span>.</span></a>
+    <nav>
+      <a href="index.html" class="on">首页</a>
+      <a href="posts.html">文章</a>
+      <a href="https://github.com/pressure-J">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="hero">
+    <h1>网络安全方向在读，<br>专注<em>应急响应</em>与<em>流量分析</em>。</h1>
+    <p class="sub">
+      这里是 pressure-J 的技术笔记。记录日志分析、流量取证、Web 漏洞原理与密码学工具开发中
+      踩过的坑和想清楚的事——不写流水账，只写能复现、能讲清的过程。
+    </p>
+    <div class="tags">
+      <span class="tag">应急响应</span>
+      <span class="tag">流量分析</span>
+      <span class="tag">日志溯源</span>
+      <span class="tag">Web 安全</span>
+      <span class="tag">密码学</span>
+      <span class="tag">Python</span>
+    </div>
+  </div>
+  <div class="sec-title">近期文章</div>
+  <article class="card">
+    <h3><a href="posts/shiro-deserialization-traffic.html">Shiro RememberMe 反序列化 RCE 流量分析</a></h3>
+    <p>从抓包流量中定位 Shiro 默认密钥攻击：指纹识别（rememberMe=deleteMe）、AES-CBC 解密 Cookie、Java 序列化魔数识别，到通过 CAFEBABE 字节码提取恶意类名。</p>
+    <div class="meta"><span class="cat">应急响应</span>2026-07-10</div>
+  </article>
+  <article class="card">
+    <h3><a href="posts/webshell-encrypted-tunnel.html">Webshell 上传与加密隧道流量分析</a></h3>
+    <p>还原一条完整的入侵链：端口扫描 → Web 路径探活 → 上传 Webshell → 加载 PHP 后门框架 → 添加后门用户，以及如何从加密流量中识别隧道特征。</p>
+    <div class="meta"><span class="cat">应急响应</span>2026-07-08</div>
+  </article>
+  <article class="card">
+    <h3><a href="posts/ssh-bruteforce-log-analysis.html">SSH 暴力破解与日志分析</a></h3>
+    <p>认证日志 + 防火墙日志 + 审计日志三源关联：定位真实攻击 IP、识别混淆执行的恶意命令、还原下载的脚本与授予的执行权限。</p>
+    <div class="meta"><span class="cat">应急响应</span>2026-07-08</div>
+  </article>
+  <article class="card">
+    <h3><a href="posts/windows-rdp-bruteforce-log.html">Windows 安全日志分析：RDP 暴力破解识别</a></h3>
+    <p>事件 ID 与 LogonType 速查，XML 日志的 Excel / Power Query / PowerShell 三种分析路径，如何用 IP 分组统计从 177 条失败记录中锁定攻击源。</p>
+    <div class="meta"><span class="cat">应急响应</span>2026-07-08</div>
+  </article>
+
+  <div style="margin:26px 0 60px"><a href="posts.html">查看全部 6 篇文章 &rarr;</a></div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div>&copy; 2026 pressure-J · 网络安全方向</div>
+    <div><a href="https://github.com/pressure-J">GitHub</a></div>
+  </div>
+</footer>
+</body>
+</html>

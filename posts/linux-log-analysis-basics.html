@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Linux 日志分析基础</title>
+<meta name="description" content="应急响应中 Linux 侧的核心日志位置与判读方法：auth.log / secure 的认证记录、Web 访问日志的异常特征、以及快速筛出可疑行为的方法。">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <a class="logo" href="../index.html">pressure-J<span>.</span></a>
+    <nav>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">文章</a>
+      <a href="https://github.com/pressure-J">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="post-head">
+    <h1>Linux 日志分析基础</h1>
+    <div class="meta"><span class="cat">应急响应</span>2026-07-08</div>
+  </div>
+  <div class="content">
+<h1 id="linux">linux 日志分析</h1>
+<h2 id="linux_1">Linux常见目录</h2>
+<p>/var/log/syslog：记录系统的各种信息和错误。
+/var/log/auth.log：记录身份验证相关的信息，如登录和认证失败。
+/var/log/kern.log：记录内核生成的日志信息。
+/var/log/dmesg：记录系统启动时内核产生的消息。
+/var/log/boot.log：记录系统启动过程中的消息。
+/var/log/messages：记录系统的广泛消息，包括启动和应用程序信息。
+/var/log/secure：记录安全相关的消息。
+/var/log/httpd/：记录Apache HTTP服务器的访问和错误日志（若安装了Apache）。
+/var/log/nginx/：记录Nginx服务器的访问和错误日志（若安装了Nginx）。</p>
+<hr />
+<h2 id="_1">一、全局通用（所有发行版几乎一致）</h2>
+<table>
+<thead>
+<tr>
+<th>目录</th>
+<th>应急关注点</th>
+<th>常见用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/etc</code></td>
+<td>⭐⭐⭐⭐⭐</td>
+<td>账号、cron、服务配置</td>
+</tr>
+<tr>
+<td><code>/var/log</code></td>
+<td>⭐⭐⭐⭐⭐</td>
+<td>登录、系统、应用日志</td>
+</tr>
+<tr>
+<td><code>/tmp</code></td>
+<td>⭐⭐⭐⭐</td>
+<td>Webshell、挖矿、恶意脚本</td>
+</tr>
+<tr>
+<td><code>/dev/shm</code></td>
+<td>⭐⭐⭐⭐</td>
+<td>内存型落盘，重启消失</td>
+</tr>
+<tr>
+<td><code>/proc</code></td>
+<td>⭐⭐⭐⭐⭐</td>
+<td>实时进程反查</td>
+</tr>
+<tr>
+<td><code>/root</code></td>
+<td>⭐⭐⭐</td>
+<td>root 历史命令、私钥</td>
+</tr>
+<tr>
+<td><code>/home</code></td>
+<td>⭐⭐⭐</td>
+<td>用户级后门</td>
+</tr>
+<tr>
+<td><code>/usr/bin</code></td>
+<td>⭐⭐⭐</td>
+<td>被替换的命令（ls/ps/top）</td>
+</tr>
+<tr>
+<td><code>/boot</code></td>
+<td>⭐⭐</td>
+<td>rootkit / 启动项</td>
+</tr>
+</tbody>
+</table>
+<h2 id="_2">二、日志文件速查（重点）</h2>
+<table>
+<thead>
+<tr>
+<th>日志</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>secure / auth.log</code></td>
+<td>SSH、sudo、登录</td>
+</tr>
+<tr>
+<td><code>messages</code></td>
+<td>系统级事件</td>
+</tr>
+<tr>
+<td><code>cron</code></td>
+<td>定时任务（持久化）</td>
+</tr>
+<tr>
+<td><code>dmesg</code></td>
+<td>内核日志</td>
+</tr>
+<tr>
+<td><code>journalctl</code></td>
+<td>systemd 统一日志</td>
+</tr>
+<tr>
+<td>nginx/access.log</td>
+<td>Web 攻击、Webshell</td>
+</tr>
+<tr>
+<td>nginx/error.log</td>
+<td>报错、路径泄露</td>
+</tr>
+<tr>
+<td>apache/access.log</td>
+<td>Web 攻击</td>
+</tr>
+<tr>
+<td>mysql.log</td>
+<td>SQL 注入、暴力破解</td>
+</tr>
+</tbody>
+</table>
+<h2 id="_3">三、日志查询命令</h2>
+<p>核心思想：cat 日志 | grep 关键字 | 处理命令</p>
+<h3 id="grep">grep的使用</h3>
+<div class="highlight"><pre><span></span><code>grep<span class="w"> </span><span class="s2">"Failed password"</span><span class="w"> </span>/var/log/secure<span class="w">     </span><span class="c1"># 包含关键字</span>
+grep<span class="w"> </span>-i<span class="w"> </span><span class="s2">"accepted"</span><span class="w"> </span>/var/log/secure<span class="w">         </span><span class="c1"># 忽略大小写</span>
+grep<span class="w"> </span>-v<span class="w"> </span><span class="s2">"normal"</span><span class="w"> </span>file<span class="w">                      </span><span class="c1"># 排除某关键字</span>
+grep<span class="w"> </span>-E<span class="w"> </span><span class="s2">"Failed|Invalid"</span><span class="w"> </span>file<span class="w">              </span><span class="c1"># 扩展正则（或）</span>
+grep<span class="w"> </span><span class="s2">"from 192.168.1.1"</span><span class="w"> </span>file<span class="w">               </span><span class="c1"># 指定 IP</span>
+grep<span class="w"> </span>-c<span class="w"> </span><span class="s2">"Failed"</span><span class="w"> </span>file<span class="w">                      </span><span class="c1"># 只显示匹配行数</span>
+</code></pre></div>
+
+<h3 id="_4">常用管道搭配参数</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;"><strong>命令</strong></th>
+<th style="text-align: left;"><strong>作用</strong></th>
+<th style="text-align: left;"><strong>示例</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>wc -l</code></td>
+<td style="text-align: left;">统计行数（次数）</td>
+<td style="text-align: left;">`</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>sort</code></td>
+<td style="text-align: left;">排序</td>
+<td style="text-align: left;">`</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>uniq</code></td>
+<td style="text-align: left;">去重（需先 sort）</td>
+<td style="text-align: left;">`</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>uniq -c</code></td>
+<td style="text-align: left;">去重并计数 ⭐</td>
+<td style="text-align: left;">`</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>awk '{print $N}'</code></td>
+<td style="text-align: left;">取第 N 列 ⭐</td>
+<td style="text-align: left;">`</td>
+</tr>
+<tr>
+<td style="text-align: left;">head -$n</td>
+<td style="text-align: left;">看前n行</td>
+<td style="text-align: left;">··、</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_5">常用命令</h3>
+<p>查ip</p>
+<p>awk '{print $1}' access.log | sort | uniq -c | sort -rn | head</p>
+<p>查某小时访问最多ip</p>
+<p>grep "06/Jul/2026:10:" access.log | awk '{print $1}' | sort | uniq -c | sort -rn | head</p>
+<p>提出黑客ip的user-agent</p>
+<p>grep "192.168.200.2" access.log.1 | awk -F'"' '{print $6}' | sort | uniq -c | sort -rn</p>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div>&copy; 2026 pressure-J · 网络安全方向</div>
+    <div><a href="https://github.com/pressure-J">GitHub</a></div>
+  </div>
+</footer>
+</body>
+</html>

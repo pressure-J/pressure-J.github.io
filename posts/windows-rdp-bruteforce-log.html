@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Windows 安全日志分析：RDP 暴力破解识别</title>
+<meta name="description" content="事件 ID 与 LogonType 速查，XML 日志的 Excel / Power Query / PowerShell 三种分析路径，如何用 IP 分组统计从 177 条失败记录中锁定攻击源。">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <a class="logo" href="../index.html">pressure-J<span>.</span></a>
+    <nav>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">文章</a>
+      <a href="https://github.com/pressure-J">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="post-head">
+    <h1>Windows 安全日志分析：RDP 暴力破解识别</h1>
+    <div class="meta"><span class="cat">应急响应</span>2026-07-08</div>
+  </div>
+  <div class="content">
+<h1 id="windows-rdp">Windows 安全日志分析（RDP 暴力破解类题目）</h1>
+<hr />
+<h2 id="_1">一、题目特征</h2>
+<p>这类题目通常会提供 Windows 安全日志（Security Log）文件，格式为 <strong>XML</strong>，需要从中分析出：</p>
+<table>
+<thead>
+<tr>
+<th>要找的信息</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>攻击源 IP</strong></td>
+<td>发起暴力破解的 IP 地址</td>
+</tr>
+<tr>
+<td><strong>被攻破的账号</strong></td>
+<td>成功登录的账户名</td>
+</tr>
+<tr>
+<td><strong>攻击时间段</strong></td>
+<td>暴力破解的起止时间</td>
+</tr>
+<tr>
+<td><strong>攻击手法</strong></td>
+<td>是否为 RDP、SMB 等</td>
+</tr>
+</tbody>
+</table>
+<p><strong>常见 flag 格式</strong>：<code>flag{攻击IP_用户名}</code> 或 <code>flag{IP_用户}</code></p>
+<hr />
+<h2 id="windows-id">二、Windows 安全日志关键事件 ID</h2>
+<table>
+<thead>
+<tr>
+<th>EventID</th>
+<th>含义</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>4625</strong></td>
+<td>登录失败</td>
+<td>找暴力破解记录（重点是 LogonType=10）</td>
+</tr>
+<tr>
+<td><strong>4624</strong></td>
+<td>登录成功</td>
+<td>找被攻破的账号（重点是 LogonType=10）</td>
+</tr>
+<tr>
+<td><strong>4634</strong></td>
+<td>登出</td>
+<td>辅助确认登录会话时长</td>
+</tr>
+<tr>
+<td><strong>4648</strong></td>
+<td>使用显式凭据登录</td>
+<td>可能涉及横向移动</td>
+</tr>
+<tr>
+<td><strong>4672</strong></td>
+<td>分配特殊权限</td>
+<td>管理员权限登录时会触发</td>
+</tr>
+</tbody>
+</table>
+<h3 id="logontype">LogonType 速查表</h3>
+<table>
+<thead>
+<tr>
+<th>LogonType</th>
+<th>名称</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>2</strong></td>
+<td>Interactive</td>
+<td>本地控制台登录</td>
+</tr>
+<tr>
+<td><strong>3</strong></td>
+<td>Network</td>
+<td>网络访问（如 IPC 连接）</td>
+</tr>
+<tr>
+<td><strong>4</strong></td>
+<td>Batch</td>
+<td>批处理任务</td>
+</tr>
+<tr>
+<td><strong>5</strong></td>
+<td>Service</td>
+<td>服务启动</td>
+</tr>
+<tr>
+<td><strong>7</strong></td>
+<td>Unlock</td>
+<td>屏幕解锁</td>
+</tr>
+<tr>
+<td><strong>8</strong></td>
+<td>NetworkCleartext</td>
+<td>明文网络登录（如 IIS）</td>
+</tr>
+<tr>
+<td><strong>9</strong></td>
+<td>NewCredentials</td>
+<td>使用不同的凭证</td>
+</tr>
+<tr>
+<td><strong>10</strong></td>
+<td><strong>RemoteInteractive</strong></td>
+<td><strong>远程桌面（RDP）—— 重点关注</strong></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_2">三、分析思路（通用方法论）</h2>
+<div class="highlight"><pre><span></span><code>Step 1: 了解日志结构
+    └─ 确认文件格式（XML），找到 Events/Event 节点结构
+
+Step 2: 统计暴力破解概况
+    └─ 搜索 EventID=4625（登录失败）
+    └─ 从 LogonType 识别 RDP（=10）
+    └─ 从 SourceNetworkAddress 提取攻击源 IP
+    └─ 从 TargetUserName 提取被攻击账号
+
+Step 3: 定位攻击源 IP
+    └─ 统计各 IP 的失败次数，找出发起暴力破解的攻击源
+    └─ 攻击源特征：失败次数远超其他 IP
+    └─ 其他 IP 少量失败（1-5次）通常是正常用户输错密码
+
+Step 4: 查找成功登录
+    └─ 搜索 EventID=4624（登录成功）+ LogonType=10
+    └─ 提取 SourceNetworkAddress 和 TargetUserName
+    └─ 确认攻击源 IP 是否有成功登录记录
+
+Step 5: 关联确认
+    └─ 攻击源 IP 是否在短时间内多次失败后成功？
+    └─ 成功登录的账号是否被暴力破解？
+</code></pre></div>
+
+<hr />
+<h2 id="excel-xml">四、使用 Excel 分析 XML 文件</h2>
+<h3 id="41-xml-excel">4.1 将 XML 导入 Excel</h3>
+<p><strong>方法 A：直接打开（推荐）</strong></p>
+<ol>
+<li>打开 Excel → <strong>文件 → 打开 → 浏览</strong></li>
+<li>文件类型选择 <strong>"所有文件(.*)"</strong></li>
+<li>选中 <code>Security_log.xml</code> → <strong>打开</strong></li>
+<li>在弹出的对话框中选择 <strong>"作为 XML 表"</strong></li>
+<li>Excel 会自动生成表格结构</li>
+</ol>
+<p><strong>方法 B：使用 Power Query（Excel 2016+）</strong></p>
+<ol>
+<li>Excel → <strong>数据 → 获取数据 → 从文件 → 从 XML</strong></li>
+<li>选择 <code>Security_log.xml</code></li>
+<li>在 Power Query 编辑器中选择需要展开的字段</li>
+<li>加载到工作表</li>
+</ol>
+<h3 id="42-excel">4.2 Excel 中的关键操作</h3>
+<p><strong>① 筛选 RDP 登录失败记录（4625）</strong></p>
+<ul>
+<li>找到 <code>System_EventID</code> 列（或类似名称）</li>
+<li>下拉筛选 → 只勾选 <code>4625</code></li>
+<li>找到 <code>EventData_Data_LogonType</code> 列 → 筛选 <code>10</code></li>
+</ul>
+<p><strong>② 筛选 RDP 登录成功记录（4624）</strong></p>
+<ul>
+<li>筛选 <code>4624</code> + <code>LogonType=10</code></li>
+<li>查看 <code>SourceNetworkAddress</code> 列（源 IP）</li>
+<li>查看 <code>TargetUserName</code> 列（目标账号）</li>
+</ul>
+<p><strong>③ 数据透视表统计</strong></p>
+<ul>
+<li>选中数据区域 → <strong>插入 → 数据透视表</strong></li>
+<li>行：<code>SourceNetworkAddress</code>（源 IP）</li>
+<li>值：<code>EventRecordID</code>（计数）</li>
+<li>按计数降序排列 → 次数最多的就是攻击源</li>
+</ul>
+<h3 id="43-excel">4.3 Excel 分析示例截图</h3>
+<div class="highlight"><pre><span></span><code>┌──────────────┬────────────────┬──────────────┬────────┐
+│  EventID     │ SourceNetwork  │ TargetUser   │ Logon  │
+│              │ Address        │ Name         │ Type   │
+├──────────────┼────────────────┼──────────────┼────────┤
+│ 4625         │ 192.168.10.3   │ administrator│ 10     │
+│ 4625         │ 192.168.10.3   │ administrator│ 10     │
+│ ...152次...  │ 192.168.10.3   │ administrator│ 10     │
+│ 4624         │ 192.168.10.3   │ administrator│ 10     │  ← 成功
+│ 4625         │ 192.168.10.77  │ intern_li    │ 10     │
+│ 4624         │ 192.168.10.77  │ intern_li    │ 10     │  ← 正常
+└──────────────┴────────────────┴──────────────┴────────┘
+</code></pre></div>
+
+<hr />
+<h2 id="xml-excel">五、XML 结构详解（方便理解 Excel 列名）</h2>
+<p>Windows 安全日志 XML 的结构如下：</p>
+<div class="highlight"><pre><span></span><code><span class="nt">&lt;Events&gt;</span>
+<span class="w">  </span><span class="nt">&lt;Event&gt;</span>
+<span class="w">    </span><span class="nt">&lt;System&gt;</span>
+<span class="w">      </span><span class="nt">&lt;EventID&gt;</span>4625<span class="nt">&lt;/EventID&gt;</span><span class="w">                    </span><span class="cm">&lt;!-- 事件ID --&gt;</span>
+<span class="w">      </span><span class="nt">&lt;TimeCreated</span><span class="w"> </span><span class="na">SystemTime=</span><span class="s">"..."</span><span class="nt">/&gt;</span><span class="w">              </span><span class="cm">&lt;!-- 时间 --&gt;</span>
+<span class="w">    </span><span class="nt">&lt;/System&gt;</span>
+<span class="w">    </span><span class="nt">&lt;EventData&gt;</span>
+<span class="w">      </span><span class="nt">&lt;Data</span><span class="w"> </span><span class="na">Name=</span><span class="s">"LogonType"</span><span class="nt">&gt;</span>10<span class="nt">&lt;/Data&gt;</span><span class="w">            </span><span class="cm">&lt;!-- 登录类型 --&gt;</span>
+<span class="w">      </span><span class="nt">&lt;Data</span><span class="w"> </span><span class="na">Name=</span><span class="s">"TargetUserName"</span><span class="nt">&gt;</span>administrator<span class="nt">&lt;/Data&gt;</span><span class="w">  </span><span class="cm">&lt;!-- 目标账号 --&gt;</span>
+<span class="w">      </span><span class="nt">&lt;Data</span><span class="w"> </span><span class="na">Name=</span><span class="s">"SourceNetworkAddress"</span><span class="nt">&gt;</span>192.168.10.3<span class="nt">&lt;/Data&gt;</span><span class="w">  </span><span class="cm">&lt;!-- 源IP --&gt;</span>
+<span class="w">      </span><span class="nt">&lt;Data</span><span class="w"> </span><span class="na">Name=</span><span class="s">"FailureReason"</span><span class="nt">&gt;</span>未知用户名或错误密码<span class="nt">&lt;/Data&gt;</span><span class="w">  </span><span class="cm">&lt;!-- 失败原因 --&gt;</span>
+<span class="w">    </span><span class="nt">&lt;/EventData&gt;</span>
+<span class="w">  </span><span class="nt">&lt;/Event&gt;</span>
+<span class="nt">&lt;/Events&gt;</span>
+</code></pre></div>
+
+<p>Excel 解析时，列名通常由 <code>&lt;Data Name=""&gt;</code> 中的值生成：</p>
+<table>
+<thead>
+<tr>
+<th>XML 路径</th>
+<th>Excel 列名示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>System/EventID</code></td>
+<td><code>System_EventID</code></td>
+</tr>
+<tr>
+<td><code>System/TimeCreated</code></td>
+<td><code>System_TimeCreated</code></td>
+</tr>
+<tr>
+<td><code>EventData/Data[@Name='LogonType']</code></td>
+<td><code>EventData_Data_LogonType</code></td>
+</tr>
+<tr>
+<td><code>EventData/Data[@Name='TargetUserName']</code></td>
+<td><code>EventData_Data_TargetUserName</code></td>
+</tr>
+<tr>
+<td><code>EventData/Data[@Name='SourceNetworkAddress']</code></td>
+<td><code>EventData_Data_SourceNetworkAddress</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_3">六、实际案例复盘</h2>
+<p>以本题 <code>Security_log.xml</code> 为例：</p>
+<table>
+<thead>
+<tr>
+<th>步骤</th>
+<th>操作</th>
+<th>结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>统计 4625 事件</td>
+<td>177 条失败记录</td>
+</tr>
+<tr>
+<td>2</td>
+<td>过滤 LogonType=10</td>
+<td>全部为 RDP 攻击</td>
+</tr>
+<tr>
+<td>3</td>
+<td>按 IP 分组统计</td>
+<td><strong>192.168.10.3</strong>: 152 次（攻击源）</td>
+</tr>
+<tr>
+<td>4</td>
+<td>其余 IP 失败次数</td>
+<td>1-5 次（正常用户）</td>
+</tr>
+<tr>
+<td>5</td>
+<td>查找 4624 + LogonType=10</td>
+<td><code>192.168.10.3 → administrator</code> 成功登录</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Flag</strong>：<code>flag{192.168.10.3_administrator}</code></p>
+<hr />
+<h2 id="tsharkcmd-gui">七、使用 tshark/cmd 快速分析（无 GUI 环境）</h2>
+<p>如果无法使用 Excel，也可以用命令行快速分析：</p>
+<p><strong>统计各 IP 失败次数：</strong></p>
+<div class="highlight"><pre><span></span><code>findstr /C:"4625" Security_log.xml &gt; failed.txt
+findstr /C:"192.168" failed.txt | find /C "IP地址"
+</code></pre></div>
+
+<p><strong>PowerShell 统计：</strong></p>
+<div class="highlight"><pre><span></span><code><span class="no">[xml]</span><span class="nv">$xml</span> <span class="p">=</span> <span class="nb">Get-Content</span> <span class="s2">"Security_log.xml"</span>
+<span class="nv">$xml</span><span class="p">.</span><span class="n">Events</span><span class="p">.</span><span class="n">Event</span> <span class="p">|</span> <span class="nb">Where-Object</span> <span class="p">{</span> 
+    <span class="nv">$_</span><span class="p">.</span><span class="n">System</span><span class="p">.</span><span class="n">EventID</span> <span class="o">-eq</span> <span class="n">4625</span> <span class="o">-and</span> 
+    <span class="p">(</span><span class="nv">$_</span><span class="p">.</span><span class="n">EventData</span><span class="p">.</span><span class="n">Data</span> <span class="p">|</span> <span class="nb">Where-Object</span> <span class="p">{</span> <span class="nv">$_</span><span class="p">.</span><span class="n">Name</span> <span class="o">-eq</span> <span class="s1">'LogonType'</span> <span class="p">}).</span><span class="s1">'#text'</span> <span class="o">-eq</span> <span class="n">10</span>
+<span class="p">}</span> <span class="p">|</span> <span class="k">ForEach</span><span class="n">-Object</span> <span class="p">{</span>
+    <span class="p">(</span><span class="nv">$_</span><span class="p">.</span><span class="n">EventData</span><span class="p">.</span><span class="n">Data</span> <span class="p">|</span> <span class="nb">Where-Object</span> <span class="p">{</span> <span class="nv">$_</span><span class="p">.</span><span class="n">Name</span> <span class="o">-eq</span> <span class="s1">'SourceNetworkAddress'</span> <span class="p">}).</span><span class="s1">'#text'</span>
+<span class="p">}</span> <span class="p">|</span> <span class="nb">Group-Object</span> <span class="p">|</span> <span class="nb">Sort-Object</span> <span class="n">Count</span> <span class="n">-Descending</span>
+</code></pre></div>
+
+<hr />
+<h2 id="excel">八、Excel 分析总结</h2>
+<table>
+<thead>
+<tr>
+<th>优点</th>
+<th>缺点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>可视化筛选，操作直观</td>
+<td>XML 嵌套深时列名可能混乱</td>
+</tr>
+<tr>
+<td>数据透视表快速统计</td>
+<td>大文件可能卡顿</td>
+</tr>
+<tr>
+<td>无需编写代码</td>
+<td>某些 Data 字段可能丢失</td>
+</tr>
+<tr>
+<td>适合非技术人员</td>
+<td>需要手动过滤无关数据</td>
+</tr>
+</tbody>
+</table>
+<p><strong>推荐用法</strong>：Excel 做快速筛查 → Python/脚本做精确统计 → 交叉验证结果</p>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div>&copy; 2026 pressure-J · 网络安全方向</div>
+    <div><a href="https://github.com/pressure-J">GitHub</a></div>
+  </div>
+</footer>
+</body>
+</html>

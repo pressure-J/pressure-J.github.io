@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shiro RememberMe 反序列化 RCE 流量分析</title>
+<meta name="description" content="从抓包流量中定位 Shiro 默认密钥攻击：指纹识别（rememberMe=deleteMe）、AES-CBC 解密 Cookie、Java 序列化魔数识别，到通过 CAFEBABE 字节码提取恶意类名。">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <a class="logo" href="../index.html">pressure-J<span>.</span></a>
+    <nav>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">文章</a>
+      <a href="https://github.com/pressure-J">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="post-head">
+    <h1>Shiro RememberMe 反序列化 RCE 流量分析</h1>
+    <div class="meta"><span class="cat">应急响应</span>2026-07-10</div>
+  </div>
+  <div class="content">
+<h1 id="shiro-rememberme-rce-writeup">Shiro RememberMe 反序列化 RCE 流量分析 WriteUp</h1>
+<h2 id="_1">题目信息</h2>
+<p>企业服务器被入侵，安全团队抓取了攻击流量。开发人员确认系统使用了 Shiro 框架的默认密钥 <code>90F1FE6C8C64E43D9D799888C5C69A68</code>。分析攻击流量包，确认攻击者攻击时用的恶意类的名称。</p>
+<p><strong>flag 格式</strong>: <code>flag{恶意类名称}</code></p>
+<hr />
+<h2 id="_2">日志概况</h2>
+<table>
+<thead>
+<tr>
+<th>统计项</th>
+<th>数值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>流量文件</td>
+<td><code>娴侀噺.pcapng</code> (167 KB)</td>
+</tr>
+<tr>
+<td>目标服务器</td>
+<td><code>192.168.103.253:8089</code>（Shiro Web 应用）</td>
+</tr>
+<tr>
+<td>攻击者 IP</td>
+<td><code>192.168.103.251</code></td>
+</tr>
+<tr>
+<td>攻击类型</td>
+<td><strong>Shiro RememberMe 反序列化 RCE（CVE-2016-4437）</strong></td>
+</tr>
+<tr>
+<td>最终答案</td>
+<td><code>flag{Test105692713192100}</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_3">攻击路径总览</h2>
+<div class="highlight"><pre><span></span><code>Phase 1: 指纹探测 (0s)
+  └─ 发送 rememberMe=1 → 确认 Shiro 框架
+  └─ 服务器返回 deleteMe → 验证成功
+
+Phase 2: 反序列化攻击 (4.7s)
+  └─ 发送恶意 rememberMe Cookie（AES 加密的 Java 序列化 payload）
+  └─ Shiro 使用默认密钥解密 → 反序列化 → 触发 RCE
+
+Phase 3: 命令执行 (16.2s ~ 45.1s)
+  └─ POST / 提交表单 → 执行系统命令
+  └─ 通过反序列化通道持续控制服务器
+</code></pre></div>
+
+<hr />
+<h2 id="_4">详细分析过程</h2>
+<h3 id="phase-1shiro">Phase 1：Shiro 框架指纹探测</h3>
+<p>在 Wireshark 中过滤 HTTP 请求：</p>
+<div class="highlight"><pre><span></span><code>http.request
+</code></pre></div>
+
+<p>攻击者 <code>192.168.103.251</code> 发第一个请求：</p>
+<div class="highlight"><pre><span></span><code><span class="nf">GET</span> <span class="nn">/</span> <span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span>
+<span class="na">Cookie</span><span class="o">:</span> <span class="l">rememberMe=1</span>
+</code></pre></div>
+
+<p>服务器返回 <code>302</code>，响应头包含关键特征：</p>
+<div class="highlight"><pre><span></span><code><span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span> <span class="m">302</span>
+<span class="na">Set-Cookie</span><span class="o">:</span> <span class="l">rememberMe=deleteMe; Path=/; Max-Age=0; ...</span>
+<span class="na">Set-Cookie</span><span class="o">:</span> <span class="l">JSESSIONID=DE74E79A10104F065CC7D04AE9407800; Path=/; HttpOnly</span>
+</code></pre></div>
+
+<blockquote>
+<p><strong>Shiro 指纹特征</strong>：当 <code>rememberMe</code> Cookie 值无法解密时，Shiro 会自动设置 <code>rememberMe=deleteMe</code>。这是 Apache Shiro 框架的<strong>独有特征</strong>。</p>
+</blockquote>
+<p><strong>Wireshark 过滤方法</strong>：</p>
+<div class="highlight"><pre><span></span><code># 过滤 Shiro 指纹
+http.response &amp;&amp; http contains "rememberMe=deleteMe"
+</code></pre></div>
+
+<h3 id="phase-2-rememberme-cookie">Phase 2：构造恶意 RememberMe Cookie</h3>
+<p>确认 Shiro 框架后，攻击者发送带恶意序列化 payload 的 Cookie：</p>
+<div class="highlight"><pre><span></span><code><span class="nf">GET</span> <span class="nn">/</span> <span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span>
+<span class="na">Cookie</span><span class="o">:</span> <span class="l">rememberMe=[超长 Base64 编码字符串]</span>
+</code></pre></div>
+
+<p><strong>定位方法</strong>：在 Wireshark 中找到 <code>HTTP</code> 请求中 Cookie 值特别长的几个请求（帧 115-120、129-136 等），它们的 <code>rememberMe</code> Cookie 值超过 <strong>900 字节</strong>。</p>
+<h3 id="phase-3">Phase 3：命令执行</h3>
+<p>在 26.7s 和 45.1s，攻击者通过 <code>POST /</code> 发送表单数据，通过反序列化通道持续执行命令。</p>
+<hr />
+<h2 id="rememberme-cookie">核心：解密 RememberMe Cookie 提取恶意类名</h2>
+<p>本题最关键的一步是 <strong>解密 rememberMe Cookie</strong>，提取其中的 Java 序列化数据，找到攻击者嵌入的恶意类名。</p>
+<h3 id="_5">加密原理</h3>
+<p>Shiro 的 RememberMe 功能使用 AES-CBC 加密：</p>
+<div class="highlight"><pre><span></span><code>明文 (Java 序列化数据)
+  → AES/CBC/PKCS5Padding 加密
+  → 将 IV(16字节) + 密文 拼接
+  → Base64 编码
+  → 放入 Cookie: rememberMe=&lt;Base64&gt;
+</code></pre></div>
+
+<p>Cookie 结构：</p>
+<div class="highlight"><pre><span></span><code>Cookie: rememberMe = Base64( IV(16字节) || AES-密文 )
+                     ├───── 前32位十六进制 = IV ─────┤
+</code></pre></div>
+
+<h3 id="_6">解密步骤</h3>
+<h4 id="1-wireshark-cookie">1. 从 Wireshark 提取 Cookie 值</h4>
+<p>定位到帧 119（或 125、133），查看 HTTP 请求的 Cookie 值。</p>
+<div class="highlight"><pre><span></span><code>Wireshark 操作：
+1. 找到帧 119 → Follow HTTP Stream
+2. 复制 Cookie: rememberMe= 后面的完整 Base64 字符串
+</code></pre></div>
+
+<h4 id="2-python">2. 编写 Python 解密脚本</h4>
+<p>使用 Shiro 默认密钥进行 AES-CBC 解密：</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">base64</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">Crypto.Cipher</span><span class="w"> </span><span class="kn">import</span> <span class="n">AES</span>
+
+<span class="n">KEY_HEX</span> <span class="o">=</span> <span class="s2">"90F1FE6C8C64E43D9D799888C5C69A68"</span>
+<span class="n">key</span> <span class="o">=</span> <span class="nb">bytes</span><span class="o">.</span><span class="n">fromhex</span><span class="p">(</span><span class="n">KEY_HEX</span><span class="p">)</span>
+
+<span class="c1"># 从 Wireshark 提取的 Base64 Cookie 值</span>
+<span class="n">b64_data</span> <span class="o">=</span> <span class="s2">"BSTAxygllliVm7k1w5tK4HPI8ieV4JZvvpmEym8z+aFnLG+1W6v6HBhMxC7zQiyBK+..."</span>
+
+<span class="n">raw</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">b64_data</span><span class="p">)</span>
+<span class="n">iv</span> <span class="o">=</span> <span class="n">raw</span><span class="p">[:</span><span class="mi">16</span><span class="p">]</span>           <span class="c1"># 前16字节 = IV</span>
+<span class="n">ciphertext</span> <span class="o">=</span> <span class="n">raw</span><span class="p">[</span><span class="mi">16</span><span class="p">:]</span>   <span class="c1"># 后续 = 密文</span>
+
+<span class="n">cipher</span> <span class="o">=</span> <span class="n">AES</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">AES</span><span class="o">.</span><span class="n">MODE_CBC</span><span class="p">,</span> <span class="n">iv</span><span class="p">)</span>
+<span class="n">decrypted</span> <span class="o">=</span> <span class="n">cipher</span><span class="o">.</span><span class="n">decrypt</span><span class="p">(</span><span class="n">ciphertext</span><span class="p">)</span>
+
+<span class="c1"># PKCS7 去填充</span>
+<span class="n">pad_len</span> <span class="o">=</span> <span class="n">decrypted</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+<span class="n">decrypted</span> <span class="o">=</span> <span class="n">decrypted</span><span class="p">[:</span><span class="o">-</span><span class="n">pad_len</span><span class="p">]</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">decrypted</span><span class="o">.</span><span class="n">hex</span><span class="p">()</span><span class="o">.</span><span class="n">upper</span><span class="p">())</span>
+</code></pre></div>
+
+<h4 id="3">3. 分析解密结果</h4>
+<p>解密后的数据以 <code>AC ED 00 05</code> 开头，这是 <strong>Java 序列化</strong> 的标准魔数。</p>
+<p><strong>Hex dump 分析</strong>：</p>
+<div class="highlight"><pre><span></span><code>ACED 0005 7372 0017 6A61 7661 2E75 7469
+6C2E 5072 696F 7269 7479 5175 6575 6594
+DA30 B4FB 3F82 B103 0002 4900 0473 697A
+654C 000A 636F 6D70 6172 6174 6F72 7400
+164C 6A61 7661 2F75 7469 6C2F 436F 6D70
+6172 6174 6F72 3B78 7000 0000 0273 7200
+2B6F 7267 2E61 7061 6368 652E 636F 6D6D
+6F6E 732E 6265 616E 7574 696C 732E 4265
+616E 436F 6D70 6172 6174 6F72           ← org.apache.commons.beanutils.BeanComparator
+</code></pre></div>
+
+<p><strong>关键类名提取</strong>：</p>
+<p>在解密后的数据中搜索类名字符串，找到各节点的完整类名。</p>
+<h4 id="4">4. 定位恶意字节码中的类名</h4>
+<p>解密后的序列化数据中嵌入了完整的 Java Class 文件字节码（位于 <code>TemplatesImpl._bytecodes</code> 字段）。字节码以 <code>CAFEBABE</code> 开头，从中可以提取真正的恶意类名：</p>
+<div class="highlight"><pre><span></span><code>Hex dump 中的关键位置：
+
+...7000001004CAFEBABE                    ← Java Class 文件魔数
+              00000033                   ← Java 7 编译版本
+              00F8                      ← 常量池 248 项
+              01                        ← CONSTANT_Utf8
+              0015                      ← 类名长度 = 21
+              2F54657374313035363932...  ← "/Test105692713192100"
+</code></pre></div>
+
+<h3 id="_7">提取到的类名</h3>
+<h4 id="payload-119125133">攻击 payload（帧 119/125/133）</h4>
+<table>
+<thead>
+<tr>
+<th>组件</th>
+<th>类名</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>容器类</strong></td>
+<td><code>java.util.PriorityQueue</code></td>
+<td>序列化入口，触发反序列化时调用 <code>siftDownUsingComparator</code></td>
+</tr>
+<tr>
+<td><strong>Comparator</strong></td>
+<td><code>org.apache.commons.beanutils.BeanComparator</code></td>
+<td>通过 <code>compare()</code> 调用 <code>PropertyUtils.getProperty()</code></td>
+</tr>
+<tr>
+<td><strong>触发类</strong></td>
+<td><code>com.sun.org.apache.xalan.internal.xsltc.trax.TemplatesImpl</code></td>
+<td>加载恶意字节码，<code>newTransformer()</code> 触发代码执行</td>
+</tr>
+<tr>
+<td><strong>恶意类（flag）</strong></td>
+<td><strong><code>Test105692713192100</code></strong></td>
+<td><strong>字节码中定义的恶意类，加载后执行命令</strong></td>
+</tr>
+</tbody>
+</table>
+<h4 id="payload-150">第二段 payload（帧 150）</h4>
+<p>第二段 payload 包含不同的字节码，类名为 <code>Test105714876940900</code>，包含 <code>getFV</code>、<code>getClass</code> 等方法，疑似用于反射获取 Shiro 密钥或其他敏感信息。</p>
+<hr />
+<h2 id="gadget-chain">Gadget Chain 分析</h2>
+<p>本题攻击者使用 <strong>CommonsBeanutils1</strong> 链（ysoserial 项目中的标准链）：</p>
+<div class="highlight"><pre><span></span><code>PriorityQueue
+  └─ siftDownUsingComparator()
+      └─ BeanComparator.compare()
+          └─ PropertyUtils.getProperty()
+              └─ TemplatesImpl.getOutputProperties()
+                  └─ TemplatesImpl.newTransformer()
+                      └─ TemplatesImpl.getTransletInstance()
+                          └─ ClassLoader.defineClass()
+                              └─ Test105692713192100.&lt;init&gt;()
+                                  └─ Runtime.exec("cmd /c echo ...")
+</code></pre></div>
+
+<blockquote>
+<p>注意：<code>CommonsBeanutils1</code> 是 ysoserial 的 <strong>gadget chain 名称</strong>，不是本题要求的"恶意类的名称"。恶意类的名称是字节码中定义的 <strong><code>Test105692713192100</code></strong>。</p>
+</blockquote>
+<hr />
+<h2 id="_8">攻击者时间线</h2>
+<div class="highlight"><pre><span></span><code>时间戳      动作                         帧号
+0.000s      GET / → rememberMe=1        帧1-2     ← 指纹探测
+0.006s      GET /login → 200 (登录页)    帧3-6
+...
+4.705s      GET / → 恶意 rememberMe     帧115-120 ← 反序列化攻击 (CommonsBeanutils1)
+4.714s      GET /login → 200            帧121-128 ← 确认 RCE 成功
+16.243s     GET / → 恶意 rememberMe     帧129-136 ← 第二段恶意 payload
+26.740s     POST / → 表单提交            帧137-152 ← 命令执行
+45.119s     POST / → 表单提交            帧163-178 ← 持续控制
+</code></pre></div>
+
+<hr />
+<h2 id="wireshark-shiro">在 Wireshark 中定位 Shiro 攻击的方法</h2>
+<div class="highlight"><pre><span></span><code>方法 1：搜索 Shiro 指纹
+  http.response &amp;&amp; http contains "rememberMe=deleteMe"
+
+方法 2：筛选超长 Cookie 请求
+  http.request.http.Content-Length &gt; 500 &amp;&amp; http.request.uri == "/"
+
+方法 3：Follow TCP Stream 看完整内容
+  找到可疑请求 → 右键 → Follow → TCP Stream
+</code></pre></div>
+
+<hr />
+<h2 id="shiro">Shiro 漏洞流量特征总结</h2>
+<table>
+<thead>
+<tr>
+<th>特征</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Set-Cookie: rememberMe=deleteMe</code></td>
+<td>Shiro 框架指纹，响应头中出现即确认 Shiro</td>
+</tr>
+<tr>
+<td>Cookie 值特别长</td>
+<td>正常 <code>rememberMe=1</code>，攻击时可达数百至数千字节</td>
+</tr>
+<tr>
+<td>Cookie 值为 Base64 乱码</td>
+<td>解码后为 AES 加密的 Java 序列化数据</td>
+</tr>
+<tr>
+<td>多次请求 + 302 跳转</td>
+<td>每次攻击会先发 GET <code>/</code> 触发反序列化，再跳转到 <code>/login</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_9">防御建议</h2>
+<ol>
+<li><strong>升级 Shiro 版本</strong>：1.2.5 以下版本存在 CVE-2016-4437，升级到 1.2.5+</li>
+<li><strong>修改默认密钥</strong>：在 <code>shiro.ini</code> 或 Spring 配置中自定义 <code>securityManager.rememberMeManager.cipherKey</code></li>
+<li><strong>WAF 规则</strong>：拦截过长的 <code>rememberMe</code> Cookie 值</li>
+<li><strong>出站流量监控</strong>：关注异常的 DNS 查询（Shiro 常配合 DNSLog 使用）</li>
+<li><strong>最小化 RememberMe 功能</strong>：非必要场景禁用 RememberMe</li>
+</ol>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div>&copy; 2026 pressure-J · 网络安全方向</div>
+    <div><a href="https://github.com/pressure-J">GitHub</a></div>
+  </div>
+</footer>
+</body>
+</html>
