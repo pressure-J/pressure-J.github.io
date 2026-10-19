@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Python 数据加密编码函数大全 · pressure-J</title>
+<meta name="description" content="&gt; 来源：CTF 密码学 / 通用开发中需要对数据进行编码、哈希、对称加密、非对称加密的场景。">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/python-shu-ju-jia-mi-bian-ma-han-shu-da-quan.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Python 数据加密编码函数大全 · pressure-J">
+<meta property="og:description" content="&gt; 来源：CTF 密码学 / 通用开发中需要对数据进行编码、哈希、对称加密、非对称加密的场景。">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/python.html">Python</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>Python 数据加密编码函数大全</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-python">Python</span>
+          <time datetime="2026-09-08">2026-09-08</time>
+          <span>3776 字</span>
+          <span>约 10 分钟</span>
+        </div>
+        <div class="chips post-tags"><span class="chip">python</span><span class="chip">crypto</span></div>
+      </header>
+      <div class="content"><blockquote>
+<p>来源：CTF 密码学 / 通用开发中需要对数据进行编码、哈希、对称加密、非对称加密的场景。</p>
+</blockquote>
+<h2 id="_1">零、先分清四类概念</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>类别</th>
+<th>是否可逆</th>
+<th>代表库</th>
+<th>典型函数</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>编码</td>
+<td>✅ 可逆</td>
+<td><code>base64</code>、<code>binascii</code>、<code>urllib</code></td>
+<td><code>b64encode</code>、<code>hexlify</code></td>
+<td>数据格式转换，不是加密</td>
+</tr>
+<tr>
+<td>哈希</td>
+<td>❌ 不可逆</td>
+<td><code>hashlib</code>、<code>hmac</code></td>
+<td><code>md5()</code>、<code>sha256()</code></td>
+<td>指纹、校验、存密码</td>
+</tr>
+<tr>
+<td>对称加密</td>
+<td>✅ 可逆</td>
+<td><code>pycryptodome</code>、<code>cryptography</code></td>
+<td><code>AES.new</code>、<code>DES.new</code></td>
+<td>加解密同一把密钥</td>
+</tr>
+<tr>
+<td>非对称</td>
+<td>✅ 可逆</td>
+<td><code>pycryptodome</code>、<code>cryptography</code></td>
+<td><code>RSA.encrypt</code>、<code>generate_rsa</code></td>
+<td>公私钥，签名</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>⚠️ <strong>编码 ≠ 加密</strong>：base64/hex 只是换个表示方式，任何人能还原，<strong>不能当加密用</strong>。</p>
+</blockquote>
+<h2 id="base64">一、编码类（base64 等）</h2>
+<p>内置库，无需安装。</p>
+<h3 id="base64_1">base64</h3>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">base64</span>
+
+<span class="n">s</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">"hello"</span>
+<span class="n">enc</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>      <span class="c1"># b'aGVsbG8='</span>
+<span class="n">dec</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">enc</span><span class="p">)</span>    <span class="c1"># b'hello'</span>
+</code></pre></div></div>
+
+<p>变体：<br />
+- <code>base64.urlsafe_b64encode</code> — URL 安全（<code>-</code>/<code>_</code> 替换 <code>+</code>/<code>/</code>）<br />
+- <code>base64.b32encode</code> / <code>b32decode</code> — base32<br />
+- <code>base64.b16encode</code> / <code>b16decode</code> — 等价 hex<br />
+- <code>base64.b64decode(s, validate=True)</code> — 严格校验</p>
+<h3 id="hexbinascii">hex（binascii）</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">binascii</span>
+
+<span class="n">binascii</span><span class="o">.</span><span class="n">hexlify</span><span class="p">(</span><span class="sa">b</span><span class="s2">"abc"</span><span class="p">)</span>    <span class="c1"># b'616263'</span>
+<span class="n">binascii</span><span class="o">.</span><span class="n">unhexlify</span><span class="p">(</span><span class="s2">"616263"</span><span class="p">)</span>  <span class="c1"># b'abc'</span>
+
+<span class="nb">int</span><span class="p">(</span><span class="s2">"616263"</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>            <span class="c1"># 0x616263 → 6382179</span>
+<span class="nb">bytes</span><span class="o">.</span><span class="n">fromhex</span><span class="p">(</span><span class="s2">"616263"</span><span class="p">)</span>      <span class="c1"># b'abc'（也可用 bytes.hex()）</span>
+</code></pre></div></div>
+
+<h3 id="url-rot13">URL 编码 / ROT13</h3>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">urllib.parse</span>
+<span class="n">urllib</span><span class="o">.</span><span class="n">parse</span><span class="o">.</span><span class="n">quote</span><span class="p">(</span><span class="s2">"a b&amp;c"</span><span class="p">)</span>   <span class="c1"># 'a%20b%26c'</span>
+<span class="n">urllib</span><span class="o">.</span><span class="n">parse</span><span class="o">.</span><span class="n">unquote</span><span class="p">(</span><span class="s2">"a%20b"</span><span class="p">)</span>  <span class="c1"># 'a b'</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">codecs</span>
+<span class="n">codecs</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">"abc"</span><span class="p">,</span> <span class="s2">"rot13"</span><span class="p">)</span>  <span class="c1"># 'nop'（凯撒位移 13，经典 CTF）</span>
+</code></pre></div></div>
+
+<h2 id="hashlib-hmac">二、哈希类（hashlib / hmac）</h2>
+<p>单向不可逆，用于指纹、校验、存密码。</p>
+<h3 id="hashlib">hashlib</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span>
+
+<span class="n">data</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">"hello"</span>
+<span class="n">h</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">md5</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>      <span class="c1"># 32 位十六进制</span>
+<span class="n">s</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha1</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>     <span class="c1"># 40 位</span>
+<span class="n">h256</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span><span class="c1"># 64 位</span>
+<span class="n">h512</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha512</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span><span class="c1"># 128 位</span>
+
+<span class="c1"># 大文件分块更新</span>
+<span class="n">h</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">()</span>
+<span class="n">h</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="sa">b</span><span class="s2">"hello "</span><span class="p">);</span> <span class="n">h</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="sa">b</span><span class="s2">"world"</span><span class="p">)</span>
+<span class="n">h</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+</code></pre></div></div>
+
+<p>常用属性：<br />
+- <code>.hexdigest()</code> — 十六进制字符串<br />
+- <code>.digest()</code> — 原始 bytes<br />
+- <code>hashlib.new('md5', data)</code> — 按名字创建</p>
+<blockquote>
+<p>⚠️ <strong>CTF 坑</strong>：<code>hashlib.update()</code> 只收 <strong>bytes</strong>，收 str 会报 <code>TypeError: Strings must be encoded before hashing</code>，先 <code>.encode()</code>。</p>
+</blockquote>
+<h3 id="hmac">hmac（带密钥的消息认证）</h3>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">hmac</span><span class="o">,</span><span class="w"> </span><span class="nn">hashlib</span>
+<span class="n">h</span> <span class="o">=</span> <span class="n">hmac</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="sa">b</span><span class="s2">"secret"</span><span class="p">,</span> <span class="n">msg</span><span class="o">=</span><span class="sa">b</span><span class="s2">"data"</span><span class="p">,</span> <span class="n">digestmod</span><span class="o">=</span><span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">)</span>
+<span class="n">h</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+</code></pre></div></div>
+
+<h2 id="pycryptodome">三、对称加密（pycryptodome）</h2>
+<p>需安装：<code>pip install pycryptodome</code>。导入名是 <code>Crypto</code>（大写的 C）。</p>
+<h3 id="aes">AES</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">Crypto.Cipher</span><span class="w"> </span><span class="kn">import</span> <span class="n">AES</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">Crypto.Util.Padding</span><span class="w"> </span><span class="kn">import</span> <span class="n">pad</span><span class="p">,</span> <span class="n">unpad</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">base64</span>
+
+<span class="n">key</span>  <span class="o">=</span> <span class="sa">b</span><span class="s2">"0123456789abcdef"</span>          <span class="c1"># 16/24/32 字节 = AES-128/192/256</span>
+<span class="n">iv</span>   <span class="o">=</span> <span class="sa">b</span><span class="s2">"0000000000000000"</span>          <span class="c1"># 16 字节</span>
+<span class="n">data</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">"hello world"</span>               <span class="c1"># 必须是 bytes</span>
+
+<span class="n">cipher</span> <span class="o">=</span> <span class="n">AES</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">AES</span><span class="o">.</span><span class="n">MODE_CBC</span><span class="p">,</span> <span class="n">iv</span><span class="p">)</span>
+<span class="n">ct</span> <span class="o">=</span> <span class="n">cipher</span><span class="o">.</span><span class="n">encrypt</span><span class="p">(</span><span class="n">pad</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">AES</span><span class="o">.</span><span class="n">block_size</span><span class="p">))</span>        <span class="c1"># 需要 padding</span>
+<span class="c1"># 传输：base64</span>
+<span class="n">b64</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">ct</span><span class="p">)</span>
+
+<span class="c1"># 解密</span>
+<span class="n">cipher</span> <span class="o">=</span> <span class="n">AES</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">AES</span><span class="o">.</span><span class="n">MODE_CBC</span><span class="p">,</span> <span class="n">iv</span><span class="p">)</span>
+<span class="n">pt</span> <span class="o">=</span> <span class="n">unpad</span><span class="p">(</span><span class="n">cipher</span><span class="o">.</span><span class="n">decrypt</span><span class="p">(</span><span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">b64</span><span class="p">)),</span> <span class="n">AES</span><span class="o">.</span><span class="n">block_size</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>常用模式：<code>AES.MODE_CBC</code>（需 IV）、<code>AES.MODE_ECB</code>（无需 IV，不推荐）、<code>AES.MODE_GCM</code>（带认证）。</p>
+<h3 id="_2">其他对称</h3>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">Crypto.Cipher</span><span class="w"> </span><span class="kn">import</span> <span class="n">DES</span><span class="p">,</span> <span class="n">ChaCha20</span>
+
+<span class="c1"># DES（8 字节密钥）</span>
+<span class="n">DES</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="sa">b</span><span class="s2">"01234567"</span><span class="p">,</span> <span class="n">DES</span><span class="o">.</span><span class="n">MODE_ECB</span><span class="p">)</span><span class="o">.</span><span class="n">encrypt</span><span class="p">(</span><span class="n">pad</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="mi">8</span><span class="p">))</span>
+
+<span class="c1"># ChaCha20（随机 nonce）</span>
+<span class="n">cipher</span> <span class="o">=</span> <span class="n">ChaCha20</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="sa">b</span><span class="s2">"0"</span><span class="o">*</span><span class="mi">32</span><span class="p">)</span>
+<span class="n">ct</span> <span class="o">=</span> <span class="n">cipher</span><span class="o">.</span><span class="n">nonce</span> <span class="o">+</span> <span class="n">cipher</span><span class="o">.</span><span class="n">encrypt</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+</code></pre></div></div>
+
+<h2 id="rsapycryptodome">四、非对称 / RSA（pycryptodome）</h2>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">Crypto.PublicKey</span><span class="w"> </span><span class="kn">import</span> <span class="n">RSA</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">Crypto.Cipher</span><span class="w"> </span><span class="kn">import</span> <span class="n">PKCS1_OAEP</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">base64</span>
+
+<span class="c1"># 1. 生成密钥</span>
+<span class="n">key</span> <span class="o">=</span> <span class="n">RSA</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="mi">2048</span><span class="p">)</span>
+<span class="n">priv</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">export_key</span><span class="p">()</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>   <span class="c1"># PEM 私钥</span>
+<span class="n">pub</span>  <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">publickey</span><span class="p">()</span><span class="o">.</span><span class="n">export_key</span><span class="p">()</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>  <span class="c1"># PEM 公钥</span>
+
+<span class="c1"># 2. 用公钥加密（公钥只做加密）</span>
+<span class="n">rsa_pub</span> <span class="o">=</span> <span class="n">RSA</span><span class="o">.</span><span class="n">import_key</span><span class="p">(</span><span class="n">pub</span><span class="p">)</span>
+<span class="n">cipher</span> <span class="o">=</span> <span class="n">PKCS1_OAEP</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">rsa_pub</span><span class="p">)</span>
+<span class="n">ct</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">cipher</span><span class="o">.</span><span class="n">encrypt</span><span class="p">(</span><span class="sa">b</span><span class="s2">"secret data"</span><span class="p">))</span>
+
+<span class="c1"># 3. 用私钥解密</span>
+<span class="n">rsa_priv</span> <span class="o">=</span> <span class="n">RSA</span><span class="o">.</span><span class="n">import_key</span><span class="p">(</span><span class="n">priv</span><span class="p">)</span>
+<span class="n">cipher</span> <span class="o">=</span> <span class="n">PKCS1_OAEP</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">rsa_priv</span><span class="p">)</span>
+<span class="n">pt</span> <span class="o">=</span> <span class="n">cipher</span><span class="o">.</span><span class="n">decrypt</span><span class="p">(</span><span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">ct</span><span class="p">))</span>
+</code></pre></div></div>
+
+<h3 id="rsa-ctf">RSA 常用属性（CTF 必用）</h3>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">key</span> <span class="o">=</span> <span class="n">RSA</span><span class="o">.</span><span class="n">import_key</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="s2">"pub.pem"</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+<span class="n">n</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">n</span>          <span class="c1"># 模数</span>
+<span class="n">e</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">e</span>          <span class="c1"># 公钥指数</span>
+<span class="n">d</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">d</span>          <span class="c1"># 私钥指数（只有私钥对象才有）</span>
+<span class="n">p</span><span class="p">,</span> <span class="n">q</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">p</span><span class="p">,</span> <span class="n">key</span><span class="o">.</span><span class="n">q</span>   <span class="c1"># 两个素数因子（只有私钥对象才有）</span>
+</code></pre></div></div>
+
+<blockquote>
+<p>⚠️ 公开的 <strong>n、e</strong> 只能算公钥，CTF 里拿到 <code>n, e, c</code> 后，加密用 <code>pow(m, e, n)</code>，解密要 <code>pow(c, d, n)</code>，<code>d</code> 需分解 n 才能求。</p>
+</blockquote>
+<h2 id="_3">五、快速速查表</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>需求</th>
+<th>函数</th>
+<th>可逆</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>base64 编码</td>
+<td><code>base64.b64encode</code></td>
+<td>✅</td>
+</tr>
+<tr>
+<td>hex 编码</td>
+<td><code>binascii.hexlify</code></td>
+<td>✅</td>
+</tr>
+<tr>
+<td>URL 编码</td>
+<td><code>urllib.parse.quote</code></td>
+<td>✅</td>
+</tr>
+<tr>
+<td>ROT13</td>
+<td><code>codecs.encode(x,'rot13')</code></td>
+<td>✅</td>
+</tr>
+<tr>
+<td>MD5 哈希</td>
+<td><code>hashlib.md5(x).hexdigest()</code></td>
+<td>❌</td>
+</tr>
+<tr>
+<td>SHA256</td>
+<td><code>hashlib.sha256(x).hexdigest()</code></td>
+<td>❌</td>
+</tr>
+<tr>
+<td>HMAC</td>
+<td><code>hmac.new(k,m,hashlib.sha256)</code></td>
+<td>❌</td>
+</tr>
+<tr>
+<td>AES 加密</td>
+<td><code>AES.new(k,MODE_CBC,iv)</code></td>
+<td>✅</td>
+</tr>
+<tr>
+<td>RSA 加密</td>
+<td><code>PKCS1_OAEP.new(pubkey)</code></td>
+<td>✅</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="_4">六、总结</h2>
+<ol>
+<li><strong>编码</strong>（base64/hex/url）只是换格式，不是加密，用内置库。</li>
+<li><strong>哈希</strong>（hashlib）不可逆，做校验/指纹；<code>update()</code> 要 bytes。</li>
+<li><strong>对称加密</strong>（AES/DES/ChaCha20）一把密钥加解密，用 pycryptodome 的 <code>Crypto</code>。</li>
+<li><strong>非对称</strong>（RSA）公私钥，公钥加密私钥解密，CTF 里配合 <code>pow</code> 直接用大数运算。</li>
+<li>所有加密函数操作对象都是 <strong>bytes</strong>，字符串要先 <code>.encode()</code>。</li>
+</ol>
+<p><em>最后更新：2026年9月8日</em></p></div>
+      <div class="post-nav"><a class="pn-item prev" href="lfsr-xian-xing-fan-kui-yi-wei-ji-cun-qi-zhuang-tai-hui-fu.html"><span>← 上一篇</span><strong>LFSR线性反馈移位寄存器-状态恢复</strong></a><a class="pn-item next" href="liu-mi-ma-mi-yao-zhong-yong.html"><span>下一篇 →</span><strong>流密码密钥重用</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">零、先分清四类概念</a><a href="#base64" class="toc-lv2">一、编码类（base64 等）</a><a href="#base64_1" class="toc-lv3">base64</a><a href="#hexbinascii" class="toc-lv3">hex（binascii）</a><a href="#url-rot13" class="toc-lv3">URL 编码 / ROT13</a><a href="#hashlib-hmac" class="toc-lv2">二、哈希类（hashlib / hmac）</a><a href="#hashlib" class="toc-lv3">hashlib</a><a href="#hmac" class="toc-lv3">hmac（带密钥的消息认证）</a><a href="#pycryptodome" class="toc-lv2">三、对称加密（pycryptodome）</a><a href="#aes" class="toc-lv3">AES</a><a href="#_2" class="toc-lv3">其他对称</a><a href="#rsapycryptodome" class="toc-lv2">四、非对称 / RSA（pycryptodome）</a><a href="#rsa-ctf" class="toc-lv3">RSA 常用属性（CTF 必用）</a><a href="#_3" class="toc-lv2">五、快速速查表</a><a href="#_4" class="toc-lv2">六、总结</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

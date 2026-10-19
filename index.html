@@ -1,70 +1,300 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>pressure-J 的技术笔记</title>
-<meta name="description" content="网络安全 · 应急响应 · 流量分析 · 密码学">
-<link rel="stylesheet" href="style.css">
+<title>pressure-J — 网络安全 · 应急响应 · 流量分析</title>
+<meta name="description" content="pressure-J 的技术笔记：应急响应、流量分析、Web 安全、密码学与 Linux。写能复现、能讲清楚的东西。">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="pressure-J — 网络安全 · 应急响应 · 流量分析">
+<meta property="og:description" content="pressure-J 的技术笔记：应急响应、流量分析、Web 安全、密码学与 Linux。写能复现、能讲清楚的东西。">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
 </head>
-<body>
-<header>
-  <div class="wrap">
-    <a class="logo" href="index.html">pressure-J<span>.</span></a>
-    <nav>
-      <a href="index.html" class="on">首页</a>
-      <a href="posts.html">文章</a>
-      <a href="https://github.com/pressure-J">GitHub</a>
-    </nav>
-  </div>
-</header>
-
-<div class="wrap">
-  <div class="hero">
-    <h1>网络安全方向在读，<br>专注<em>应急响应</em>与<em>流量分析</em>。</h1>
-    <p class="sub">
-      这里是 pressure-J 的技术笔记。记录日志分析、流量取证、Web 漏洞原理与密码学工具开发中
-      踩过的坑和想清楚的事——不写流水账，只写能复现、能讲清的过程。
-    </p>
-    <div class="tags">
-      <span class="tag">应急响应</span>
-      <span class="tag">流量分析</span>
-      <span class="tag">日志溯源</span>
-      <span class="tag">Web 安全</span>
-      <span class="tag">密码学</span>
-      <span class="tag">Python</span>
+<body class="">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="index.html" class="on">首页</a><a href="posts.html">文章</a><a href="category/index.html">分类</a><a href="about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
     </div>
   </div>
-  <div class="sec-title">近期文章</div>
-  <article class="card">
-    <h3><a href="posts/shiro-deserialization-traffic.html">Shiro RememberMe 反序列化 RCE 流量分析</a></h3>
-    <p>从抓包流量中定位 Shiro 默认密钥攻击：指纹识别（rememberMe=deleteMe）、AES-CBC 解密 Cookie、Java 序列化魔数识别，到通过 CAFEBABE 字节码提取恶意类名。</p>
-    <div class="meta"><span class="cat">应急响应</span>2026-07-10</div>
-  </article>
-  <article class="card">
-    <h3><a href="posts/webshell-encrypted-tunnel.html">Webshell 上传与加密隧道流量分析</a></h3>
-    <p>还原一条完整的入侵链：端口扫描 → Web 路径探活 → 上传 Webshell → 加载 PHP 后门框架 → 添加后门用户，以及如何从加密流量中识别隧道特征。</p>
-    <div class="meta"><span class="cat">应急响应</span>2026-07-08</div>
-  </article>
-  <article class="card">
-    <h3><a href="posts/ssh-bruteforce-log-analysis.html">SSH 暴力破解与日志分析</a></h3>
-    <p>认证日志 + 防火墙日志 + 审计日志三源关联：定位真实攻击 IP、识别混淆执行的恶意命令、还原下载的脚本与授予的执行权限。</p>
-    <div class="meta"><span class="cat">应急响应</span>2026-07-08</div>
-  </article>
-  <article class="card">
-    <h3><a href="posts/windows-rdp-bruteforce-log.html">Windows 安全日志分析：RDP 暴力破解识别</a></h3>
-    <p>事件 ID 与 LogonType 速查，XML 日志的 Excel / Power Query / PowerShell 三种分析路径，如何用 IP 分组统计从 177 条失败记录中锁定攻击源。</p>
-    <div class="meta"><span class="cat">应急响应</span>2026-07-08</div>
-  </article>
+</header>
+<main>
+  <section class="hero">
+    <div class="wrap hero-inner">
+      <div class="hero-badge"><span class="dot"></span>持续记录中 · 已发布 97 篇</div>
+      <h1>把踩过的坑，<br>写成<em>能复现</em>的东西。</h1>
+      <p class="hero-sub">
+        网络空间安全在读。这里放应急响应的实战复盘、流量取证的思路、Web 漏洞的原理拆解，
+        以及密码学和 Linux 那些常年要翻的笔记。<br>
+        不写流水账——只写能讲清楚、别人照着能跑通的过程。
+      </p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="posts.html">浏览全部文章<span aria-hidden="true">→</span></a>
+        <a class="btn btn-ghost" href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      </div>
+      <dl class="hero-stats">
+        <div><dt>97</dt><dd>篇文章</dd></div>
+        <div><dt>7</dt><dd>个方向</dd></div>
+        <div><dt>400k</dt><dd>字笔记</dd></div>
+        <div><dt>17h</dt><dd>累计阅读</dd></div>
+      </dl>
+    </div>
+  </section>
 
-  <div style="margin:26px 0 60px"><a href="posts.html">查看全部 6 篇文章 &rarr;</a></div>
-</div>
+  <section class="wrap section">
+    <div class="section-head">
+      <h2>精选阅读</h2>
+      <a class="section-link" href="posts.html">全部文章 →</a>
+    </div>
+    <div class="features"><a class="feature" href="posts/shiro-deserialization-traffic.html">
+  <div class="feature-glow"></div>
+  <div class="card-top">
+    <span class="cat-badge cat-ir">应急响应</span>
+    <time>2026-07-10</time>
+  </div>
+  <h3>Shiro反序列化RCE流量分析WriteUp</h3>
+  <p>企业服务器被入侵，安全团队抓取了攻击流量。开发人员确认系统使用了 Shiro 框架的默认密钥 90F1FE6C8C64E43D9D799888C5C69A68。分析攻击流量包，确认攻击者攻击时用的恶意类的名称。</p>
+  <span class="feature-more">阅读全文 <span aria-hidden="true">→</span></span>
+</a><a class="feature" href="posts/liu-liang-fen-xi-an-zhong-lei-su-cha.html">
+  <div class="feature-glow"></div>
+  <div class="card-top">
+    <span class="cat-badge cat-misc">Misc</span>
+    <time>2026-10-09</time>
+  </div>
+  <h3>流量分析-按种类速查</h3>
+  <p>&gt; 定位：CTF Misc / 应急响应流量题的按类型查表文档。看到什么流量，翻到对应一节。</p>
+  <span class="feature-more">阅读全文 <span aria-hidden="true">→</span></span>
+</a><a class="feature" href="posts/ssh-bruteforce-log-analysis.html">
+  <div class="feature-glow"></div>
+  <div class="card-top">
+    <span class="cat-badge cat-ir">应急响应</span>
+    <time>2026-07-08</time>
+  </div>
+  <h3>SSH暴力破解与日志分析WriteUp</h3>
+  <p>2026年某日凌晨，运维人员发现一台核心服务器 CPU 使用率异常升高。检查系统日志发现大量 SSH 失败记录，且有多条来自不同 IP 的成功登录。进一步查看审计日志，发现其中某次用户登录执行了可疑命令。分析附件中的 combine…</p>
+  <span class="feature-more">阅读全文 <span aria-hidden="true">→</span></span>
+</a></div>
+  </section>
 
-<footer>
-  <div class="wrap">
-    <div>&copy; 2026 pressure-J · 网络安全方向</div>
-    <div><a href="https://github.com/pressure-J">GitHub</a></div>
+  <section class="wrap section">
+    <div class="section-head">
+      <h2>最新更新</h2>
+      <a class="section-link" href="rss.xml">RSS 订阅 →</a>
+    </div>
+    <div class="post-list"><article class="post-card" data-cat="linux"
+     data-hay="linux 基础：wsl 下的 linux 入手操作 一句话：wsl2 是微软官方提供的轻量虚拟机，跑的是真实 linux 内核，但由 windows 深度托管——没有 bios、没有虚拟网卡配置界面、不用装系统、不用等开机。 ">
+  <div class="card-top">
+    <a class="cat-badge cat-linux" href="category/linux.html">Linux</a>
+    <time datetime="2026-10-19">2026-10-19</time>
+  </div>
+  <h3><a href="posts/linux-ji-chu-wsl-xia-de-linux-ru-shou-cao-zuo.html">Linux 基础：WSL 下的 Linux 入手操作</a></h3>
+  <p class="card-desc">一句话：WSL2 是微软官方提供的轻量虚拟机，跑的是真实 Linux 内核，但由 Windows 深度托管——没有 BIOS、没有虚拟网卡配置界面、不用装系统、不用等开机。</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">25 min · 9651 字</span>
+  </div>
+</article><article class="post-card" data-cat="ir"
+     data-hay="开源蓝队项目清单（github） 不是工具，是规则的通用格式。所有主流工具（hayabusa、chainsaw、splunk、elastic、sentinel）都能吃 sigma 规则，所以它同时是规则仓库 + 语法标准。 工具 蓝队 应急响应 威胁狩猎 sigma">
+  <div class="card-top">
+    <a class="cat-badge cat-ir" href="category/ir.html">应急响应</a>
+    <time datetime="2026-10-18">2026-10-18</time>
+  </div>
+  <h3><a href="posts/kai-yuan-lan-dui-xiang-mu-qing-dan-github.html">开源蓝队项目清单（GitHub）</a></h3>
+  <p class="card-desc">不是工具，是规则的通用格式。所有主流工具（Hayabusa、Chainsaw、Splunk、Elastic、Sentinel）都能吃 Sigma 规则，所以它同时是规则仓库 + 语法标准。</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">工具</span><span class="chip">蓝队</span><span class="chip">应急响应</span></div>
+    <span class="reading">24 min · 9215 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="离散对数问题（dlp） 已知 $g$ 和 $h$，求指数 $x$ 使 $g^x \equiv h$。 正向算幂很快（快速幂，$o(\log x)$ 次乘法），反向求指数很慢，这就是单向性的来源。 ">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="category/crypto.html">密码学</a>
+    <time datetime="2026-10-17">2026-10-17</time>
+  </div>
+  <h3><a href="posts/li-san-dui-shu-wen-ti-dlp.html">离散对数问题（DLP）</a></h3>
+  <p class="card-desc">已知 $g$ 和 $h$，求指数 $x$ 使 $g^x \equiv h$。 正向算幂很快（快速幂，$O(\log x)$ 次乘法），反向求指数很慢，这就是单向性的来源。</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">8 min · 2860 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="密码学常用函数速查 为什么一定要用它：(3100) % 7 是先把 3^100 这个天文数字完整算出来再取模。实测： crypto python 工具">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="category/crypto.html">密码学</a>
+    <time datetime="2026-10-15">2026-10-15</time>
+  </div>
+  <h3><a href="posts/mi-ma-xue-chang-yong-han-shu-su-cha.html">密码学常用函数速查</a></h3>
+  <p class="card-desc">为什么一定要用它：(3100) % 7 是先把 3^100 这个天文数字完整算出来再取模。实测：</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span><span class="chip">python</span><span class="chip">工具</span></div>
+    <span class="reading">38 min · 14613 字</span>
+  </div>
+</article><article class="post-card" data-cat="python"
+     data-hay="python 与终端交互（subprocess 与 pty） print(r.stdout) # 实测 512 位密钥打印 2097 字符，直接正则抽 n/e/d python subprocess 终端">
+  <div class="card-top">
+    <a class="cat-badge cat-python" href="category/python.html">Python</a>
+    <time datetime="2026-10-15">2026-10-15</time>
+  </div>
+  <h3><a href="posts/python-yu-zhong-duan-jiao-hu-subprocess-yu-pty.html">Python 与终端交互（subprocess 与 pty）</a></h3>
+  <p class="card-desc">print(r.stdout) # 实测 512 位密钥打印 2097 字符，直接正则抽 n/e/d</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">python</span><span class="chip">subprocess</span><span class="chip">终端</span></div>
+    <span class="reading">21 min · 7858 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="古典密码 拿到一串东西，先判断它属于哪一层，再谈破法： ">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="category/crypto.html">密码学</a>
+    <time datetime="2026-10-14">2026-10-14</time>
+  </div>
+  <h3><a href="posts/gu-dian-mi-ma.html">古典密码</a></h3>
+  <p class="card-desc">拿到一串东西，先判断它属于哪一层，再谈破法：</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">23 min · 8774 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="sm2-椭圆曲线公钥算法原理与攻击 国密椭圆曲线公钥密码算法，标准号 gm/t 0003。曲线固定为 256 位素域曲线，支持签名、密钥交换、公钥加密三种功能。对标 ecdsa/ecdh/ecies，但三处关键设计不同（见第 3 节）。 crypto ecc sm2">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="category/crypto.html">密码学</a>
+    <time datetime="2026-10-14">2026-10-14</time>
+  </div>
+  <h3><a href="posts/sm2-tuo-yuan-qu-xian-gong-yao-suan-fa-yuan-li-yu-gong-ji.html">SM2-椭圆曲线公钥算法原理与攻击</a></h3>
+  <p class="card-desc">国密椭圆曲线公钥密码算法，标准号 GM/T 0003。曲线固定为 256 位素域曲线，支持签名、密钥交换、公钥加密三种功能。对标 ECDSA/ECDH/ECIES，但三处关键设计不同（见第 3 节）。</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span><span class="chip">ecc</span><span class="chip">sm2</span></div>
+    <span class="reading">19 min · 7121 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="sm4-分组密码原理与攻击 国密分组对称密码，标准号 gm/t 0002（旧称 sms4，gb/t 32907）。分组 128 bit、密钥 128 bit，32 轮。设计目标是替代 aes，抗差分/线性分析强度与 aes 同级。 crypto symmetric sm4">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="category/crypto.html">密码学</a>
+    <time datetime="2026-10-14">2026-10-14</time>
+  </div>
+  <h3><a href="posts/sm4-fen-zu-mi-ma-yuan-li-yu-gong-ji.html">SM4-分组密码原理与攻击</a></h3>
+  <p class="card-desc">国密分组对称密码，标准号 GM/T 0002（旧称 SMS4，GB/T 32907）。分组 128 bit、密钥 128 bit，32 轮。设计目标是替代 AES，抗差分/线性分析强度与 AES 同级。</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span><span class="chip">symmetric</span><span class="chip">sm4</span></div>
+    <span class="reading">15 min · 5739 字</span>
+  </div>
+</article></div>
+  </section>
+
+  <section class="wrap section">
+    <div class="section-head"><h2>按方向浏览</h2></div>
+    <div class="cat-grid">
+      <a class="cat-card" href="category/ir.html">
+  <div class="cat-card-top">
+    <span class="cat-badge cat-ir">应急响应</span>
+    <span class="cat-count">14 篇</span>
+  </div>
+  <p>日志判读、流量取证、入侵链还原与恶意程序处置</p>
+  <span class="cat-more">浏览 <span aria-hidden="true">→</span></span>
+</a><a class="cat-card" href="category/web.html">
+  <div class="cat-card-top">
+    <span class="cat-badge cat-web">Web 安全</span>
+    <span class="cat-count">17 篇</span>
+  </div>
+  <p>SQL 注入、文件包含/上传、反序列化、SSRF 与绕过手法</p>
+  <span class="cat-more">浏览 <span aria-hidden="true">→</span></span>
+</a><a class="cat-card" href="category/crypto.html">
+  <div class="cat-card-top">
+    <span class="cat-badge cat-crypto">密码学</span>
+    <span class="cat-count">32 篇</span>
+  </div>
+  <p>RSA 攻击家族、流密码、国密算法与格密码入门</p>
+  <span class="cat-more">浏览 <span aria-hidden="true">→</span></span>
+</a><a class="cat-card" href="category/misc.html">
+  <div class="cat-card-top">
+    <span class="cat-badge cat-misc">Misc</span>
+    <span class="cat-count">7 篇</span>
+  </div>
+  <p>流量分析、图片/视频隐写、内存取证与离线速查</p>
+  <span class="cat-more">浏览 <span aria-hidden="true">→</span></span>
+</a><a class="cat-card" href="category/linux.html">
+  <div class="cat-card-top">
+    <span class="cat-badge cat-linux">Linux</span>
+    <span class="cat-count">13 篇</span>
+  </div>
+  <p>基础命令、服务搭建、内核模块与虚拟机网络排查</p>
+  <span class="cat-more">浏览 <span aria-hidden="true">→</span></span>
+</a><a class="cat-card" href="category/python.html">
+  <div class="cat-card-top">
+    <span class="cat-badge cat-python">Python</span>
+    <span class="cat-count">8 篇</span>
+  </div>
+  <p>语法坑、编码、正则、subprocess 与 CTF 数据处理</p>
+  <span class="cat-more">浏览 <span aria-hidden="true">→</span></span>
+</a><a class="cat-card" href="category/base.html">
+  <div class="cat-card-top">
+    <span class="cat-badge cat-base">基础</span>
+    <span class="cat-count">6 篇</span>
+  </div>
+  <p>文件格式、编码、Wireshark 与工具链这些常年要查的</p>
+  <span class="cat-more">浏览 <span aria-hidden="true">→</span></span>
+</a>
+    </div>
+  </section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="index.html">首页</a>
+      <a href="posts.html">全部文章</a>
+      <a href="category/index.html">分类</a>
+      <a href="about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
   </div>
 </footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="assets/app.js" defer></script>
 </body>
 </html>

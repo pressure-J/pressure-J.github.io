@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>离散对数问题（DLP） · pressure-J</title>
+<meta name="description" content="已知 $g$ 和 $h$，求指数 $x$ 使 $g^x \equiv h$。 正向算幂很快（快速幂，$O(\log x)$ 次乘法），反向求指数很慢，这就是单向性的来源。">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/li-san-dui-shu-wen-ti-dlp.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="离散对数问题（DLP） · pressure-J">
+<meta property="og:description" content="已知 $g$ 和 $h$，求指数 $x$ 使 $g^x \equiv h$。 正向算幂很快（快速幂，$O(\log x)$ 次乘法），反向求指数很慢，这就是单向性的来源。">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/crypto.html">密码学</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>离散对数问题（DLP）</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-crypto">密码学</span>
+          <time datetime="2026-10-17">2026-10-17</time>
+          <span>2860 字</span>
+          <span>约 8 分钟</span>
+        </div>
+        
+      </header>
+      <div class="content"><h2 id="_1">一句话</h2>
+<p><strong>已知 $g$ 和 $h$，求指数 $x$ 使 $g^x \equiv h$。</strong> 正向算幂很快（快速幂，$O(\log x)$ 次乘法），反向求指数很慢，这就是单向性的来源。</p>
+<h2 id="_2">前提：群、生成元、阶</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>概念</th>
+<th>含义</th>
+<th>例子（模 11 乘法）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>群</td>
+<td>一个集合 + 一个运算，满足<strong>封闭、结合、有单位元、有逆元</strong></td>
+<td>$(\mathbb{Z}/11\mathbb{Z})^*={1,2,\dots,10}$，阶 $</td>
+</tr>
+<tr>
+<td>元素的阶</td>
+<td>$g$ 自己乘多少次回到单位元</td>
+<td>底 3：$[3,9,5,4,1]$ → 阶 5</td>
+</tr>
+<tr>
+<td>生成元</td>
+<td>幂序列能把全群踩一遍的元素</td>
+<td>底 2：$[2,4,8,5,10,9,7,3,6,1]$ → 阶 10，是生成元</td>
+</tr>
+<tr>
+<td>循环群</td>
+<td>存在生成元的群</td>
+<td>$(\mathbb{Z}/11)^<em>$ 是；$(\mathbb{Z}/8)^</em>={1,3,5,7}$ <strong>不是</strong>（每个元素阶都只有 2）</td>
+</tr>
+</tbody>
+</table></div>
+<p>要点：<strong>离散对数只在循环群上才有唯一解</strong>（解唯一确定到 $\mathrm{mod}\ n$）。非循环群里问题会变成"无解或多解"，那不是难，是定义不了。</p>
+<h2 id="_3">实例</h2>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">p</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">23</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span>
+<span class="n">h</span> <span class="o">=</span> <span class="nb">pow</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>      <span class="c1"># 正向：h = 8，秒出</span>
+<span class="c1"># 反向：已知 p=23, g=5, h=8，求 x → 只能挨个试</span>
+</code></pre></div></div>
+
+<h2 id="_4">难度由「群」决定，不是由方程决定</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>群</th>
+<th>额外结构</th>
+<th>最优攻击</th>
+<th>实用参数</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$(\mathbb{Z}/p\mathbb{Z})^*$</td>
+<td>能提升回整数环做光滑分解</td>
+<td>Index Calculus（<strong>亚指数</strong>）</td>
+<td>3072 位起</td>
+</tr>
+<tr>
+<td>$(\mathbb{Z}/2^k)^*$</td>
+<td>2-adic 对数、非循环</td>
+<td>按位求解（<strong>多项式</strong>）</td>
+<td>不能用</td>
+</tr>
+<tr>
+<td>椭圆曲线 $E(\mathbb{F}_q)$</td>
+<td>没有可利用的额外结构</td>
+<td>Pollard ρ（$O(\sqrt{q})$，是下界也是天花板）</td>
+<td>256 位够</td>
+</tr>
+</tbody>
+</table></div>
+<p>→ 所以 <strong>ECC 用 256 位就顶 RSA 3072 位</strong>：不是它更复杂，而是它"结构贫瘠"，任何捷径都不存在。<br />
+→ 模 2 的幂那道题（见 <code>模2的幂-离散对数.md</code>）能秒解，就是因为它落在第二行。</p>
+<h2 id="dlp">DLP ≠ 大整数分解</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>难题</th>
+<th>难在哪</th>
+<th>会不会被"换群"影响</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>大整数分解</td>
+<td>乘法混得开、除法分不开（$n=pq$ 回推不出 $p,q$）</td>
+<td>不变，题目固定</td>
+</tr>
+<tr>
+<td>离散对数</td>
+<td>指数混得开、数不出步数</td>
+<td><strong>会</strong>，难度完全取决于选哪个群</td>
+</tr>
+</tbody>
+</table></div>
+<p>RSA 的"$e$ 次方好算、开 $e$ 次方难"形式像 DLP，但一旦分解 $n$ 就能用 CRT 直接算出私钥 $d$——它难在<strong>分解</strong>，不在"指数未知"。</p>
+<hr />
+<h2 id="dh-diffiehellman">DH 密钥交换（Diffie–Hellman）</h2>
+<h2 id="_5">解决什么问题</h2>
+<p>对称加密（AES 等）效率高，但双方得先有同一个密钥；而任何"传密钥"的动作都会被窃听。DH 让<strong>双方在不安全的信道上算出一个只有他俩知道的密钥</strong>，全程不传输密钥本身。</p>
+<h2 id="_6">流程（一句话版）</h2>
+<p>双方各自藏一个随机数，公开"藏起来的数的幂"，然后拿对方的幂自乘自己那个数——两边凑出同一个值。</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>公开参数：大素数 p、生成元 g（明文广播，谁都能看）
+
+Alice                          Bob
+选私钥 a（保密）                 选私钥 b（保密）
+A = g^a mod p    ──发送 A──→
+                 ←─发送 B───    B = g^b mod p
+K = B^a mod p                   K = A^b mod p
+        ↓                              ↓
+   K = (g^b)^a = g^(ab)        K = (g^a)^b = g^(ab)     ← 同一个 K
+</code></pre></div></div>
+
+<h2 id="_7">为什么成立（就一步代数）</h2>
+<p>$$K = B^a = (g^b)^a = g^{ab} = (g^a)^b = A^b$$</p>
+<p>指数可以交换相乘，这就是它能"各算各的却算出同一个数"的全部原因。</p>
+<h2 id="_8">真实数据</h2>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">p</span><span class="p">,</span> <span class="n">g</span> <span class="o">=</span> <span class="mi">23</span><span class="p">,</span> <span class="mi">5</span>
+<span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">15</span>              <span class="c1"># 两人各自保密</span>
+<span class="n">A</span><span class="p">,</span> <span class="n">B</span> <span class="o">=</span> <span class="nb">pow</span><span class="p">(</span><span class="n">g</span><span class="p">,</span><span class="n">a</span><span class="p">,</span><span class="n">p</span><span class="p">),</span> <span class="nb">pow</span><span class="p">(</span><span class="n">g</span><span class="p">,</span><span class="n">b</span><span class="p">,</span><span class="n">p</span><span class="p">)</span>   <span class="c1"># A=8, B=19，走明信道</span>
+<span class="n">K1</span><span class="p">,</span> <span class="n">K2</span> <span class="o">=</span> <span class="nb">pow</span><span class="p">(</span><span class="n">B</span><span class="p">,</span><span class="n">a</span><span class="p">,</span><span class="n">p</span><span class="p">),</span> <span class="nb">pow</span><span class="p">(</span><span class="n">A</span><span class="p">,</span><span class="n">b</span><span class="p">,</span><span class="n">p</span><span class="p">)</span> <span class="c1"># 都是 2</span>
+</code></pre></div></div>
+
+<p>窃听者手上只有 $p=23,\ g=5,\ A=8,\ B=19$，要解密就得先解 $5^a\equiv 8 \pmod{23}$ —— 这正是 <strong>DLP</strong>。</p>
+<h2 id="_9">安全性与前提</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>依赖难题</td>
+<td><strong>CDH</strong>（Computational DH）：由 $g^a,g^b$ 算出 $g^{ab}$ 难；CDH 不会比 DLP 更难</td>
+</tr>
+<tr>
+<td>参数要求</td>
+<td>$p$ 至少 2048/3072 位；$p-1$ 必须含大素因子（否则 Pohlig–Hellman 拆解）；$g$ 应落在<strong>大素数阶子群</strong>里</td>
+</tr>
+<tr>
+<td>必须拦</td>
+<td>小阶子群攻击：攻击者伪造 $B'$ 为小阶元素，反复试探能把 $b$ 模小素数算出来 → 现代实现要求校验公钥阶、有 NIST 安全素数</td>
+</tr>
+<tr>
+<td>无认证</td>
+<td><strong>DH 本身不验证对方身份</strong>，可被中间人（MITM）完全接管：攻击者对 Alice 冒充 Bob、对 Bob 冒充 Alice，两段 DH 各自成立 → 实践中必须配签名/证书（即 STS、TLS 里的 ECDHE + 证书）</td>
+</tr>
+<tr>
+<td>也要防离线爆破</td>
+<td>纯 DH 得到的 $g^{ab}$ 是群元素不是随机串，得先过 KDF 再用</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="_10">变体与延伸</h2>
+<ul>
+<li><strong>ECDH</strong>：把群换成椭圆曲线，256 位即可，TLS 1.3 默认就是 ECDHE。</li>
+<li><strong>DHE / ECDHE</strong>：每次会话现生成 $a,b$，即"临时密钥"，提供<strong>前向保密</strong>（长期私钥泄露也解不开历史流量）。</li>
+<li><strong>ElGamal</strong>：把 DH 的"算共享密钥"改成"直接加密"，$C_1=g^k,\ C_2=m\cdot h^k$。</li>
+<li><strong>Schnorr</strong>：把 DH 的"各自幂"改成"承诺 + 挑战 + 响应"，可得零知识证明与签名（见 <code>04-其他/Schnorr协议.md</code>）。</li>
+</ul>
+<h2 id="dhschnorrecc">DH、Schnorr、ECC 的关系（最容易混的一点）</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>名词</th>
+<th>是什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DLP</td>
+<td>一个<strong>难题</strong></td>
+</tr>
+<tr>
+<td>ECC</td>
+<td>一个<strong>群</strong>（承载 DLP 的地方）</td>
+</tr>
+<tr>
+<td>DH / Schnorr</td>
+<td>一个<strong>协议</strong>（把 DLP 用起来）</td>
+</tr>
+</tbody>
+</table></div>
+<p>所以"Schnorr、DH、ECC 都基于离散对数"这句话里，三者并不在同一层——<strong>协议决定怎么用，群决定难不难</strong>。</p></div>
+      <div class="post-nav"><a class="pn-item prev" href="mi-ma-xue-chang-yong-han-shu-su-cha.html"><span>← 上一篇</span><strong>密码学常用函数速查</strong></a><a class="pn-item next" href="kai-yuan-lan-dui-xiang-mu-qing-dan-github.html"><span>下一篇 →</span><strong>开源蓝队项目清单（GitHub）</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">一句话</a><a href="#_2" class="toc-lv2">前提：群、生成元、阶</a><a href="#_3" class="toc-lv2">实例</a><a href="#_4" class="toc-lv2">难度由「群」决定，不是由方程决定</a><a href="#dlp" class="toc-lv2">DLP ≠ 大整数分解</a><a href="#dh-diffiehellman" class="toc-lv2">DH 密钥交换（Diffie–Hellman）</a><a href="#_5" class="toc-lv2">解决什么问题</a><a href="#_6" class="toc-lv2">流程（一句话版）</a><a href="#_7" class="toc-lv2">为什么成立（就一步代数）</a><a href="#_8" class="toc-lv2">真实数据</a><a href="#_9" class="toc-lv2">安全性与前提</a><a href="#_10" class="toc-lv2">变体与延伸</a><a href="#dhschnorrecc" class="toc-lv2">DH、Schnorr、ECC 的关系（最容易混的一点）</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

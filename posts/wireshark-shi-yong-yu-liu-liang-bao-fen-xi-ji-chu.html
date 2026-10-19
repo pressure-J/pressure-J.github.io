@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wireshark使用与流量包分析基础 · pressure-J</title>
+<meta name="description" content="Wireshark 是一个抓取/查看网络数据包的工具。数据在网络中按数据包(packet)传输,像一封封信。Wireshark 能把这些包拆开,把三层内容全展示出来。">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/wireshark-shi-yong-yu-liu-liang-bao-fen-xi-ji-chu.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Wireshark使用与流量包分析基础 · pressure-J">
+<meta property="og:description" content="Wireshark 是一个抓取/查看网络数据包的工具。数据在网络中按数据包(packet)传输,像一封封信。Wireshark 能把这些包拆开,把三层内容全展示出来。">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/base.html">基础</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>Wireshark使用与流量包分析基础</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-base">基础</span>
+          <time datetime="2026-09-09">2026-09-09</time>
+          <span>1987 字</span>
+          <span>约 5 分钟</span>
+        </div>
+        <div class="chips post-tags"><span class="chip">network</span></div>
+      </header>
+      <div class="content"><h2 id="wireshark">一、Wireshark 是什么</h2>
+<p>Wireshark 是一个<strong>抓取/查看网络数据包</strong>的工具。数据在网络中按**数据包(packet)**传输,像一封封信。Wireshark 能把这些包拆开,把三层内容全展示出来。</p>
+<h2 id="_1">二、网络分层心智模型</h2>
+<p>数据发送时套三层"包装"(像快递):</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>层</th>
+<th>快递类比</th>
+<th>协议</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>应用层</td>
+<td>信的内容</td>
+<td>HTTP/FTP/DNS</td>
+<td>真正的数据(网页、flag)</td>
+</tr>
+<tr>
+<td>传输层</td>
+<td>贴的标签</td>
+<td>TCP/UDP</td>
+<td>端口号、顺序号</td>
+</tr>
+<tr>
+<td>网络层</td>
+<td>快递单</td>
+<td>IP</td>
+<td>源IP、目标IP</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Wireshark 就是帮你把每个包的三层包装逐层拆开看。</strong></p>
+<h2 id="_2">三、界面三大面板</h2>
+<p>双击一个包后,窗口分三栏:</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>┌─────────────────────────────────────────────────┐
+│ ① 包列表(上)  所有包的"目录",一行一个包       │
+├─────────────────────────────────────────────────┤
+│ ② 包详情(中)  选中包的"分层拆解"             │
+│    Frame → Ethernet → IP → TCP → HTTP         │
+├─────────────────────────────────────────────────┤
+│ ③ 包字节(下)  原始二进制,左hex右ASCII        │
+└─────────────────────────────────────────────────┘
+</code></pre></div></div>
+
+<p>记忆:①看整体 → ②看分层 → ③看原始字节。</p>
+<h2 id="_3">四、核心操作</h2>
+<h3 id="1">1. 打开文件</h3>
+<p><code>File → Open</code>,支持 <code>.pcap</code> / <code>.pcapng</code> 格式。</p>
+<h3 id="2">2. 显示过滤器(最重要)</h3>
+<p>顶部绿色输入框,<strong>只显示符合条件的包</strong>。做题第一步永远是这个。</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>http              → 只看HTTP
+tcp                → 只看TCP
+dns                → 只看DNS
+ip.src == 1.2.3.4  → 只看这个IP发出的
+tcp.port == 80     → 只看80端口
+</code></pre></div></div>
+
+<h3 id="3-follow-tcp-stream">3. Follow TCP Stream(追完整对话)</h3>
+<p>对 TCP 包 <strong>右键 → Follow → TCP Stream</strong>,显示<strong>完整请求+响应内容</strong>(把拆散的包拼回原始对话)。</p>
+<p><strong>原理</strong>:数据被拆成很多小包(像书撕成一页页寄出),单独看任何一包都是碎片。Follow 做的事:<br />
+1. 按 源IP:端口+目标IP:端口 找出同一条流的全部包<br />
+2. 剥掉每层包装<br />
+3. 按顺序拼回原样</p>
+<p><strong>一句话</strong>:普通视图=看一堆信封;Follow 流=把某一封信的所有信封拆开拼回完整内容。</p>
+<h3 id="4-export-objects">4. Export Objects(导出流量里的文件)</h3>
+<p><code>File → Export Objects → HTTP</code>,列出所有通过 HTTP 传输的文件,一键导出。图片、压缩包、flag 文件都在这。</p>
+<h3 id="5">5. 搜索</h3>
+<p><code>Ctrl+F</code> → 选 <strong>String / Packet bytes</strong> → 搜 <code>flag</code> / <code>{</code> / <code>key</code>。</p>
+<h2 id="_4">五、流量包基本信息</h2>
+<h3 id="_5">常见格式</h3>
+<ul>
+<li><code>.pcap</code>:经典格式(旧)</li>
+<li><code>.pcapng</code>:新格式,可存多条接口流量</li>
+</ul>
+<h3 id="_6">常用工具(命令行)</h3>
+<p>Wireshark 自带 <code>tshark.exe</code>,可直接命令行分析:</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>tshark<span class="w"> </span>-r<span class="w"> </span>文件.pcap<span class="w"> </span>-q<span class="w"> </span>-z<span class="w"> </span>io,phs<span class="w">        </span><span class="c1"># 协议统计,看哪个协议占大头</span>
+tshark<span class="w"> </span>-r<span class="w"> </span>文件.pcap<span class="w"> </span>-q<span class="w"> </span>-z<span class="w"> </span>conv,tcp<span class="w">      </span><span class="c1"># TCP 会话列表(有多少条流)</span>
+tshark<span class="w"> </span>-r<span class="w"> </span>文件.pcap<span class="w"> </span>-q<span class="w"> </span>-z<span class="w"> </span>follow,tcp,ascii,0<span class="w">   </span><span class="c1"># Follow 第0条流,ASCII显示</span>
+tshark<span class="w"> </span>-r<span class="w"> </span>文件.pcap<span class="w"> </span>-Y<span class="w"> </span><span class="s2">"http.request"</span><span class="w"> </span>-T<span class="w"> </span>fields<span class="w"> </span>-e<span class="w"> </span>http.request.uri<span class="w">  </span><span class="c1"># 过滤+提取字段</span>
+</code></pre></div></div>
+
+<h3 id="_7">常见端口</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>端口</th>
+<th>服务</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>80 / 443</td>
+<td>HTTP / HTTPS</td>
+</tr>
+<tr>
+<td>22</td>
+<td>SSH</td>
+</tr>
+<tr>
+<td>21 / 20</td>
+<td>FTP</td>
+</tr>
+<tr>
+<td>25 / 110</td>
+<td>SMTP / POP3</td>
+</tr>
+<tr>
+<td>53</td>
+<td>DNS</td>
+</tr>
+<tr>
+<td>3306</td>
+<td>MySQL</td>
+</tr>
+<tr>
+<td>7890 / 1080</td>
+<td>常见代理端口</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="_8">六、常见坑</h2>
+<ol>
+<li><strong>包 ≠ 流</strong>:包列表一行一个包;一条流可能被拆成几十上百个包。看到一堆小包先 Follow,别一个个看。</li>
+<li><strong>一个字符一个包</strong>:有些题每个包只带 1 字节(如代理流量),Follow 后拼回完整文本。</li>
+<li><strong>扩展名可伪造</strong>:导出的文件先用工具识别真实类型,别信后缀。</li>
+<li><strong>搜索字符串</strong>:看到乱码先 Ctrl+F 搜 <code>flag</code> / <code>{</code>,比肉眼扫快得多。</li>
+</ol>
+<h2 id="_9">七、本机环境</h2>
+<ul>
+<li>Wireshark 便携版:<code>~/tools\Wireshark\Wireshark.exe</code></li>
+<li>tshark 命令行:<code>~/tools\Wireshark\tshark.exe</code></li>
+<li>Wireshark 未加入系统 PATH,要用全路径或先 <code>Set-Alias</code></li>
+</ul>
+<p><em>最后更新：2026年9月9日</em></p></div>
+      <div class="post-nav"><a class="pn-item prev" href="liu-mi-ma-mi-yao-zhong-yong.html"><span>← 上一篇</span><strong>流密码密钥重用</strong></a><a class="pn-item next" href="liu-liang-fen-xi-ti-mu-jie-ti-bu-zhou.html"><span>下一篇 →</span><strong>流量分析题目解题步骤</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#wireshark" class="toc-lv2">一、Wireshark 是什么</a><a href="#_1" class="toc-lv2">二、网络分层心智模型</a><a href="#_2" class="toc-lv2">三、界面三大面板</a><a href="#_3" class="toc-lv2">四、核心操作</a><a href="#1" class="toc-lv3">1. 打开文件</a><a href="#2" class="toc-lv3">2. 显示过滤器(最重要)</a><a href="#3-follow-tcp-stream" class="toc-lv3">3. Follow TCP Stream(追完整对话)</a><a href="#4-export-objects" class="toc-lv3">4. Export Objects(导出流量里的文件)</a><a href="#5" class="toc-lv3">5. 搜索</a><a href="#_4" class="toc-lv2">五、流量包基本信息</a><a href="#_5" class="toc-lv3">常见格式</a><a href="#_6" class="toc-lv3">常用工具(命令行)</a><a href="#_7" class="toc-lv3">常见端口</a><a href="#_8" class="toc-lv2">六、常见坑</a><a href="#_9" class="toc-lv2">七、本机环境</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

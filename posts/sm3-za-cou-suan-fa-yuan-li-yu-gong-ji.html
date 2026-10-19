@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SM3-杂凑算法原理与攻击 · pressure-J</title>
+<meta name="description" content="国密密码杂凑算法，标准号 GM/T 0004（GB/T 32905）。输入任意长度，输出固定 256 bit 摘要（8 个 32 位字）。设计对标 SHA-256，同为 Merkle–Damgård 结构。">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/sm3-za-cou-suan-fa-yuan-li-yu-gong-ji.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="SM3-杂凑算法原理与攻击 · pressure-J">
+<meta property="og:description" content="国密密码杂凑算法，标准号 GM/T 0004（GB/T 32905）。输入任意长度，输出固定 256 bit 摘要（8 个 32 位字）。设计对标 SHA-256，同为 Merkle–Damgård 结构。">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/crypto.html">密码学</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>SM3-杂凑算法原理与攻击</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-crypto">密码学</span>
+          <time datetime="2026-10-14">2026-10-14</time>
+          <span>5587 字</span>
+          <span>约 15 分钟</span>
+        </div>
+        <div class="chips post-tags"><span class="chip">crypto</span><span class="chip">hash</span><span class="chip">sm3</span></div>
+      </header>
+      <div class="content"><p>国密<strong>密码杂凑算法</strong>，标准号 <strong>GM/T 0004</strong>（GB/T 32905）。输入任意长度，输出固定 <strong>256 bit</strong> 摘要（8 个 32 位字）。设计对标 SHA-256，<strong>同为 Merkle–Damgård 结构</strong>。</p>
+<blockquote>
+<p>姊妹篇：<a href="../posts/sm2-tuo-yuan-qu-xian-gong-yao-suan-fa-yuan-li-yu-gong-ji.html">SM2-椭圆曲线公钥算法原理与攻击</a> · <a href="../posts/sm4-fen-zu-mi-ma-yuan-li-yu-gong-ji.html">SM4-分组密码原理与攻击</a></p>
+</blockquote>
+<h2 id="1">1. 题型识别（看到就用）</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>题面特征</th>
+<th>攻击</th>
+<th>脚本</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>digest = SM3(SECRET \|\| 用户数据)</code>，要伪造合法摘要</td>
+<td><strong>长度扩展攻击</strong>（MD 结构通病）</td>
+<td><code>SM3-长度扩展攻击-solve.py</code></td>
+</tr>
+<tr>
+<td>给两个不同消息但要相同摘要</td>
+<td>碰撞（全 64 轮不可行，仅学术）</td>
+<td>—</td>
+</tr>
+<tr>
+<td>给摘要求原像 / 短明文</td>
+<td>字典爆破、彩虹表</td>
+<td><code>..\01-基础密码\hash-brute-force-solve.py</code></td>
+</tr>
+<tr>
+<td>题目自定义 IV 或截断输出</td>
+<td>先核对是否标准 SM3（改 IV 就不是标准算法）</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>hashlib</code> 里找不到 SM3</td>
+<td>用 <code>gmssl</code> 或 OpenSSL</td>
+<td>见第 4 节</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="2">2. 算法原理</h2>
+<h3 id="21">2.1 整体流程</h3>
+<blockquote>
+<p>消息 M → 填充到 512 bit 倍数 → 分块 B₀ B₁ ... Bₙ₋₁<br />
+→ V₀ = IV<br />
+→ for i: V_{i+1} = CF(V_i, B_i)<br />
+→ 输出 V_n（256 bit）</p>
+</blockquote>
+<ul>
+<li><strong>分组 512 bit，摘要 256 bit，压缩函数 64 轮。</strong></li>
+<li>CF 是压缩函数，可看作分组密码的 <strong>Davies–Meyer 模式</strong>（$V_{i+1} = E_{B_i}(V_i) \oplus V_i$）。</li>
+</ul>
+<h3 id="22-iv">2.2 初始向量 IV</h3>
+<p>SM3 的 IV 是<strong>独立设计</strong>的，与 SHA-256 完全不同（这点常被误传）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th>值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>SM3 IV</strong></td>
+<td><code>7380166f 4914b2b9 172442d7 da8a0600 a96f30bc 163138aa e38dee4d b0fb0e4e</code></td>
+</tr>
+<tr>
+<td>SHA-256 IV</td>
+<td><code>6a09e667 bb67ae85 3c6ef372 a54ff53a 510e527f 9b05688c 1f83d9ab 5be0cd19</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>实测确认两者无一字相同——<strong>SM3 是独立设计，不是改自 SHA-256</strong>。</p>
+<h3 id="23">2.3 消息填充（关键：长度扩展攻击的基础）</h3>
+<p>记消息长度为 $l$ 比特，填充规则：</p>
+<ol>
+<li>追加一个 <code>0x80</code>（比特 <code>1</code> 后跟 <code>0</code>）；</li>
+<li>补 <code>0x00</code> 直到长度 $\equiv 448 \pmod{512}$；</li>
+<li>追加 <strong>8 字节大端</strong>的原始长度 $l$（<strong>以 bit 计</strong>）。</li>
+</ol>
+<p><strong>注意长度是 bit 不是 byte</strong>——这是实现时最容易错的点。填充后总长是 512 的倍数。</p>
+<h3 id="24">2.4 消息扩展</h3>
+<p>每个 512 bit 分组 $B$ 拆成 16 个 32 位字 $W_0..W_{15}$，扩展成 <strong>68 个 $W$</strong>：</p>
+<p>$$W_j = P_1(W_{j-16} \oplus W_{j-9} \oplus (W_{j-3} \lll 15)) \oplus (W_{j-13} \lll 7) \oplus W_{j-6}, \quad j = 16..67$$</p>
+<p>再生成 <strong>64 个 $W'$</strong>：</p>
+<p>$$W'<em j_4="j+4">j = W_j \oplus W</em>, \quad j = 0..63$$</p>
+<h3 id="25-64">2.5 压缩函数（64 轮）</h3>
+<p>状态 $V = (A,B,C,D,E,F,G,H)$，每轮：</p>
+<p>$$<br />
+\begin{aligned}<br />
+SS_1 &amp;= ((A \lll 12) + E + (T_j \lll j)) \lll 7 \<br />
+SS_2 &amp;= SS_1 \oplus (A \lll 12) \<br />
+TT_1 &amp;= FF_j(A,B,C) + D + SS_2 + W'_j \<br />
+TT_2 &amp;= GG_j(E,F,G) + H + SS_1 + W_j<br />
+\end{aligned}<br />
+$$</p>
+<p>然后整体左移一位：</p>
+<p>$$D \leftarrow C,\ C \leftarrow B \lll 9,\ B \leftarrow A,\ A \leftarrow TT_1$$<br />
+$$H \leftarrow G,\ G \leftarrow F \lll 19,\ F \leftarrow E,\ E \leftarrow P_0(TT_2)$$</p>
+<p><strong>布尔函数</strong>（前 16 轮与后 48 轮不同，实测源码确认）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>轮</th>
+<th>$FF_j$</th>
+<th>$GG_j$</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$0\le j&lt;16$</td>
+<td>$X \oplus Y \oplus Z$</td>
+<td>$X \oplus Y \oplus Z$</td>
+</tr>
+<tr>
+<td>$16\le j&lt;64$</td>
+<td>$(X \wedge Y) \vee (X \wedge Z) \vee (Y \wedge Z)$</td>
+<td>$(X \wedge Y) \vee (\neg X \wedge Z)$</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>置换函数</strong>（实测确认移位量）：</p>
+<p>$$P_0(X) = X \oplus (X \lll 9) \oplus (X \lll 17)$$<br />
+$$P_1(X) = X \oplus (X \lll 15) \oplus (X \lll 23)$$</p>
+<p><strong>轮常数 $T_j$</strong>（实测只有两个取值）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>轮</th>
+<th>$T_j$</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$0\le j&lt;16$</td>
+<td><code>0x79cc4519</code></td>
+</tr>
+<tr>
+<td>$16\le j&lt;64$</td>
+<td><code>0x7a879d8a</code></td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="26">2.6 标准测试向量（本机已核对）</h3>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">gmssl</span><span class="w"> </span><span class="kn">import</span> <span class="n">sm3</span><span class="p">,</span> <span class="n">func</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">sm3</span><span class="o">.</span><span class="n">sm3_hash</span><span class="p">(</span><span class="n">func</span><span class="o">.</span><span class="n">bytes_to_list</span><span class="p">(</span><span class="sa">b</span><span class="s1">'abc'</span><span class="p">)))</span>
+</code></pre></div></div>
+
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>输入</th>
+<th>摘要</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>"abc"</code></td>
+<td><code>66c7f0f462eeedd9d1f2d46bdc10e4e24167c4875cf2f7a2297da02b8f4ba8e0</code> ✅</td>
+</tr>
+<tr>
+<td><code>"abcd"×16</code></td>
+<td><code>debe9ff92275b8a138604889c18e5a4d6fdb70e5387e5765293dcba39c0c5732</code> ✅</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="3">3. 常见攻击</h2>
+<h3 id="31-ctf">3.1 攻击一：长度扩展攻击（CTF 高频，必会）</h3>
+<p><strong>根因</strong>：MD 结构下<strong>摘要 = 最后一次压缩后的内部状态 $V$</strong>，原始长度只参与了填充、<strong>没有在最后混回输出</strong>。所以拿到 digest 就等于拿到了内部状态。</p>
+<p><strong>攻击场景</strong>：</p>
+<blockquote>
+<p>服务端计算:  digest = SM3(SECRET || user_data)     # SECRET 未知<br />
+攻击者目标:  伪造 SM3(SECRET || user_data || padding || append) 的合法摘要</p>
+</blockquote>
+<p><strong>攻击步骤</strong>：</p>
+<ol>
+<li>把已知 digest 的 8 个字直接当作内部状态 $V$；</li>
+<li>从该状态<strong>继续向后压缩</strong> <code>append</code> + 新填充；</li>
+<li>算出新摘要，连同 <code>user_data || padding || append</code> 一起提交，服务端会接受。</li>
+</ol>
+<p><strong>三个必踩的坑</strong>：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>坑</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>填充分两个位置</strong></td>
+<td><code>glue = pad(secret_len + len(orig_data))</code> 把<strong>原消息</strong>补到分组边界，它<strong>已体现在已知 digest 里</strong>，不要重复压缩；从 state 出发只需压缩 <code>append + tail</code>，其中 <code>tail = pad(新总长度)</code></td>
+</tr>
+<tr>
+<td><strong>SECRET 长度必须对</strong></td>
+<td>长度错则填充全错、摘要全错。不知道就<strong>爆破 0..63</strong>，靠服务端是否接受判定</td>
+</tr>
+<tr>
+<td><strong>长度以 bit 计</strong></td>
+<td>填充尾部 8 字节是 <code>原长度 × 8</code> 的大端表示</td>
+</tr>
+</tbody>
+</table></div>
+<p>实测（<code>SM3-长度扩展攻击-solve.py</code>）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>服务端密钥</td>
+<td><code>b's3cr3t_k3y_16byte'</code>（长度 <strong>17</strong>，攻击者不可见）</td>
+</tr>
+<tr>
+<td>原始数据</td>
+<td><code>user=guest&amp;role=guest</code></td>
+</tr>
+<tr>
+<td>原始摘要</td>
+<td><code>8f25a69ec69abd2414491aef1b61e996e11385f316ded584e6544964ead0a7fa</code></td>
+</tr>
+<tr>
+<td>爆破长度 0..63</td>
+<td>命中 <strong>L = 17</strong></td>
+</tr>
+<tr>
+<td>伪造摘要</td>
+<td><code>773c27addcefd07d879e2592b5a7f08e10936a85e09b1585d0ab9f159f40e0b1</code></td>
+</tr>
+<tr>
+<td>服务端接受伪造请求</td>
+<td>✅ True</td>
+</tr>
+</tbody>
+</table></div>
+<p>反例：猜长度 0/4/8/12/20 全部被拒绝，<strong>只有真实长度 17 通过</strong>。</p>
+<h3 id="32">3.2 攻击二：原像攻击与哈希爆破</h3>
+<ul>
+<li>全 64 轮 SM3 原像攻击复杂度 $2^{256}$，不可行。</li>
+<li>但<strong>明文空间小</strong>时（弱口令、短数字、残缺明文），直接字典/暴力最有效。</li>
+<li>工具：<code>hashcat</code>、<code>john</code>；CTF 残缺明文（<code>?</code> 占位）用 <code>..\01-基础密码\hash-brute-force-solve.py</code>（方法见同目录 <code>..\01-基础密码\哈希明文爆破.md</code>）。</li>
+</ul>
+<h3 id="33">3.3 攻击三：碰撞攻击（学术向）</h3>
+<p>公开最好的结果（截至权威汇总）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>攻击类型</th>
+<th>目标</th>
+<th>覆盖轮数</th>
+<th>复杂度</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>碰撞</td>
+<td>完整哈希</td>
+<td>20 / 64</td>
+<td>实用</td>
+</tr>
+<tr>
+<td>自由起始碰撞</td>
+<td>压缩函数</td>
+<td>24 / 64</td>
+<td>实用</td>
+</tr>
+<tr>
+<td>原像</td>
+<td>完整哈希</td>
+<td>28 / 64</td>
+<td>$2^{241.5}$</td>
+</tr>
+<tr>
+<td>回旋镖区分器</td>
+<td>压缩函数</td>
+<td>37~38 / 64</td>
+<td>$2^{125}$ ~ $2^{192}$</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>全 64 轮碰撞无可行攻击</strong>（Mendel 等人 2013 年只做到 20 轮）。MD-SHA 家族里 SM3 的抗碰撞轮数占比最低（31%），安全裕度优于 SHA-1。</p>
+<blockquote>
+<p>CTF 不会考这个，但面试会问"SM3 安全吗"——答：<strong>全轮安全，缩减轮数有理论攻击</strong>。</p>
+</blockquote>
+<h3 id="34-md">3.4 攻击四：MD 结构固有弱点汇总</h3>
+<p>长度扩展攻击只是 MD 结构弱点之一：</p>
+<ul>
+<li><strong>长度扩展</strong>（已述）；</li>
+<li><strong>第二原像</strong>的 herding 攻击（对长消息可降复杂性）；</li>
+<li><strong>多碰撞</strong>（Joux 攻击）—— 影响基于 MD 哈希的"concatenation"构造安全性。</li>
+</ul>
+<p><strong>防御</strong>：改用 <strong>SM3-HMAC</strong>（标准接口常量 <code>SGD_SM3_HMAC = 0x00000008</code>），或换 SHA-3 这类海绵结构（天然免疫长度扩展）。</p>
+<h3 id="35-iv">3.5 攻击五：弱实现与自定义 IV</h3>
+<ul>
+<li>题面若给出<strong>非标准 IV</strong>，务必核对——很多"看起来是 SM3"的题其实是自造的类 SM3。</li>
+<li>截断输出（取前 128 bit）会显著降低抗碰撞强度，可做生日攻击。</li>
+<li>单次调用处理多消息时复用状态（未重置 IV）→ 状态残留泄露。</li>
+</ul>
+<h2 id="4">4. 工具链</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>工具</th>
+<th>用法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OpenSSL 3.5.5</td>
+<td><code>echo -n abc \| openssl dgst -sm3</code>（本机已实测）</td>
+</tr>
+<tr>
+<td>Python <code>gmssl</code></td>
+<td><code>sm3.sm3_hash(func.bytes_to_list(b'...'))</code></td>
+</tr>
+<tr>
+<td>Python <code>hashlib</code></td>
+<td>⚠️ <strong>标准库 3.x 不提供 SM3</strong>，别在这找</td>
+</tr>
+<tr>
+<td><code>gmssl</code> 底层函数</td>
+<td><code>sm3_cf(v_i, b_i)</code> 可直接调用压缩函数——<strong>做长度扩展攻击必须用它</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>gmssl 的坑（实测）</strong>：</p>
+<ul>
+<li><code>sm3_hash(msg)</code> 接收的是 <strong>list of int</strong>，不是 bytes。直接传 bytes 会出错，必须 <code>func.bytes_to_list(b'...')</code>。</li>
+<li><code>sm3_cf(v_i, b_i)</code> 是<strong>导出可用的</strong>，长度扩展攻击正是靠它从任意状态继续压缩。</li>
+<li><code>sm3_kdf(z, klen)</code> 是 SM2 加密用的 KDF（$KDF = SM3(Z | ct)$ 迭代，ct 从 1 递增），参数 <code>z</code> 是 hex 字符串的 bytes。</li>
+</ul>
+<h2 id="5">5. 面试速答卡</h2>
+<p><strong>问：SM3 和 SHA-256 的本质区别？</strong><br />
+答：同为 <strong>MD 结构</strong>、512 bit 分组、256 bit 输出、64 轮。<strong>IV 完全不同</strong>（SM3 独立设计）；压缩函数不同——SM3 消息扩展出 <strong>68 个 W + 64 个 W'</strong>（SHA-256 是 64 个 W）；轮常数 SM3 只有两个取值 <code>0x79cc4519</code>/<code>0x7a879d8a</code>（SHA-256 有 64 个不同常数）；布尔函数 16 轮切换（SHA-256 是 20 轮切换 Cha/ Maj）。<strong>安全性质等同</strong>。</p>
+<p><strong>问：SM3 有长度扩展攻击吗？为什么？</strong><br />
+答：<strong>有</strong>。因为它是 MD 结构——摘要就是最后压缩后的内部状态，原始长度只进了填充没混回输出。所以拿到 digest = 拿到状态，可以继续往后压缩任意数据。</p>
+<p><strong>问：怎么防长度扩展攻击？</strong><br />
+答：用 HMAC（<code>HMAC(SECRET, msg)</code>）代替 <code>H(SECRET || msg)</code>；或换 SHA-3 海绵结构。</p>
+<p><strong>问：SM3 的抗碰撞性怎么样？</strong><br />
+答：全 64 轮无可行攻击；公开最好仅 20 轮碰撞、24 轮自由起始碰撞。MD-SHA 家族里安全裕度最好。</p>
+<p><strong>问：SM3 的 P0 和 P1 分别什么时候用？</strong><br />
+答：$P_0$ 用于压缩函数中 $TT_2$ 的输出（$E \leftarrow P_0(TT_2)$）；$P_1$ 用于<strong>消息扩展</strong>生成 $W_j$。$P_0$ 移位 9/17，$P_1$ 移位 15/23。</p>
+<h2 id="6">6. 验证记录</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>方式</th>
+<th>结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>官方向量 "abc"</td>
+<td><code>openssl dgst -sm3</code> + gmssl</td>
+<td>✅ 与 GB/T 32905 一致</td>
+</tr>
+<tr>
+<td>官方向量 "abcd"×16</td>
+<td>同上</td>
+<td>✅ 一致</td>
+</tr>
+<tr>
+<td>IV 独立性</td>
+<td>对比 SM3/SHA-256 IV</td>
+<td>✅ 无一字相同</td>
+</tr>
+<tr>
+<td>轮常数 $T_j$</td>
+<td>读 gmssl 源码</td>
+<td>✅ 仅两个取值，16 轮切换</td>
+</tr>
+<tr>
+<td>P0/P1 移位量</td>
+<td>读源码</td>
+<td>✅ 9/17 与 15/23</td>
+</tr>
+<tr>
+<td>FF/GG 轮切换点</td>
+<td>读源码</td>
+<td>✅ 第 16 轮切换</td>
+</tr>
+<tr>
+<td>长度扩展攻击</td>
+<td><code>SM3-长度扩展攻击-solve.py</code></td>
+<td>✅ 爆破出长度 17，伪造摘要被接受</td>
+</tr>
+<tr>
+<td>长度扩展反例</td>
+<td>同上</td>
+<td>✅ 猜错长度全被拒</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="7">7. 相关文件</h2>
+<ul>
+<li>题解脚本（本目录）：<code>SM3-长度扩展攻击-solve.py</code></li>
+<li>工具箱：<code>~/tools\CTF工具箱\crypto\18-流密码密钥重用-已知明密文对.py</code></li>
+<li>哈希爆破方法：<code>..\01-基础密码\哈希明文爆破.md</code>｜脚本 <code>..\01-基础密码\hash-brute-force-solve.py</code></li>
+</ul></div>
+      <div class="post-nav"><a class="pn-item prev" href="guo-mi-suan-fa-zong-lan.html"><span>← 上一篇</span><strong>国密算法总览</strong></a><a class="pn-item next" href="sm4-fen-zu-mi-ma-yuan-li-yu-gong-ji.html"><span>下一篇 →</span><strong>SM4-分组密码原理与攻击</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#1" class="toc-lv2">1. 题型识别（看到就用）</a><a href="#2" class="toc-lv2">2. 算法原理</a><a href="#21" class="toc-lv3">2.1 整体流程</a><a href="#22-iv" class="toc-lv3">2.2 初始向量 IV</a><a href="#23" class="toc-lv3">2.3 消息填充（关键：长度扩展攻击的基础）</a><a href="#24" class="toc-lv3">2.4 消息扩展</a><a href="#25-64" class="toc-lv3">2.5 压缩函数（64 轮）</a><a href="#26" class="toc-lv3">2.6 标准测试向量（本机已核对）</a><a href="#3" class="toc-lv2">3. 常见攻击</a><a href="#31-ctf" class="toc-lv3">3.1 攻击一：长度扩展攻击（CTF 高频，必会）</a><a href="#32" class="toc-lv3">3.2 攻击二：原像攻击与哈希爆破</a><a href="#33" class="toc-lv3">3.3 攻击三：碰撞攻击（学术向）</a><a href="#34-md" class="toc-lv3">3.4 攻击四：MD 结构固有弱点汇总</a><a href="#35-iv" class="toc-lv3">3.5 攻击五：弱实现与自定义 IV</a><a href="#4" class="toc-lv2">4. 工具链</a><a href="#5" class="toc-lv2">5. 面试速答卡</a><a href="#6" class="toc-lv2">6. 验证记录</a><a href="#7" class="toc-lv2">7. 相关文件</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

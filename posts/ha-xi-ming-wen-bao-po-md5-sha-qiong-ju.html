@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>哈希明文爆破（MD5/SHA 穷举） · pressure-J</title>
+<meta name="description" content="range(32, 127) # 空格(32) ~ ~ (126)，95 个可打印 ASCII；127 取不到（右开区间）">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/ha-xi-ming-wen-bao-po-md5-sha-qiong-ju.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="哈希明文爆破（MD5/SHA 穷举） · pressure-J">
+<meta property="og:description" content="range(32, 127) # 空格(32) ~ ~ (126)，95 个可打印 ASCII；127 取不到（右开区间）">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/crypto.html">密码学</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>哈希明文爆破（MD5/SHA 穷举）</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-crypto">密码学</span>
+          <time datetime="2026-09-08">2026-09-08</time>
+          <span>1782 字</span>
+          <span>约 5 分钟</span>
+        </div>
+        <div class="chips post-tags"><span class="chip">python</span><span class="chip">ctf</span></div>
+      </header>
+      <div class="content"><blockquote>
+<p>来源：题目给残缺明文模板 + MD5/SHA 哈希（或片段），穷举未知字符恢复明文。配套脚本 <code>hash-brute-force-solve.py</code>。</p>
+</blockquote>
+<h2 id="_1">一、题型识别</h2>
+<ul>
+<li>给残缺明文，含 <code>?</code> 占位未知字符（如 <code>TASC?O3RJMV?WDJKX?ZM</code>）+ 哈希片段</li>
+<li>只给一段哈希，提示"有 N 位未知字符"要爆破</li>
+<li><strong>本质</strong>：哈希单向不可逆，但未知字符 ≤4 时可暴破可行</li>
+</ul>
+<h2 id="hashlib-bytes">二、核心坑：hashlib 只吃 bytes</h2>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">m</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s1">'TASC'</span> <span class="o">+</span> <span class="o">...</span><span class="p">)</span>              <span class="c1"># ❌ Py3: TypeError: Strings must be encoded before hashing</span>
+<span class="n">m</span><span class="o">.</span><span class="n">update</span><span class="p">((</span><span class="s1">'TASC'</span> <span class="o">+</span> <span class="o">...</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>   <span class="c1"># ✅ 先 .encode()</span>
+</code></pre></div></div>
+
+<ul>
+<li>Py2 的 str 本质是字节，能直接喂；Py3 的 str 是 Unicode 文本，<code>update()</code> 只收 <strong>bytes</strong></li>
+<li>口诀：<strong>hashlib 只吃 bytes，喂之前先 <code>.encode()</code></strong></li>
+<li>复刻老 writeup 时第一眼看 <code>update()</code> 参数类型</li>
+</ul>
+<h2 id="_2">三、核心逻辑</h2>
+<h3 id="1">1. 穷举范围</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="nb">range</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="mi">127</span><span class="p">)</span>   <span class="c1"># 空格(32) ~ ~ (126)，95 个可打印 ASCII；127 取不到（右开区间）</span>
+</code></pre></div></div>
+
+<h3 id="2">2. 模板填充 + 哈希 + 子串筛选</h3>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span><span class="o">,</span><span class="w"> </span><span class="nn">itertools</span>
+
+<span class="n">TEMPLATE</span> <span class="o">=</span> <span class="s1">'TASC?O3RJMV?WDJKX?ZM'</span>
+<span class="n">PARTS</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'e9032'</span><span class="p">,</span> <span class="s1">'da'</span><span class="p">,</span> <span class="s1">'911513'</span><span class="p">]</span>   <span class="c1"># 哈希片段，取交集筛唯一解</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">fill</span><span class="p">(</span><span class="n">template</span><span class="p">,</span> <span class="n">vals</span><span class="p">):</span>
+    <span class="n">it</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="n">vals</span><span class="p">)</span>
+    <span class="k">return</span> <span class="s1">''</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">next</span><span class="p">(</span><span class="n">it</span><span class="p">)</span> <span class="k">if</span> <span class="n">c</span> <span class="o">==</span> <span class="s1">'?'</span> <span class="k">else</span> <span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">template</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">matches</span><span class="p">(</span><span class="n">digest</span><span class="p">,</span> <span class="n">parts</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">all</span><span class="p">(</span><span class="n">p</span> <span class="ow">in</span> <span class="n">digest</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">parts</span><span class="p">)</span>
+
+<span class="k">for</span> <span class="n">combo</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span><span class="mi">127</span><span class="p">),</span> <span class="n">repeat</span><span class="o">=</span><span class="n">TEMPLATE</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s1">'?'</span><span class="p">)):</span>
+    <span class="n">plain</span> <span class="o">=</span> <span class="n">fill</span><span class="p">(</span><span class="n">TEMPLATE</span><span class="p">,</span> <span class="p">(</span><span class="nb">chr</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">combo</span><span class="p">))</span>
+    <span class="n">h</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">md5</span><span class="p">(</span><span class="n">plain</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">matches</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">PARTS</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">plain</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span>
+</code></pre></div></div>
+
+<h3 id="3">3. <code>?</code> 填充的惯用技巧</h3>
+<p>用 <code>iter(values)</code> + <code>next(it)</code>：遇到 <code>?</code> 就从字符序列里取下一个，否则保留原字符。这样按顺序填满所有占位符。</p>
+<h2 id="_3">四、规模判断（决定是否值得暴破）</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>未知字符数</th>
+<th>穷举量（95^N）</th>
+<th>可行性</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1–2</td>
+<td>≤9 千</td>
+<td>秒出</td>
+</tr>
+<tr>
+<td>3</td>
+<td>~86 万</td>
+<td>~2s（实测 6.1s 含 95^3）</td>
+</tr>
+<tr>
+<td>4</td>
+<td>~8 千万</td>
+<td>分钟级</td>
+</tr>
+<tr>
+<td>5+</td>
+<td>~77 亿</td>
+<td>❌ 换字典 / 彩虹表 / hashcat mask attack</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>实测：本题 95^3 = 857,375 次，纯 Python 单线程 6.1s，唯一解 <code>TASCJO3RJMVKWDJKXLZM</code> → <code>e9032994dabac08080091151380478a2</code>。</p>
+</blockquote>
+<h2 id="_4">五、易错点</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>坑</th>
+<th>现象</th>
+<th>解决</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>update 收 str</td>
+<td><code>TypeError: ... must be encoded</code></td>
+<td><code>.encode()</code></td>
+</tr>
+<tr>
+<td>片段太短</td>
+<td>多个解</td>
+<td>增加片段，取交集</td>
+</tr>
+<tr>
+<td>用全等判断</td>
+<td>漏解（片段≠全哈希）</td>
+<td>用 <code>in</code> 子串匹配</td>
+</tr>
+<tr>
+<td>字符范围</td>
+<td>漏中文/特殊字符</td>
+<td>按题目调整 charset</td>
+</tr>
+<tr>
+<td>未知字符 &gt;4</td>
+<td>跑不完</td>
+<td>换思路（字典/彩虹表/hashcat）</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="_5">六、可扩展</h2>
+<ul>
+<li><strong>换算法</strong>：改 <code>hashlib.new('sha256', ...)</code></li>
+<li><strong>换字符集</strong>：<code>range(48,123)</code> 只数字+字母，量更小</li>
+<li><strong>提升速度</strong>：<code>itertools.product</code> 换 <code>concurrent.futures</code> 多进程，或用 PyPy / hashcat</li>
+</ul>
+<h2 id="_6">七、小结</h2>
+<ol>
+<li>哈希不可逆，只能穷举未知的小片段。</li>
+<li>用 <code>?</code> 占位 + <code>itertools.product</code> 穷举 + 子串交集筛选。</li>
+<li>hashlib 只收 bytes，先 <code>.encode()</code>。</li>
+<li>未知字符 ≤4 才值得暴破，更大换 hashcat/彩虹表。</li>
+</ol>
+<p><em>最后更新：2026年9月8日</em></p></div>
+      <div class="post-nav"><a class="pn-item prev" href="rsa-di-zhi-shu-guang-bo-gong-ji.html"><span>← 上一篇</span><strong>RSA低指数广播攻击</strong></a><a class="pn-item next" href="wen-ben-wen-jian-du-qu-yu-zheng-ze-ti-qu.html"><span>下一篇 →</span><strong>文本文件读取与正则提取</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">一、题型识别</a><a href="#hashlib-bytes" class="toc-lv2">二、核心坑：hashlib 只吃 bytes</a><a href="#_2" class="toc-lv2">三、核心逻辑</a><a href="#1" class="toc-lv3">1. 穷举范围</a><a href="#2" class="toc-lv3">2. 模板填充 + 哈希 + 子串筛选</a><a href="#3" class="toc-lv3">3. ? 填充的惯用技巧</a><a href="#_3" class="toc-lv2">四、规模判断（决定是否值得暴破）</a><a href="#_4" class="toc-lv2">五、易错点</a><a href="#_5" class="toc-lv2">六、可扩展</a><a href="#_6" class="toc-lv2">七、小结</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

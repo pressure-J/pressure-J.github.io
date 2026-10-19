@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SM2-椭圆曲线公钥算法原理与攻击 · pressure-J</title>
+<meta name="description" content="国密椭圆曲线公钥密码算法，标准号 GM/T 0003。曲线固定为 256 位素域曲线，支持签名、密钥交换、公钥加密三种功能。对标 ECDSA/ECDH/ECIES，但三处关键设计不同（见第 3 节）。">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/sm2-tuo-yuan-qu-xian-gong-yao-suan-fa-yuan-li-yu-gong-ji.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="SM2-椭圆曲线公钥算法原理与攻击 · pressure-J">
+<meta property="og:description" content="国密椭圆曲线公钥密码算法，标准号 GM/T 0003。曲线固定为 256 位素域曲线，支持签名、密钥交换、公钥加密三种功能。对标 ECDSA/ECDH/ECIES，但三处关键设计不同（见第 3 节）。">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/crypto.html">密码学</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>SM2-椭圆曲线公钥算法原理与攻击</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-crypto">密码学</span>
+          <time datetime="2026-10-14">2026-10-14</time>
+          <span>7121 字</span>
+          <span>约 19 分钟</span>
+        </div>
+        <div class="chips post-tags"><span class="chip">crypto</span><span class="chip">ecc</span><span class="chip">sm2</span></div>
+      </header>
+      <div class="content"><p>国密<strong>椭圆曲线公钥密码算法</strong>，标准号 <strong>GM/T 0003</strong>。曲线固定为 256 位素域曲线，支持<strong>签名、密钥交换、公钥加密</strong>三种功能。对标 ECDSA/ECDH/ECIES，但<strong>三处关键设计不同</strong>（见第 3 节）。</p>
+<blockquote>
+<p>姊妹篇：<a href="../posts/sm3-za-cou-suan-fa-yuan-li-yu-gong-ji.html">SM3-杂凑算法原理与攻击</a> · <a href="../posts/sm4-fen-zu-mi-ma-yuan-li-yu-gong-ji.html">SM4-分组密码原理与攻击</a></p>
+</blockquote>
+<h2 id="1">1. 题型识别（看到就用）</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>题面特征</th>
+<th>攻击</th>
+<th>脚本</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>两组 SM2 签名 + 线索「同一随机数」「设备随机数缺陷」</td>
+<td><strong>k 重用 → 直接恢复私钥</strong></td>
+<td><code>SM2-随机数k重用攻击-solve.py</code></td>
+</tr>
+<tr>
+<td>同一条曲线两次加密，C1 相同</td>
+<td>加密 nonce 重用 → 密钥流异或</td>
+<td>见 3.4</td>
+</tr>
+<tr>
+<td>签名只用到部分随机数比特（如低位为 0）</td>
+<td>格攻击 / HNP</td>
+<td>—</td>
+</tr>
+<tr>
+<td>题面给了<strong>非标准</strong> a/b/G</td>
+<td>无效曲线、小阶子群（前提见 3.3）</td>
+<td>—</td>
+</tr>
+<tr>
+<td>服务端不校验点是否在曲线上</td>
+<td>无效曲线攻击求私钥模小素数</td>
+<td>—</td>
+</tr>
+<tr>
+<td>曲线阶 n 有小因子</td>
+<td>小阶子群 + CRT</td>
+<td>—</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="2">2. 算法原理</h2>
+<h3 id="21">2.1 曲线参数（固定不可换）</h3>
+<p>曲线方程 $y^2 = x^3 + ax + b \pmod p$：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>参数</th>
+<th>值（十六进制）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>p</td>
+<td><code>FFFFFFFE FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF 00000000 FFFFFFFF FFFFFFFF</code></td>
+</tr>
+<tr>
+<td>a</td>
+<td><code>FFFFFFFE FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF 00000000 FFFFFFFF FFFFFFFC</code></td>
+</tr>
+<tr>
+<td>b</td>
+<td><code>28E9FA9E 9D9F5E34 4D5A9E4B CF6509A7 F39789F5 15AB8F92 DDBCBD41 4D940E93</code></td>
+</tr>
+<tr>
+<td>n</td>
+<td><code>FFFFFFFE FFFFFFFF FFFFFFFF FFFFFFFF 7203DF6B 21C6052B 53BBF409 39D54123</code></td>
+</tr>
+<tr>
+<td>Gx</td>
+<td><code>32C4AE2C 1F198119 5F990446 6A39C994 8FE30BBF F2660BE1 715A4589 334C74C7</code></td>
+</tr>
+<tr>
+<td>Gy</td>
+<td><code>BC3736A2 F4F6779C 59BDCEE3 6B692153 D0A9877C C62A4740 02DF32E5 2139F0A0</code></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>识别要点：$a = p - 3$</strong>（不像 secp256k1 的 $a=0$）。$p$ 与 $n$ 都是 256 位素数。</p>
+<p><strong>安全强度</strong>：256 位曲线 → 离散对数问题需 $\approx 2^{128}$ 次运算，等价 AES-128。比 RSA-2048（$\approx 2^{112}$）更强。</p>
+<h3 id="22-zasm2">2.2 身份标识 ZA（SM2 特有）</h3>
+<p>签名与密钥交换都不是直接哈希消息，而是哈希 <strong>ZA ‖ M</strong>：</p>
+<p>$$Z_A = SM3(ENTL | ID | a | b | G_x | G_y | P_x | P_y)$$</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$ENTL$</td>
+<td>ID 长度的 <strong>2 字节大端</strong>（默认 ID <code>1234567812345678</code>，16 字节 → <code>0x0080</code>）</td>
+</tr>
+<tr>
+<td>$ID$</td>
+<td>签名者身份标识（默认 <code>1234567812345678</code>）</td>
+</tr>
+<tr>
+<td>$a,b,G_x,G_y$</td>
+<td>曲线参数（固定）</td>
+</tr>
+<tr>
+<td>$P_x,P_y$</td>
+<td><strong>签名者公钥坐标</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>作用</strong>：把签名者身份绑进哈希，防止<strong>公钥替换攻击</strong>。这是 SM2 相对 ECDSA 的核心安全增益——同一私钥换一个 ID，ZA 就变，签名不可跨身份复用。</p>
+<h3 id="23">2.3 数字签名</h3>
+<p><strong>签名</strong>（私钥 d，消息 M）：</p>
+<ol>
+<li>$e = SM3(Z_A | M)$</li>
+<li>取随机数 $k \in [1, n-1]$</li>
+<li>$(x_1, y_1) = kG$</li>
+<li>$r = (e + x_1) \bmod n$　　若 $r = 0$ 或 $r + k = n$ 则重新取 k</li>
+<li>$s = (1+d)^{-1} \cdot (k - r\cdot d) \bmod n$　　若 $s = 0$ 则重新取 k</li>
+<li>签名 = $(r, s)$</li>
+</ol>
+<p><strong>验签</strong>（公钥 P）：</p>
+<ol>
+<li>检查 $r, s \in [1, n-1]$</li>
+<li>$e = SM3(Z_A | M)$</li>
+<li>$t = (r + s) \bmod n$　　若 $t = 0$ 则无效</li>
+<li>$(x_1', y_1') = sG + tP$</li>
+<li>校验 $R = (e + x_1') \bmod n$ 是否等于 $r$</li>
+</ol>
+<p><strong>验签为什么成立</strong>：代入 $s = (1+d)^{-1}(k - rd)$、$t = r + s$ 可推出 $sG + tP = kG$，故 $x_1' = x_1$，$R = r$。</p>
+<h3 id="24-c1c3c2">2.4 公钥加密（C1C3C2 结构）</h3>
+<p><strong>加密</strong>（公钥 P，明文 M）：</p>
+<ol>
+<li>取随机数 $k \in [1, n-1]$</li>
+<li>$C_1 = kG$（椭圆曲线点）</li>
+<li>$(x_2, y_2) = kP$</li>
+<li>$t = KDF(x_2 | y_2, \text{klen})$，若 $t$ 全零则重取 k</li>
+<li>$C_2 = M \oplus t$</li>
+<li>$C_3 = SM3(x_2 | M | y_2)$</li>
+<li>密文 = $C_1 | C_3 | C_2$</li>
+</ol>
+<p><strong>解密</strong>：由 $C_1$ 用私钥算 $dC_1 = (x_2,y_2)$，复原 $t$ 与 M，再用 $C_3$ 校验完整性。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>段</th>
+<th>内容</th>
+<th>长度</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>C1</td>
+<td>$kG$</td>
+<td>64 字节（x ‖ y）</td>
+</tr>
+<tr>
+<td>C3</td>
+<td>$SM3(x_2|M|y_2)$</td>
+<td>32 字节</td>
+</tr>
+<tr>
+<td>C2</td>
+<td>$M \oplus KDF$</td>
+<td>= 明文长度</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>原始密文长度 = 明文长度 + 96 字节。</strong></p>
+<p><strong>KDF</strong>：$KDF(Z, \text{klen}) = SM3(Z | ct_1) | SM3(Z | ct_2) | \cdots$，其中 $ct$ 是 32 位大端计数器，从 <strong>1</strong> 开始递增，截取 klen 字节。</p>
+<blockquote>
+<p>⚠️ <strong>拼接顺序是 C1C3C2</strong>（老标准 C1C2C3），弄反直接解不开。而且 OpenSSL 输出还要再套一层 DER（下节）。</p>
+</blockquote>
+<h3 id="25">2.5 密钥交换</h3>
+<p>非简单 DH，而是多轮带校验的 Z 值交换：</p>
+<ol>
+<li>双方各生成临时密钥对 $(r_A, R_A)$、$(r_B, R_B)$ 并交换 $R$</li>
+<li>计算共享点 $\bar{R} = (x_{\bar R}, y_{\bar R})$，其中 $\bar R = h \cdot t_A \cdot R_B$（$t_A = (d_A + r_A \cdot \overline{x_1}) \bmod n$）</li>
+<li>双方各自用 SM3 算共享密钥 $K = KDF(x_{\bar R} | y_{\bar R} | Z_A | Z_B, \text{klen})$</li>
+<li>用 $S_1 = SM3(x_{\bar R} | Z_A | Z_B)$ 等值校验关键确认</li>
+</ol>
+<p><strong>与 ECDH 的区别</strong>：<strong>绑定了双方身份 ZA/ZB</strong>，且带密钥确认，能防中间人。</p>
+<h2 id="3">3. 常见攻击</h2>
+<h3 id="31-k">3.1 攻击一：签名随机数 k 重用（最高频）</h3>
+<p><strong>检测</strong>：SM2 的 $r = e + x_1$，所以由 $r$ 反推 $x_1 = (r - e) \bmod n$。<strong>两组签名的 $x_1$ 相同 → 同一个 k。</strong></p>
+<blockquote>
+<p>⚠️ <strong>不能像 ECDSA 那样直接看 r</strong>。ECDSA 的 $r = x_1 \bmod n$ 与消息无关，k 重用会<strong>必然导致 r 相同</strong>；SM2 的 $r$ 含消息哈希 $e$，<strong>$r_1 \ne r_2$ 但 $x_1$ 相同</strong>。这是识别两套算法的分水岭。</p>
+</blockquote>
+<p><strong>推导</strong>（两组签名 $(r_1,s_1)$、$(r_2,s_2)$ 用同一个 k）：</p>
+<p>$$<br />
+\begin{aligned}<br />
+s_1 &amp;= (1+d)^{-1}(k - r_1 d) \<br />
+s_2 &amp;= (1+d)^{-1}(k - r_2 d) \<br />
+\text{相减}:\quad s_1 - s_2 &amp;= (1+d)^{-1} \cdot d \cdot (r_2 - r_1)<br />
+\end{aligned}<br />
+$$</p>
+<p>令 $t = \dfrac{s_1 - s_2}{r_2 - r_1} \bmod n$，则 $t = \dfrac{d}{1+d}$，解得：</p>
+<p>$$\boxed{d = \frac{t}{1-t} \bmod n}$$</p>
+<p><strong>反解 k 做自检</strong>：$k = s(1+d) + rd \bmod n$。</p>
+<p><strong>实测结果</strong>：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>真实私钥 d</td>
+<td><code>3945208f...4df7c5b8</code></td>
+</tr>
+<tr>
+<td>恢复出的 d</td>
+<td><code>3945208f...4df7c5b8</code> ✅ 完全一致</td>
+</tr>
+<tr>
+<td>$x_1$(第1次) = $x_1$(第2次)</td>
+<td><code>f6a687ab...f57a89f9</code> ✅ 判定 k 重用</td>
+</tr>
+<tr>
+<td>k（恢复）</td>
+<td><code>6cb28d99...1fb2f96f</code> ✅ 与真实 k 一致</td>
+</tr>
+<tr>
+<td>套 ECDSA 公式 $k=(e_1-e_2)/(s_1-s_2)$</td>
+<td><code>f344f139...6921536a</code> ❌ 垃圾值</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>⚠️ 本节最大考点</strong>：SM2 的 $s = (1+d)^{-1}(k - rd)$ <strong>与 ECDSA 的 $s = k^{-1}(z + rd)$ 形式不同</strong>，照抄 ECDSA 的 k 重用公式得不到任何有用结果。</p>
+<h3 id="32">3.2 攻击二：低熵随机数 / 部分比特泄露</h3>
+<p>若 k 只用了部分比特（如高 8 位为 0、或每次只有低位随机），可归约为<strong>隐藏数问题（HNP）</strong>，用格约简（LLL）求解，与 ECDSA 的同类攻击思路完全一致。所需签名数量与泄露比特数成反比。</p>
+<p><strong>实现层祸根</strong>：用 <code>random.random()</code>、时间戳、递增计数器当 k。</p>
+<h3 id="33">3.3 攻击三：无效曲线 / 小阶子群</h3>
+<p>前提是<strong>服务端不校验输入点是否在曲线上</strong>。</p>
+<ul>
+<li><strong>无效曲线攻击</strong>：投递一个落在弱曲线（阶含小因子）上的点，让私钥运算在弱曲线上进行，求出 $d \bmod \text{小素数}$，再用 CRT 拼回 d。</li>
+<li><strong>小阶子群攻击</strong>：需要曲线阶 $n$ 含小因子。</li>
+</ul>
+<p><strong>SM2 标准曲线</strong>：$n$ 与 $p$ 都是大素数，<strong>标准参数下这两个攻击不成立</strong>（除非题面换了曲线参数）。所以：</p>
+<blockquote>
+<p>遇到这类题先确认三件事：① 点是否做过曲线校验；② $n$ 是否光滑（小因子多）；③ 题面是否换了 a/b/G。</p>
+</blockquote>
+<h3 id="34-nonce-ofb">3.4 攻击四：加密 nonce 重用（与 OFB 密钥流重用同理）</h3>
+<p>加密时 $C_1 = kG$、$KDF(kP)$ 都只依赖 k。<strong>同一 k 加密两条消息 → $C_1$ 完全相同，且密钥流相同</strong>：</p>
+<p>$$C_2^{(1)} \oplus C_2^{(2)} = M_1 \oplus M_2$$</p>
+<p>已知任一明文即可推出另一条（和 SM4-OFB IV 复用是同一类错误）。</p>
+<p><strong>实测</strong>（固定 k 加密两条消息）：</p>
+<blockquote>
+<p>密文总长 120 = 明文 24 + 96<br />
+C1_1 = C1_2 (同一个 k): True ✅<br />
+C2_1 ^ C2_2 = 000000000000000003030b5804560e180101534d0408<br />
+P1  ^ P2    = 000000000000000003030b5804560e180101534d0408  ✅ 一致<br />
+已知 P1 求 P2: b'account=bob;amount=999'  ✅</p>
+<p>只在 $C_1$ 相同且能看到两条密文时才可利用。真实实现每次取新 k，所以这是<strong>实现缺陷</strong>而非算法缺陷。</p>
+</blockquote>
+<h3 id="35">3.5 攻击五：弱公钥 / 参数替换</h3>
+<ul>
+<li><strong>公钥不可信</strong>：若攻击者能替换公钥，则可伪造签名（ZA 能缓解，但需 ID 固定且校验）。</li>
+<li><strong>未校验 $P \ne O$</strong>：投递无穷远点等特殊点，可让验签恒通过。</li>
+<li><strong>未校验 $s$ 范围</strong>：$s = 0$ 或超范围时的边界处理可能被绕。</li>
+<li><strong>ZA 的 ID 可伪造</strong>：若实现允许攻击者指定 ID，ZA 的防公钥替换作用被削弱。</li>
+</ul>
+<h3 id="36">3.6 攻击六：实现层旁路</h3>
+<ul>
+<li><strong>标量乘的时序/功耗</strong>：非恒定时间实现会泄露 k 的比特模式（尤其 <code>_kg</code> 这类"遇 1 才加"的双点-点加实现）。</li>
+<li><strong>缓存命中</strong>：预计算表访问模式泄露标量信息。</li>
+<li>防御：恒定时间实现、标量盲化、坐标随机化。</li>
+</ul>
+<h2 id="4">4. 工具链与实测命令</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>工具</th>
+<th>能力</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OpenSSL 3.5.5</td>
+<td>SM2 密钥对 / 签名 / 验签 / 加解密（本机已实测跑通）</td>
+</tr>
+<tr>
+<td>Python <code>gmssl</code></td>
+<td><code>CryptSM2</code> 的 <code>sign/verify/encrypt/decrypt/_kg/_sm3_z</code></td>
+</tr>
+</tbody>
+</table></div>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># 密钥对</span>
+openssl<span class="w"> </span>genpkey<span class="w"> </span>-algorithm<span class="w"> </span>ec<span class="w"> </span>-pkeyopt<span class="w"> </span>ec_paramgen_curve:SM2<span class="w"> </span>-out<span class="w"> </span>sm2.key
+openssl<span class="w"> </span>pkey<span class="w"> </span>-in<span class="w"> </span>sm2.key<span class="w"> </span>-pubout<span class="w"> </span>-out<span class="w"> </span>sm2.pub
+
+<span class="c1"># 签名 / 验签</span>
+openssl<span class="w"> </span>pkeyutl<span class="w"> </span>-sign<span class="w">   </span>-in<span class="w"> </span>p.txt<span class="w"> </span>-inkey<span class="w"> </span>sm2.key<span class="w"> </span>-rawin<span class="w"> </span>-digest<span class="w"> </span>sm3<span class="w"> </span>-out<span class="w"> </span>sig.bin
+openssl<span class="w"> </span>pkeyutl<span class="w"> </span>-verify<span class="w"> </span>-in<span class="w"> </span>p.txt<span class="w"> </span>-sigfile<span class="w"> </span>sig.bin<span class="w"> </span>-inkey<span class="w"> </span>sm2.pub<span class="w"> </span>-pubin<span class="w"> </span>-rawin<span class="w"> </span>-digest<span class="w"> </span>sm3
+
+<span class="c1"># 加解密</span>
+openssl<span class="w"> </span>pkeyutl<span class="w"> </span>-encrypt<span class="w"> </span>-in<span class="w"> </span>p.txt<span class="w"> </span>-inkey<span class="w"> </span>sm2.pub<span class="w"> </span>-pubin<span class="w"> </span>-out<span class="w"> </span>enc.bin
+openssl<span class="w"> </span>pkeyutl<span class="w"> </span>-decrypt<span class="w"> </span>-in<span class="w"> </span>enc.bin<span class="w"> </span>-inkey<span class="w"> </span>sm2.key
+</code></pre></div></div>
+
+<h3 id="41-openssl-der-c1c3c2">4.1 OpenSSL 密文是 DER，不是裸 C1C3C2</h3>
+<p>实测 13 字节明文的密文是 <strong>120 字节</strong>（不是 109），因为 OpenSSL 把点当 ASN.1 INTEGER、把 C3/C2 当 OCTET STRING：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>DER 元素</th>
+<th>标签</th>
+<th>长度</th>
+<th>对应</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SEQUENCE</td>
+<td>0x30</td>
+<td>118</td>
+<td>整体</td>
+</tr>
+<tr>
+<td>INTEGER x</td>
+<td>0x02</td>
+<td>33（高位置 1 补前导 0x00）</td>
+<td>C1 前半</td>
+</tr>
+<tr>
+<td>INTEGER y</td>
+<td>0x02</td>
+<td>32</td>
+<td>C1 后半</td>
+</tr>
+<tr>
+<td>OCTET STRING</td>
+<td>0x04</td>
+<td>32</td>
+<td>C3</td>
+</tr>
+<tr>
+<td>OCTET STRING</td>
+<td>0x04</td>
+<td>13</td>
+<td>C2</td>
+</tr>
+</tbody>
+</table></div>
+<p>DER 头开销通常 <strong>10~11 字节</strong>，随长度域和高位补零浮动。<strong>别用「明文+96」硬解 OpenSSL 输出</strong>；换 <code>gmssl</code> 拿到的才是裸 C1C3C2（实测 13 字节明文 → <strong>109</strong> 字节 = 13 + 96）。</p>
+<h3 id="42">4.2 踩过的坑（全部实测复现）</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>坑</th>
+<th>现象</th>
+<th>处理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>验签缺 <code>-pubin</code></td>
+<td><code>Could not find private key from sm2.pub</code> + <code>unsupported</code></td>
+<td>必须显式加 <code>-pubin</code></td>
+</tr>
+<tr>
+<td><code>gmssl</code> 的 <code>sign(msg, K)</code> 必须传 K</td>
+<td><code>TypeError: sign() missing 1 required positional argument: 'K'</code></td>
+<td>K 是随机数，必须每次 <code>os.urandom(32).hex()</code> 且保密</td>
+</tr>
+<tr>
+<td>OpenSSL 3.x 签验要带 <code>-rawin -digest sm3</code></td>
+<td>不带则不做 ZA 预处理，验签失败</td>
+<td>固定写法</td>
+</tr>
+<tr>
+<td><code>gmssl</code> 的 <code>_sm3_z</code> 硬编码默认 ID</td>
+<td><code>0080</code> + <code>3132...</code>（<code>1234567812345678</code>）</td>
+<td>题面用非默认 ID 时须自己拼 ZA 重算 e</td>
+</tr>
+<tr>
+<td><code>gmssl</code> 的 <code>sign</code> 不做 ZA</td>
+<td>它签的是裸 <code>SM3(msg)</code>：<code>_sm3_z</code> 需手动调，或用 <code>sign_with_sm3</code></td>
+<td>看清调的是哪个函数</td>
+</tr>
+<tr>
+<td><code>gmssl</code> 的 <code>_kg</code> 是"遇 1 才加"实现</td>
+<td>非恒定时间，有侧信道</td>
+<td>生产环境不用这套纯 Python 实现</td>
+</tr>
+<tr>
+<td>SM2 不能照抄 ECDSA 的 k 重用公式</td>
+<td>解出垃圾值</td>
+<td>用 $d = t/(1-t)$</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="5">5. 面试速答卡</h2>
+<p><strong>问：SM2 比 ECDSA 好在哪？</strong><br />
+答：① <strong>签名哈希带 ZA</strong>，绑定签名者身份，防公钥替换；② 曲线参数由国标固定，避免参数选择不当的风险；③ 密文结构自带完整性校验 C3；④ 密钥交换带身份绑定与密钥确认。</p>
+<p><strong>问：ZA 是什么，为什么需要它？</strong><br />
+答：$Z_A = SM3(ENTL|ID|a|b|G_x|G_y|P_x|P_y)$，把签名者 ID 和公钥混入哈希。作用是防公钥替换——同一个签名在不同 ID/公钥下不通用。</p>
+<p><strong>问：SM2 的密文为什么有 96 字节开销？</strong><br />
+答：C1（点，64 字节）+ C3（哈希，32 字节）。</p>
+<p><strong>问：SM2 的 k 重用和 ECDSA 的 k 重用有什么不同？</strong><br />
+答：<strong>ECDSA 看 r 是否相同</strong>（同一 k ⇒ r 相同）；<strong>SM2 不能看 r</strong>，因为 $r = e + x_1$ 含消息哈希，要<strong>反推 $x_1$</strong> 比对。恢复公式也不同（SM2 是 $d = t/(1-t)$）。</p>
+<p><strong>问：SM2 的 256 位曲线相当于多少位 RSA？</strong><br />
+答：$\approx$ RSA-3072；离散对数需 $2^{128}$，等价 AES-128。</p>
+<p><strong>问：SM2 的三种功能分别对标什么？</strong><br />
+答：签名对标 ECDSA、密钥交换对标 ECDH、加密对标 ECIES。</p>
+<h2 id="6">6. 验证记录</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>方式</th>
+<th>结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>签名/验签往返</td>
+<td><code>openssl pkeyutl -sign/-verify</code></td>
+<td>✅ 通过；篡改 1 字节后验证失败</td>
+</tr>
+<tr>
+<td>加解密往返</td>
+<td><code>openssl pkeyutl -encrypt/-decrypt</code></td>
+<td>✅ 还原明文</td>
+</tr>
+<tr>
+<td>密文 DER 结构</td>
+<td>逐标签解析</td>
+<td>✅ SEQUENCE{INTEGER, INTEGER, OCTET STRING, OCTET STRING}</td>
+</tr>
+<tr>
+<td>gmssl 裸 C1C3C2</td>
+<td>13 字节明文 → 109 字节</td>
+<td>✅ = 13 + 96</td>
+</tr>
+<tr>
+<td>k 重用恢复私钥</td>
+<td><code>SM2-随机数k重用攻击-solve.py</code></td>
+<td>✅ 恢复 d 与真实一致，k 回验一致</td>
+</tr>
+<tr>
+<td>ECDSA 公式反例</td>
+<td>同上脚本</td>
+<td>✅ 解出垃圾值</td>
+</tr>
+<tr>
+<td>加密 nonce 重用</td>
+<td>固定 k 加密两条消息</td>
+<td>✅ C1 相同，<code>C2⊕C2⊕P1</code> 还原出 P2</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="7">7. 相关文件</h2>
+<ul>
+<li>题解脚本（本目录）：<code>SM2-随机数k重用攻击-solve.py</code></li>
+<li>工具箱：<code>~/tools\CTF工具箱\crypto\22-SM2随机数缺陷与OFB密钥流重用.py</code></li>
+<li>接口常量：<code>SGD_SM2 = 0x00020100</code>、<code>SGD_SM2_1</code>（签名）、<code>SGD_SM2_2</code>（密钥交换）、<code>SGD_SM2_3</code>（加密），见 <code>~/notes\CTF备赛\ISCC2026-密码安全赛-速查卡.md</code></li>
+</ul></div>
+      <div class="post-nav"><a class="pn-item prev" href="sm4-fen-zu-mi-ma-yuan-li-yu-gong-ji.html"><span>← 上一篇</span><strong>SM4-分组密码原理与攻击</strong></a><a class="pn-item next" href="gu-dian-mi-ma.html"><span>下一篇 →</span><strong>古典密码</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#1" class="toc-lv2">1. 题型识别（看到就用）</a><a href="#2" class="toc-lv2">2. 算法原理</a><a href="#21" class="toc-lv3">2.1 曲线参数（固定不可换）</a><a href="#22-zasm2" class="toc-lv3">2.2 身份标识 ZA（SM2 特有）</a><a href="#23" class="toc-lv3">2.3 数字签名</a><a href="#24-c1c3c2" class="toc-lv3">2.4 公钥加密（C1C3C2 结构）</a><a href="#25" class="toc-lv3">2.5 密钥交换</a><a href="#3" class="toc-lv2">3. 常见攻击</a><a href="#31-k" class="toc-lv3">3.1 攻击一：签名随机数 k 重用（最高频）</a><a href="#32" class="toc-lv3">3.2 攻击二：低熵随机数 / 部分比特泄露</a><a href="#33" class="toc-lv3">3.3 攻击三：无效曲线 / 小阶子群</a><a href="#34-nonce-ofb" class="toc-lv3">3.4 攻击四：加密 nonce 重用（与 OFB 密钥流重用同理）</a><a href="#35" class="toc-lv3">3.5 攻击五：弱公钥 / 参数替换</a><a href="#36" class="toc-lv3">3.6 攻击六：实现层旁路</a><a href="#4" class="toc-lv2">4. 工具链与实测命令</a><a href="#41-openssl-der-c1c3c2" class="toc-lv3">4.1 OpenSSL 密文是 DER，不是裸 C1C3C2</a><a href="#42" class="toc-lv3">4.2 踩过的坑（全部实测复现）</a><a href="#5" class="toc-lv2">5. 面试速答卡</a><a href="#6" class="toc-lv2">6. 验证记录</a><a href="#7" class="toc-lv2">7. 相关文件</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

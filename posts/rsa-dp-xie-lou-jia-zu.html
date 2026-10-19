@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RSA-dp泄露家族 · pressure-J</title>
+<meta name="description" content="本质：dp = d mod (p-1)（dq = d mod (q-1)）泄露。出题人用 CRT 优化 RSA 时拆出的&quot;影子密钥&quot;送人了 → 解密能力白给。">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/rsa-dp-xie-lou-jia-zu.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="RSA-dp泄露家族 · pressure-J">
+<meta property="og:description" content="本质：dp = d mod (p-1)（dq = d mod (q-1)）泄露。出题人用 CRT 优化 RSA 时拆出的&quot;影子密钥&quot;送人了 → 解密能力白给。">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/crypto.html">密码学</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>RSA-dp泄露家族</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-crypto">密码学</span>
+          <time datetime="2026-09-06">2026-09-06</time>
+          <span>1646 字</span>
+          <span>约 4 分钟</span>
+        </div>
+        <div class="chips post-tags"><span class="chip">crypto</span><span class="chip">rsa</span></div>
+      </header>
+      <div class="content"><h2 id="_1">题型识别（一眼看出）</h2>
+<p><strong>本质</strong>：dp = d mod (p-1)（dq = d mod (q-1)）泄露。出题人用 CRT 优化 RSA 时拆出的"影子密钥"送人了 → 解密能力白给。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>变体</th>
+<th>给了什么</th>
+<th>打法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>dp+dq 泄露</strong></td>
+<td><code>p, q, dp, dq, c</code></td>
+<td>费马小定理在 p/q 下各解半截 + CRT 合并（<strong>不需要 e 和 n</strong>）</td>
+</tr>
+<tr>
+<td><strong>dp-only 泄露</strong></td>
+<td><code>e, n, dp, c</code></td>
+<td>爆破 k：e·dp−1 = k(p−1)，k &lt; e → 试除 n 找 p（不需要 dq）</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="dpdqcrt">变体一：dp+dq（CRT 合并）</h2>
+<h3 id="_2">原理推导</h3>
+<p>CRT-RSA 优化时，解密拆成两半更快：<br />
+$$m_1 = c^{dp} \bmod p,\quad m_2 = c^{dq} \bmod q$$</p>
+<p>泄露后攻击者自己也能算这两个半截。由费马小定理（注意 $dp \equiv d \pmod{p-1}$）：<br />
+$$c^{dp} \equiv c^d \pmod p,\quad c^{dq} \equiv c^d \pmod q$$</p>
+<p>即 m1 = m mod p，m2 = m mod q。<strong>中国剩余定理合并</strong>（x ≡ m1 mod p 且 x ≡ m2 mod q）：<br />
+$$m = m_1 + p \cdot \left((m_2 - m_1) \cdot p^{-1} \bmod q\right) \bmod (p \cdot q)$$</p>
+<h3 id="_3">脚本</h3>
+<p><code>RSA-dp_dq泄露-solve.py</code>（换题只改 p/q/dp/dq/c 五个数）</p>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">m1</span> <span class="o">=</span> <span class="nb">pow</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">dp</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
+<span class="n">m2</span> <span class="o">=</span> <span class="nb">pow</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">dq</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span>
+<span class="n">inv_p</span> <span class="o">=</span> <span class="nb">pow</span><span class="p">(</span><span class="n">p</span> <span class="o">%</span> <span class="n">q</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span>          <span class="c1"># p 在模 q 下的逆</span>
+<span class="n">m</span> <span class="o">=</span> <span class="p">(</span><span class="n">m1</span> <span class="o">+</span> <span class="n">p</span> <span class="o">*</span> <span class="p">(((</span><span class="n">m2</span> <span class="o">-</span> <span class="n">m1</span><span class="p">)</span> <span class="o">%</span> <span class="n">q</span><span class="p">)</span> <span class="o">*</span> <span class="n">inv_p</span> <span class="o">%</span> <span class="n">q</span><span class="p">))</span> <span class="o">%</span> <span class="p">(</span><span class="n">p</span> <span class="o">*</span> <span class="n">q</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">to_bytes</span><span class="p">((</span><span class="n">m</span><span class="o">.</span><span class="n">bit_length</span><span class="p">()</span><span class="o">+</span><span class="mi">7</span><span class="p">)</span><span class="o">//</span><span class="mi">8</span><span class="p">,</span> <span class="s1">'big'</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">())</span>
+</code></pre></div></div>
+
+<h2 id="dp-onlyk">变体二：dp-only（k 爆破）</h2>
+<h3 id="_4">原理推导</h3>
+<p>由 $d \cdot e \equiv 1 \pmod{(p-1)(q-1)}$，模 p-1 下依然有：<br />
+$$e \cdot dp \equiv 1 \pmod{p-1} \;\Rightarrow\; e \cdot dp - 1 = k(p-1)$$</p>
+<p><strong>k 的上界可控</strong>：dp &lt; p-1 ⟹ k &lt; e = 65537。爆破 k 从 1 到 e：<br />
+$$p = \frac{e \cdot dp - 1}{k} + 1$$<br />
+每次检查 <strong>n % p == 0</strong>，命中即得 p。之后再走 RSA 常规：q = n//p，φ = (p−1)(q−1)，d = e⁻¹ mod φ，m = c^d mod n。</p>
+<h3 id="_5">脚本</h3>
+<p><code>RSA-dp泄露-solve.py</code>（换题只改 e/n/dp/c 四个数）</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">x</span> <span class="o">=</span> <span class="n">e</span> <span class="o">*</span> <span class="n">dp</span> <span class="o">-</span> <span class="mi">1</span>
+<span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">e</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">x</span> <span class="o">%</span> <span class="n">k</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">x</span> <span class="o">//</span> <span class="n">k</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">n</span> <span class="o">%</span> <span class="n">p</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>              <span class="c1"># 命中</span>
+            <span class="n">q</span> <span class="o">=</span> <span class="n">n</span> <span class="o">//</span> <span class="n">p</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="nb">pow</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">(</span><span class="n">p</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">q</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+            <span class="n">m</span> <span class="o">=</span> <span class="nb">pow</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+</code></pre></div></div>
+
+<h2 id="_6">实战记录</h2>
+<ul>
+<li>dp+dq 题：明文 <code>noxCTF{W31c0m3_70_Ch1n470wn}</code></li>
+<li>dp-only 题：k=4404 命中，明文 <code>flag{wow_leaking_dp_breaks_rsa?_98924743502}</code>，秒出</li>
+</ul>
+<h2 id="_7">易错点</h2>
+<ol>
+<li><strong>dp 和 d 别搞混</strong>：dp 是 "d mod (p-1)"，不是 d 本身；它只在模 p-1 的世界里有意义</li>
+<li><strong>dp+dq 不需要 e/n</strong>：五件套里压根没有 e 和 n，别去找（也找不到）</li>
+<li><strong>CRT 合并的 p⁻¹ 是模 q 的逆</strong>：<code>pow(p % q, -1, q)</code>，不是模 p*q</li>
+<li><strong>爆破 k 要检查整除</strong>：<code>e*dp-1</code> 必须能被 k 整除，cand 才是整数；整除且 n%cand==0 双条件才算命中</li>
+<li><strong>dp-only 若爆破不到</strong>：确认 dp &lt; p-1 成立（题给的 dp 通常已满足）；极端情况可放宽 k 到 2e</li>
+<li>解出的 m 转字节用 <code>(m.bit_length()+7)//8</code> 定长，防止去前导零丢字符</li>
+</ol>
+<h2 id="_8">相关脚本</h2>
+<ul>
+<li><code>RSA-dp_dq泄露-solve.py</code>：dp+dq 变体模板</li>
+<li><code>RSA-dp泄露-solve.py</code>：dp-only 变体模板</li>
+</ul></div>
+      <div class="post-nav"><a class="pn-item prev" href="windows-ha-xi-po-jie-ntlm.html"><span>← 上一篇</span><strong>Windows哈希破解-NTLM</strong></a><a class="pn-item next" href="shu-zi-chuan-chu-li-ji-qiao-ctf.html"><span>下一篇 →</span><strong>数字串处理技巧（CTF）</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">题型识别（一眼看出）</a><a href="#dpdqcrt" class="toc-lv2">变体一：dp+dq（CRT 合并）</a><a href="#_2" class="toc-lv3">原理推导</a><a href="#_3" class="toc-lv3">脚本</a><a href="#dp-onlyk" class="toc-lv2">变体二：dp-only（k 爆破）</a><a href="#_4" class="toc-lv3">原理推导</a><a href="#_5" class="toc-lv3">脚本</a><a href="#_6" class="toc-lv2">实战记录</a><a href="#_7" class="toc-lv2">易错点</a><a href="#_8" class="toc-lv2">相关脚本</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

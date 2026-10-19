@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RSA-构造A反推参数 · pressure-J</title>
+<meta name="description" content="题目给一个大整数公式 A（含 x/y/z 的幂运算）+ n + c，形如：">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/rsa-gou-zao-a-fan-tui-can-shu.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="RSA-构造A反推参数 · pressure-J">
+<meta property="og:description" content="题目给一个大整数公式 A（含 x/y/z 的幂运算）+ n + c，形如：">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/crypto.html">密码学</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>RSA-构造A反推参数</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-crypto">密码学</span>
+          <time datetime="2026-09-08">2026-09-08</time>
+          <span>1437 字</span>
+          <span>约 4 分钟</span>
+        </div>
+        <div class="chips post-tags"><span class="chip">crypto</span></div>
+      </header>
+      <div class="content"><h2 id="_1">题型识别（一眼看出）</h2>
+<p>题目给一个<strong>大整数公式 A</strong>（含 x/y/z 的幂运算）+ <code>n</code> + <code>c</code>，形如：</p>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">A</span> <span class="o">=</span> <span class="p">(((</span><span class="n">y</span><span class="o">%</span><span class="n">x</span><span class="p">)</span><span class="o">**</span><span class="mi">5</span><span class="p">)</span><span class="o">%</span><span class="p">(</span><span class="n">x</span><span class="o">%</span><span class="n">y</span><span class="p">))</span><span class="o">**</span><span class="mi">2019</span> <span class="o">+</span> <span class="n">y</span><span class="o">**</span><span class="mi">316</span> <span class="o">+</span> <span class="p">(</span><span class="n">y</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">/</span><span class="n">x</span>
+<span class="n">p</span> <span class="o">=</span> <span class="n">next_prime</span><span class="p">(</span><span class="n">z</span><span class="o">*</span><span class="n">x</span><span class="o">*</span><span class="n">y</span><span class="p">)</span>
+<span class="n">q</span> <span class="o">=</span> <span class="n">next_prime</span><span class="p">(</span><span class="n">z</span><span class="p">)</span>
+<span class="n">n</span> <span class="o">=</span> <span class="n">p</span><span class="o">*</span><span class="n">q</span>
+<span class="n">c</span> <span class="o">=</span> <span class="nb">pow</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">e</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p><strong>本质</strong>：A 是"提示"，用来反推 x、y；再用 x、y 与 n 的关系定位 z，从而分解 n。所有计算都是构造上留的门，<strong>不需要硬分解大数</strong>。</p>
+<h2 id="_2">攻击条件</h2>
+<ul>
+<li>A 中有一项是某个变量的<strong>高次幂主导项</strong>（如 <code>y**316</code>）</li>
+<li>另一项是<strong>超大指数幂</strong>（如 <code>**2019</code>），底数必然很小才不爆炸</li>
+<li><code>p</code>、<code>q</code> 由 <code>z</code> 派生，比值 <code>p/q ≈ x*y</code> 近似为常数</li>
+</ul>
+<h2 id="_3">原理推导与步骤</h2>
+<p><strong>① 整数开根分离 y</strong><br />
+A 是 607 位大数，<code>y**316</code> 是主导项，<code>**2019</code> 那项若底数≥2 会直接超过 A（<code>2^2019</code> 就够大），所以底数 ∈ {0,1}。<br />
+$$y = \lfloor A^{1/316} \rfloor$$</p>
+<p><strong>② 余数反推 x</strong><br />
+$$A - y^{316} = \underbrace{(((y\%x)^5)\%(x\%y))^{2019}}_{\in{0,1}} + \frac{y+1}{x}$$<br />
+对小的 x 逐个试，找出使等式成立的 x（本题 x=2）。</p>
+<p><strong>③ 用 x·y 估计 z 分解 n</strong><br />
+由 <code>p ≈ z·x·y</code>、<code>q ≈ z</code>：<br />
+$$n = p\cdot q \approx (x\cdot y)\cdot z^2 \;\Rightarrow\; z \approx \sqrt{n/(x\cdot y)}$$<br />
+在 <code>isqrt(n//(x*y))</code> 附近搜索 n 的因子即得 q，再 <code>p = n//q</code>。</p>
+<p><strong>④ 常规 RSA</strong><br />
+<code>d = e⁻¹ mod (p-1)(q-1)</code>，<code>m = c^d mod n</code>，转 bytes 得 flag。</p>
+<h2 id="_4">解题脚本</h2>
+<p>见 <code>~/tools\CTF工具箱\crypto\</code> 下同主题脚本（本题数据改顶部数据行即跑）</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">y</span> <span class="o">=</span> <span class="n">iroot</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="mi">316</span><span class="p">)</span>                     <span class="c1"># ① 整数开根</span>
+<span class="n">rem</span> <span class="o">=</span> <span class="n">A</span> <span class="o">-</span> <span class="n">y</span><span class="o">**</span><span class="mi">316</span>                      <span class="c1"># ② 余数</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">反推</span><span class="p">(</span><span class="n">rem</span><span class="p">)</span>                          <span class="c1">#    试小 x</span>
+<span class="n">z_est</span> <span class="o">=</span> <span class="n">isqrt</span><span class="p">(</span><span class="n">N</span> <span class="o">//</span> <span class="p">(</span><span class="n">x</span><span class="o">*</span><span class="n">y</span><span class="p">))</span>             <span class="c1"># ③ 估计 z</span>
+<span class="n">q</span> <span class="o">=</span> <span class="n">在</span> <span class="n">z_est</span> <span class="n">附近搜</span> <span class="n">N</span> <span class="n">的因子</span>
+<span class="n">p</span> <span class="o">=</span> <span class="n">N</span> <span class="o">//</span> <span class="n">q</span>
+<span class="n">d</span> <span class="o">=</span> <span class="nb">pow</span><span class="p">(</span><span class="n">E</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">(</span><span class="n">p</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">q</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>           <span class="c1"># ④ 解密</span>
+<span class="n">m</span> <span class="o">=</span> <span class="nb">pow</span><span class="p">(</span><span class="n">C</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">N</span><span class="p">)</span>
+</code></pre></div></div>
+
+<h2 id="_5">易错点</h2>
+<ol>
+<li><strong>别被超大指数吓住</strong>：<code>**2019</code> 是障眼法，底数只能 0/1，关键是敢试小值</li>
+<li><strong>整数开根别用浮点</strong>：几百位大数用 <code>x**(1/k)</code> 会溢出，用整数牛顿/二分 <code>iroot</code></li>
+<li><strong>没给 e</strong>：默认 65537，也可列表逐个试</li>
+<li><strong>定位因子要留窗口</strong>：<code>z_est</code> 有误差，搜索范围放宽到 ±几十万，直接试 <code>N % cand == 0</code></li>
+<li><strong><code>p/q</code> 可作校验</strong>：算出的 <code>p/q</code> 应 ≈ <code>x*y</code>，对不上说明 x/y 反推错了</li>
+<li><strong><code>(y+1)/x</code> 的除法</strong>：题目里通常是整数除；若余数对不上，考虑真实除法</li>
+</ol>
+<h2 id="_6">实战记录</h2>
+<ul>
+<li>来源：RoarCTF 构造题</li>
+<li>A 607 位 → <code>y = iroot(A,316) = 83</code>，余数 43 → 试出 <code>x=2</code>（<code>1^2019 + 84/2 = 1+42 = 43</code>）</li>
+<li><code>z ≈ sqrt(n/166)</code> 附近搜到 q（差 546），<code>p/q = 166.0000 = x*y</code> ✓</li>
+<li>e=65537，结果：<code>RoarCTF{wm-l1l1ll1l1l1l111ll}</code></li>
+</ul>
+<p><em>最后更新：2026年9月8日</em></p></div>
+      <div class="post-nav"><a class="pn-item prev" href="rsa-gong-su-shu-gcd-fen-jie.html"><span>← 上一篇</span><strong>RSA共素数-gcd分解</strong></a><a class="pn-item next" href="rsa-di-zhi-shu-guang-bo-gong-ji.html"><span>下一篇 →</span><strong>RSA低指数广播攻击</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">题型识别（一眼看出）</a><a href="#_2" class="toc-lv2">攻击条件</a><a href="#_3" class="toc-lv2">原理推导与步骤</a><a href="#_4" class="toc-lv2">解题脚本</a><a href="#_5" class="toc-lv2">易错点</a><a href="#_6" class="toc-lv2">实战记录</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

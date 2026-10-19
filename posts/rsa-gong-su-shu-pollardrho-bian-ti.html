@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RSA共素数-PollardRho变体 · pressure-J</title>
+<meta name="description" content="实测：1024 位 n 约 6~21 秒出 p、q（耗时看随机起点，最快 1.5s，串行重试在最坏起点可能更久；真实题目规模偶发 30s+，属正常）。">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/rsa-gong-su-shu-pollardrho-bian-ti.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="RSA共素数-PollardRho变体 · pressure-J">
+<meta property="og:description" content="实测：1024 位 n 约 6~21 秒出 p、q（耗时看随机起点，最快 1.5s，串行重试在最坏起点可能更久；真实题目规模偶发 30s+，属正常）。">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/crypto.html">密码学</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>RSA共素数-PollardRho变体</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-crypto">密码学</span>
+          <time datetime="2026-09-03">2026-09-03</time>
+          <span>1498 字</span>
+          <span>约 4 分钟</span>
+        </div>
+        <div class="chips post-tags"><span class="chip">crypto</span></div>
+      </header>
+      <div class="content"><h2 id="_1">题型识别</h2>
+<p>出题脚本形如：</p>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">g</span> <span class="o">=</span> <span class="n">getPrime</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">nbits</span> <span class="o">*</span> <span class="n">gamma</span><span class="p">))</span>                  <span class="c1"># 公共大素数, 约 0.48*nbits 位</span>
+<span class="n">a</span> <span class="o">=</span> <span class="n">getRandomNBitInteger</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">alpha</span> <span class="o">*</span> <span class="n">nbits</span><span class="p">))</span>      <span class="c1"># 小量, 约 0.02*nbits 位</span>
+<span class="n">p</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">g</span> <span class="o">*</span> <span class="n">a</span> <span class="o">+</span> <span class="mi">1</span>
+<span class="n">b</span> <span class="o">=</span> <span class="n">getRandomNBitInteger</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">alpha</span> <span class="o">*</span> <span class="n">nbits</span><span class="p">))</span>
+<span class="n">q</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">g</span> <span class="o">*</span> <span class="n">b</span> <span class="o">+</span> <span class="mi">1</span>
+<span class="n">n</span> <span class="o">=</span> <span class="n">p</span> <span class="o">*</span> <span class="n">q</span>
+</code></pre></div></div>
+
+<p>特征三件套：<br />
+- <strong>p-1 和 q-1 共享大素数因子 g</strong>（几百位，<code>getPrime(int(nbits*gamma))</code>）<br />
+- <strong>a、b 很小</strong>（<code>getRandomNBitInteger(int(alpha*nbits))</code>，alpha 通常 0.02 → 20 位）<br />
+- <strong>gcd(a,b)=1</strong>（保证 gcd(p-1, q-1) = 2g 精确成立）<br />
+- n 位数正常，共模/低指数/直接分解均无效</p>
+<h2 id="pollard-rho">攻击核心：Pollard rho 变体</h2>
+<p>标准 rho 期望 O(√p) ≈ 2^256 步，对 1024 位 n 不可行。<br />
+<strong>把迭代函数换成</strong>：</p>
+<p>$$f(x) = (x^{n-1} + 3) \bmod n$$</p>
+<h3 id="_2">为什么快（两行数学）</h3>
+<ol>
+<li>阶公式：$\operatorname{ord}(x^{k}) \mid \dfrac{p-1}{\gcd(p-1,\, k)}$。取 $k = n-1$：$\gcd(p-1, n-1) = \gcd(p-1, q-1) = 2g$（因 gcd(a,b)=1）</li>
+<li>所以 $x^{n-1} \bmod p$ 的<strong>阶整除 $(p-1)/2g = a$</strong>（a 仅 20 位）→ <strong>一次迭代后序列落入 ≤2^20 个元素的小子群</strong>；模 q 同理落入 ≤2^20 的 b 阶小子群 → ρ 碰撞约 √2^20 ≈ 2^10 步内出现 → <code>gcd(|a-b|, n)</code> 秒级捞到 p</li>
+</ol>
+<p><strong>+3 是微扰</strong>：防止序列退化（落入不动点/短环）。</p>
+<p>⚠️ 加速的真正关键不是"共享因子 g 大"（g 只保证 gcd(p-1,q-1) 精确 = 2g），而是 <strong>a、b 小 → 剩余子群小 → 碰撞空间小</strong>。</p>
+<p>实测：1024 位 n <strong>约 6~21 秒</strong>出 p、q（耗时看随机起点，最快 1.5s，串行重试在最坏起点可能更久；真实题目规模偶发 30s+，属正常）。</p>
+<h2 id="_3">解题脚本</h2>
+<p>见同目录 <code>RSA共素数-rho变体-solve.py</code>，换题只改 <code>n/e/c</code> 三行。</p>
+<h2 id="_4">易错点 / 实战经验</h2>
+<ol>
+<li><strong>不要走"分解 n-1 找 g"的弯路</strong>：虽然 n-1 = 2g·h（h = 2gab+a+b，且 h mod 2g = a+b）数学上成立，但分离 g 需要 ECM 硬分解几百位大数——<strong>CTF 出题人不会出算不出来的题</strong>，正解永远是 rho 变体直接在 n 上跑</li>
+<li><strong>运行环境</strong>：脚本需要 <code>gmpy2</code> + <code>pycryptodome</code>——<code>py</code>（Python 3.12.6）两者都有，直接 <code>py xxx.py</code> 跑。~~旧笔记写的 <code>~/\python.exe</code> 已不存在（那是被卸载的 Miniconda，不是 SageMath）~~，SageMath 实际在 <code>~/\AppData\Local\SageMath 9.3\</code>，调用方法见 [常用函数](</li>
+<li>若题目未保证 gcd(a,b)=1，rho 多跑几轮随机起点即可（脚本 while True 循环自动重试）</li>
+</ol>
+<h2 id="_5">实战记录</h2>
+<ul>
+<li>来源：共素数 RSA 题（nbits=1024, gamma=0.48 → g 491 位, a/b 20 位）</li>
+<li>e = 58337（16 位小素数）</li>
+<li>p、q 均为 512 位素数</li>
+<li>FLAG: <code>SangFor{0a8c2220-4c1b-32c8-e8c1-adf92ec7678b}</code></li>
+</ul>
+<p><em>最后更新：2026年9月3日</em></p></div>
+      <div class="post-nav"><a class="pn-item prev" href="rsa-wiener-gong-ji.html"><span>← 上一篇</span><strong>RSA-Wiener攻击</strong></a><a class="pn-item next" href="str-yu-bytes-bian-ma.html"><span>下一篇 →</span><strong>str与bytes编码</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">题型识别</a><a href="#pollard-rho" class="toc-lv2">攻击核心：Pollard rho 变体</a><a href="#_2" class="toc-lv3">为什么快（两行数学）</a><a href="#_3" class="toc-lv2">解题脚本</a><a href="#_4" class="toc-lv2">易错点 / 实战经验</a><a href="#_5" class="toc-lv2">实战记录</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

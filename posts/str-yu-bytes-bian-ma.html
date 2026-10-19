@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>str与bytes编码 · pressure-J</title>
+<meta name="description" content="Python 2 到 Python 3 最大的区别之一：字符串的&quot;身份&quot;变了。">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/str-yu-bytes-bian-ma.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="str与bytes编码 · pressure-J">
+<meta property="og:description" content="Python 2 到 Python 3 最大的区别之一：字符串的&quot;身份&quot;变了。">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/python.html">Python</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>str与bytes编码</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-python">Python</span>
+          <time datetime="2026-09-04">2026-09-04</time>
+          <span>1900 字</span>
+          <span>约 5 分钟</span>
+        </div>
+        <div class="chips post-tags"><span class="chip">python</span></div>
+      </header>
+      <div class="content"><blockquote>
+<p>来源：CTF MD5 爆破脚本报错 <code>TypeError: Strings must be encoded before hashing</code> 引出的 Python 语法知识点</p>
+</blockquote>
+<h2 id="str-bytes">一、核心概念：str 和 bytes 是两种东西</h2>
+<p>Python 2 到 Python 3 最大的区别之一：字符串的"身份"变了。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th>Python 2</th>
+<th>Python 3</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>str</td>
+<td>本质是字节序列</td>
+<td>是 Unicode 文本（字符序列）</td>
+</tr>
+<tr>
+<td>字节类型</td>
+<td>无独立类型</td>
+<td>bytes</td>
+</tr>
+<tr>
+<td><code>'中'</code> 的长度</td>
+<td>按字节数算</td>
+<td>按字符数算，len = 1</td>
+</tr>
+<tr>
+<td>遍历字符串</td>
+<td>得到字符</td>
+<td>得到字符（str）或整数（bytes）</td>
+</tr>
+</tbody>
+</table></div>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">s</span> <span class="o">=</span> <span class="s1">'abc'</span>          <span class="c1"># str，文本</span>
+<span class="n">b</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">'abc'</span>         <span class="c1"># bytes，二进制，显示带 b 前缀</span>
+<span class="nb">print</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>     <span class="c1"># &lt;class 'str'&gt;</span>
+<span class="nb">print</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">b</span><span class="p">))</span>     <span class="c1"># &lt;class 'bytes'&gt;</span>
+<span class="nb">print</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="s1">'中'</span><span class="p">))</span>        <span class="c1"># 1   （字符数）</span>
+<span class="nb">print</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="s1">'中'</span><span class="o">.</span><span class="n">encode</span><span class="p">()))</span>  <span class="c1"># 3 （UTF-8 编码后 3 个字节）</span>
+</code></pre></div></div>
+
+<h2 id="strings-must-be-encoded-before-hashing">二、为什么会报 "Strings must be encoded before hashing"</h2>
+<p><code>hashlib</code> 的 <code>update()</code> 只收 bytes——哈希是对"字节"做运算，不是对"文本"。文本必须先编码成字节：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span>
+<span class="n">m</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">md5</span><span class="p">()</span>
+<span class="n">m</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s1">'abc'</span><span class="p">)</span>            <span class="c1"># ❌ TypeError: Strings must be encoded before hashing</span>
+<span class="n">m</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s1">'abc'</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>   <span class="c1"># ✅ 先转 bytes</span>
+</code></pre></div></div>
+
+<p><strong>口诀：hashlib 只吃 bytes，喂之前先 <code>.encode()</code>。</strong> 网上老 writeup（Python 2 时代）抄到 Python 3 必踩这个坑。</p>
+<h2 id="encode-decode">三、encode() / decode() 双向转换</h2>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="s1">'中'</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">'utf-8'</span><span class="p">)</span>          <span class="c1"># b'\xe4\xb8\xad'  文本 → 字节</span>
+<span class="sa">b</span><span class="s1">'</span><span class="se">\xe4\xb8\xad</span><span class="s1">'</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">'utf-8'</span><span class="p">)</span>  <span class="c1"># '中'            字节 → 文本</span>
+</code></pre></div></div>
+
+<ul>
+<li>默认编码 UTF-8，参数可省略</li>
+<li>方向用错会报 <code>AttributeError: 'bytes' object has no attribute 'encode'</code>（bytes 只能 decode 回文本）</li>
+</ul>
+<h2 id="bytes">四、什么时候必须 bytes（常见场景）</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>场景</th>
+<th>要求</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>hashlib.update()</code></td>
+<td>bytes</td>
+</tr>
+<tr>
+<td>文件二进制读写 <code>'rb' / 'wb'</code></td>
+<td>bytes</td>
+</tr>
+<tr>
+<td><code>socket.send()</code></td>
+<td>bytes</td>
+</tr>
+<tr>
+<td><code>base64.b64encode(x)</code></td>
+<td>输入输出都是 bytes（结果要 <code>.decode()</code> 才是字符串）</td>
+</tr>
+<tr>
+<td><code>json.dumps()</code> / <code>print()</code></td>
+<td>str（反过来，bytes 要 decode 才能打印成文本）</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="_1">五、脚本里其他常用语法</h2>
+<h3 id="chr-ord">chr() / ord()：数字和字符互转</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="nb">chr</span><span class="p">(</span><span class="mi">65</span><span class="p">)</span>   <span class="c1"># 'A'   数字 → 字符</span>
+<span class="nb">ord</span><span class="p">(</span><span class="s1">'A'</span><span class="p">)</span>  <span class="c1"># 65    字符 → 数字</span>
+</code></pre></div></div>
+
+<p>爆破脚本里 <code>chr(i)</code> 就是拿 ASCII 码数字拼出字符。</p>
+<h3 id="in"><code>in</code> 运算符：字符串子串判断</h3>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="s1">'e9032'</span> <span class="ow">in</span> <span class="s1">'e9032994dabac08080091151380478a2'</span>  <span class="c1"># True，判断"是否包含子串"</span>
+<span class="mi">3</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>                                  <span class="c1"># True，也用于列表成员判断</span>
+</code></pre></div></div>
+
+<p>注意 <code>in</code> 是"包含"不是"相等"；多个片段用 <code>and</code> 做交集筛选。<code>'da'</code> 这种短片段很容易命中，片段越多筛选越准。</p>
+<h3 id="range">range() 右开区间</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="nb">range</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="mi">127</span><span class="p">)</span>   <span class="c1"># 生成 32~126，不包含 127</span>
+<span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span>   <span class="c1"># [0, 1, 2]</span>
+</code></pre></div></div>
+
+<p>CTF 爆破里 <code>range(32, 127)</code> = 空格(32) 到 <code>~</code>(126) 的全部可打印 ASCII，共 95 个字符。</p>
+<h2 id="python-2-writeup">六、识别 Python 2 老代码（网上的 writeup 常见）</h2>
+<p>看到这些特征基本是 Py2 写的，抄进 Py3 要改：</p>
+<ul>
+<li><code>m.update('字符串')</code> 直接传 str → 加 <code>.encode()</code></li>
+<li><code>print 'xxx'</code> 不带括号 → 改 <code>print('xxx')</code></li>
+<li><code>xrange</code> → 直接 <code>range</code> 即可（Py3 的 range 就是迭代器）</li>
+</ul>
+<p><strong>通用改写套路</strong>：字符串要喂给"字节系" API（hashlib / 文件 / socket / base64）时一律 <code>.encode()</code>；从这些 API 拿回来的 bytes 要 <code>print</code> 前先 <code>.decode()</code>。</p>
+<p><em>最后更新：2026年9月4日</em></p></div>
+      <div class="post-nav"><a class="pn-item prev" href="rsa-gong-su-shu-pollardrho-bian-ti.html"><span>← 上一篇</span><strong>RSA共素数-PollardRho变体</strong></a><a class="pn-item next" href="windows-ha-xi-po-jie-ntlm.html"><span>下一篇 →</span><strong>Windows哈希破解-NTLM</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#str-bytes" class="toc-lv2">一、核心概念：str 和 bytes 是两种东西</a><a href="#strings-must-be-encoded-before-hashing" class="toc-lv2">二、为什么会报 &quot;Strings must be encoded before hashing&quot;</a><a href="#encode-decode" class="toc-lv2">三、encode() / decode() 双向转换</a><a href="#bytes" class="toc-lv2">四、什么时候必须 bytes（常见场景）</a><a href="#_1" class="toc-lv2">五、脚本里其他常用语法</a><a href="#chr-ord" class="toc-lv3">chr() / ord()：数字和字符互转</a><a href="#in" class="toc-lv3">in 运算符：字符串子串判断</a><a href="#range" class="toc-lv3">range() 右开区间</a><a href="#python-2-writeup" class="toc-lv2">六、识别 Python 2 老代码（网上的 writeup 常见）</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

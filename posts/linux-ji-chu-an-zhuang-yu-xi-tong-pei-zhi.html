@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Linux 基础：安装与系统配置 · pressure-J</title>
+<meta name="description" content="一句话原理：虚拟化软件在一台物理电脑上，用软件&quot;模拟&quot;出 CPU、内存、硬盘、网卡等硬件，让多个操作系统互不干扰地同时运行，仿佛各自占有一台独立电脑。这样做的价值是：资源复用、环境隔离、随手备份——网安学习最需要的就是&quot;随便折腾、坏…">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/linux-ji-chu-an-zhuang-yu-xi-tong-pei-zhi.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Linux 基础：安装与系统配置 · pressure-J">
+<meta property="og:description" content="一句话原理：虚拟化软件在一台物理电脑上，用软件&quot;模拟&quot;出 CPU、内存、硬盘、网卡等硬件，让多个操作系统互不干扰地同时运行，仿佛各自占有一台独立电脑。这样做的价值是：资源复用、环境隔离、随手备份——网安学习最需要的就是&quot;随便折腾、坏…">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/linux.html">Linux</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>Linux 基础：安装与系统配置</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-linux">Linux</span>
+          <time datetime="2026-08-28">2026-08-28</time>
+          <span>4830 字</span>
+          <span>约 13 分钟</span>
+        </div>
+        
+      </header>
+      <div class="content"><blockquote>
+<p>来源：Linux操作系统课程实验《安装与配置Linux操作系统》（老师版 PDF 59 页，讲师 myth）+《CentOS8换源》+ 本人实验报告（docx，2025-2026 第一学期）<br />
+定位：网安学生搭建靶机/实验环境的必备技能，VMware + Ubuntu 是打 CTF、复现漏洞的标配玩法；SSH、静态 IP、免密登录是后续所有远程操作的地基</p>
+</blockquote>
+<hr />
+<h2 id="_1">一、概述：虚拟机与虚拟化</h2>
+<p><strong>一句话原理</strong>：虚拟化软件在一台物理电脑上，用软件"模拟"出 CPU、内存、硬盘、网卡等硬件，让多个操作系统互不干扰地同时运行，仿佛各自占有一台独立电脑。这样做的价值是：<strong>资源复用、环境隔离、随手备份</strong>——网安学习最需要的就是"随便折腾、坏了就还原"。</p>
+<p>Windows 上常用的虚拟化软件有三类，选择建议直接记结论：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>软件</th>
+<th>特点</th>
+<th>适合人群</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>VMware Workstation</td>
+<td>功能最强、资料最多、博通收购后个人版免费；虚拟网络支持丰富</td>
+<td><strong>小白首选</strong>（遇到问题能搜到大量教程）</td>
+</tr>
+<tr>
+<td>Hyper-V</td>
+<td>Windows 原生、性能好、稳定，但网络配置复杂，装 Linux 要关安全启动</td>
+<td>技术强、追求性能的同学</td>
+</tr>
+<tr>
+<td>VirtualBox</td>
+<td>完全免费开源、跨平台，性能稍弱</td>
+<td>VMware 装不成的备选</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>网安学生的核心场景</strong>：用虚拟机装 Kali（攻击机）、Ubuntu/CentOS（靶机/服务器）、Windows（内网横向），构成一套完整的实验网。所以"装系统"不是点下一步那么简单，后面的网络规划、快照、SSH 都要会。</p>
+<hr />
+<h2 id="_2">二、核心知识</h2>
+<h3 id="1-iso">1. ISO 镜像与哈希校验（老师强调"重要三遍"）</h3>
+<p>安装系统前先下载对应发行版的 ISO 镜像（如 <code>ubuntu-22.04.4-desktop-amd64.iso</code>）。<strong>镜像是大文件，下载很容易不完整且自己察觉不到，装到一半报莫名奇妙的错</strong>——所以下载后必须校验哈希：</p>
+<div class="code-block" data-lang="powershell"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c"># Windows PowerShell 里校验（在镜像所在文件夹打开）</span>
+<span class="n">certutil</span> <span class="n">-hashfile</span> <span class="n">ubuntu</span><span class="p">-</span><span class="n">22</span><span class="p">.</span><span class="n">04</span><span class="p">.</span><span class="n">4-desktop-amd64</span><span class="p">.</span><span class="n">iso</span> <span class="n">md5</span>
+</code></pre></div></div>
+
+<p>把算出的值跟官网/老师给的 <code>.md5</code> 文件里的字符串比对，一致才说明下载完整。</p>
+<h3 id="2">2. 虚拟机的三种网络模式（面试常问的概念）</h3>
+<ul>
+<li><strong>NAT 模式</strong>：虚拟机通过宿主机的 IP 共享上网，外部看不到虚拟机——<strong>最省事，默认推荐</strong>。只要宿主机能上网，虚拟机就能上网。</li>
+<li><strong>桥接模式</strong>：虚拟机直接"插"到真实局域网里，拥有独立 IP，外部可以直接访问（搭网站被别人访问就要用这个）。</li>
+<li><strong>仅主机模式（Host-Only）</strong>：只能和宿主机互通，不能上外网，适合纯内网测试。</li>
+</ul>
+<blockquote>
+<p>老师明确建议：<strong>前期只使用 NAT 模式</strong>，等熟悉了虚拟化网络再考虑桥接等模式，避免踩坑。</p>
+</blockquote>
+<h3 id="3-ssh">3. SSH 远程连接三件套</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>工具</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>VSCode + Remote-SSH 插件</td>
+<td>远程写代码的主力，编辑器体验最好</td>
+</tr>
+<tr>
+<td>Xshell</td>
+<td>轻量远程终端，执行简单命令</td>
+</tr>
+<tr>
+<td>Xftp</td>
+<td>图形化文件传输，Windows ↔ Linux 互传文件</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="4-vs-vs">4. 快照 vs 检查点 vs 快照（不同厂商叫法不同）</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>平台</th>
+<th>术语</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>VMware Workstation</td>
+<td>快照（Snapshot）</td>
+<td>保存虚拟机状态，坏了随时回滚</td>
+</tr>
+<tr>
+<td>Hyper-V</td>
+<td>检查点（Checkpoint）</td>
+<td>同上</td>
+</tr>
+<tr>
+<td>VirtualBox</td>
+<td>快照（Snapshot）</td>
+<td>同上</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="pdf">三、实操流程（老师版 PDF 步骤提炼）</h2>
+<h3 id="1">第 1 步：下载镜像 + 校验哈希</h3>
+<p>官网或清华镜像站下载 ISO，用上面的 <code>certutil</code> 校验，确认完整后再动手。</p>
+<h3 id="2-vmware">第 2 步：安装 VMware 并创建虚拟机</h3>
+<ol>
+<li>官网（vmware.com，需注册博通账号选 personal use）下载安装，全程 Next。</li>
+<li>新建虚拟机 → 选择 ISO 镜像 → <strong>输入用户名密码（记住！后面一直要用，建议全小写、好记）</strong> → 选存放路径 → 磁盘容量（硬盘大就分大点，如 60G）。</li>
+<li>启动虚拟机开始装系统。</li>
+</ol>
+<blockquote>
+<p><strong>避坑</strong>：装 Ubuntu 选内存时，少于 2GB（2048MB）会报 <code>initramfs unpacking failed: write error</code>，启动直接失败——<strong>内存至少 2G，建议 4G</strong>。</p>
+</blockquote>
+<h3 id="3-linux-ubuntu">第 3 步：安装 Linux 系统（Ubuntu 为例）</h3>
+<ol>
+<li>启动后选 "Try or Install Ubuntu" → Install Ubuntu。</li>
+<li>默认勾选"安装更新和第三方软件"即可（完整但慢）；想快可以勾最小化安装、去掉更新，后面自己装。</li>
+<li>Install Now（新手直接用默认分区，熟悉后再自定义）。</li>
+<li>设置用户名密码 → 等待安装 → Restart Now。</li>
+</ol>
+<h3 id="4">第 4 步：安装后立即做快照（关键中的关键）</h3>
+<p><strong>装完系统第一件事就是备份</strong>：右键虚拟机 → 快照 → 新建快照。不熟悉 Linux 很容易把系统搞崩，有快照就能秒回当初的状态，省去重装几小时。</p>
+<h3 id="5-ssh">第 5 步：安装并启用 SSH 服务</h3>
+<p>在虚拟机终端里执行（<strong>Ubuntu 桌面版默认没装 SSH 服务端，这是连不上的头号原因</strong>）：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>apt<span class="w"> </span>update<span class="w"> </span>-y<span class="w">              </span><span class="c1"># 更新软件列表</span>
+sudo<span class="w"> </span>apt<span class="w"> </span>install<span class="w"> </span>openssh-server<span class="w"> </span>-y<span class="w">   </span><span class="c1"># 安装 SSH 服务端</span>
+sudo<span class="w"> </span>systemctl<span class="w"> </span>start<span class="w"> </span>ssh<span class="w">        </span><span class="c1"># 启动 ssh 服务</span>
+sudo<span class="w"> </span>systemctl<span class="w"> </span><span class="nb">enable</span><span class="w"> </span>ssh<span class="w">       </span><span class="c1"># 开机自启</span>
+sudo<span class="w"> </span>systemctl<span class="w"> </span>status<span class="w"> </span>ssh<span class="w">       </span><span class="c1"># 查看状态</span>
+</code></pre></div></div>
+
+<p>然后在虚拟机里执行 <code>ip a</code> 查看 IP 地址并记下——这就是远程连接的地址。</p>
+<h3 id="6-ssh">第 6 步：SSH 客户端连接</h3>
+<ul>
+<li><strong>VSCode</strong>：装 Remote-SSH 插件 → 配置 <code>~/.ssh/config</code>：</li>
+</ul>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>Host ubuntu-vm          # 名字随意，能标识即可
+HostName 192.168.x.x    # 虚拟机 IP，务必准确
+User 你的用户名          # Ubuntu 用户名，务必准确
+</code></pre></div></div>
+
+<p>刷新 → Connect → Continue → 输密码 → Ctrl+Shift+` 打开远程终端。<br />
+- <strong>Xshell</strong>：新建会话填 IP、用户名、密码即可。<br />
+- <strong>Xftp</strong>：同 Xshell，连上后左边 Windows、右边 Linux，直接拖拽传文件。</p>
+<h3 id="7-ip-ssh">第 7 步：配置静态 IP（进阶，让 SSH 地址固定不变）</h3>
+<p>动态 IP 每次重启可能变，SSH 配置就要跟着改，很烦。配静态 IP 后一劳永逸。</p>
+<p><strong>VMware 的 NAT 模式（最简单）</strong>：<br />
+1. 虚拟网络编辑器里查看 NAT 网段和网关（如网段 <code>172.30.73.0</code>、网关 <code>172.30.73.2</code>，<strong>每台电脑不同</strong>）。<br />
+2. 在 Ubuntu 的 Network 设置里手动配置：<br />
+   - IP：网段内未被占用的地址（避开网关和宿主机地址，如 <code>172.30.73.3</code>）<br />
+   - 掩码：<code>255.255.255.0</code><br />
+   - 网关：<code>172.30.73.2</code>（填虚拟网络编辑器里记下的）<br />
+   - DNS：<code>223.5.5.5</code>（阿里）或 <code>8.8.8.8</code>（Google）<br />
+3. 应用后把有线网络关掉再打开使其生效，<code>ip a</code> 验证。</p>
+<p><strong>Hyper-V 要点</strong>：新建"内部"类型虚拟交换机 → 给虚拟机新增一块网卡接该交换机 → 在宿主机控制面板给该网卡设 IP → 虚拟机里配静态 IP（可加一张 Default Switch 网卡保外网）。<br />
+<strong>VirtualBox 要点</strong>：Host-Only 管内网（配静态 IP 供 SSH），NAT 管外网（自动分配）——<strong>两块网卡都要有，否则要么连不上要么上不了网</strong>。</p>
+<h3 id="8-vscode">第 8 步：VSCode 免密登录（公私钥）</h3>
+<p>每次都输密码麻烦，用密钥对实现免密（安全且方便）：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># Windows 上打开 Git Bash 生成密钥对</span>
+ssh-keygen<span class="w">          </span><span class="c1"># 一路回车</span>
+<span class="c1"># 生成的 id_rsa（私钥，勿外传）与 id_rsa.pub（公钥）在 ~/\.ssh\</span>
+
+<span class="c1"># 方式一：一键上传（推荐）</span>
+ssh-copy-id<span class="w"> </span>用户名@IP<span class="w">      </span><span class="c1"># 如 ssh-copy-id myth@172.30.73.29，输一次密码</span>
+
+<span class="c1"># 方式二：手动粘贴</span>
+<span class="c1"># 打开 Linux 的 ~/.ssh/authorized_keys，把 id_rsa.pub 内容粘进去保存</span>
+</code></pre></div></div>
+
+<p>之后 VSCode/Xshell 连接就不用再输密码了。</p>
+<h3 id="9-centos8-eol">第 9 步：CentOS8 换源（国内加速 + 处理 EOL）</h3>
+<p>CentOS 8 已停止维护（EOL），原软件源失效；且默认源在国外，下载慢。换阿里云源：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>/etc/yum.repos.d/
+sudo<span class="w"> </span>mkdir<span class="w"> </span>backup
+sudo<span class="w"> </span>mv<span class="w"> </span>*repo<span class="w"> </span>backup<span class="w">                                  </span><span class="c1"># 备份原配置</span>
+sudo<span class="w"> </span>wget<span class="w"> </span>-O<span class="w"> </span>/etc/yum.repos.d/CentOS-Linux-BaseOS.repo<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>https://mirrors.aliyun.com/repo/Centos-8.repo<span class="w">     </span><span class="c1"># 下载阿里源</span>
+sudo<span class="w"> </span>yum<span class="w"> </span>clean<span class="w"> </span>all<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>sudo<span class="w"> </span>yum<span class="w"> </span>makecache<span class="w">              </span><span class="c1"># 重建缓存</span>
+</code></pre></div></div>
+
+<p>换源的本质：<strong>把 <code>/etc/yum.repos.d/</code> 里指向国外的 .repo 文件，替换成指向国内镜像站的</strong>。Ubuntu 同理（换 <code>/etc/apt/sources.list</code> 为清华/阿里源）。</p>
+<hr />
+<h2 id="pdf_1">四、常见问题与排查（全是老师 PDF 里标注的坑）</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>现象</th>
+<th>原因</th>
+<th>解决</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>启动报 <code>initramfs unpacking failed: write error</code></td>
+<td>虚拟机内存给太小</td>
+<td>调大内存至 2G+</td>
+</tr>
+<tr>
+<td>Windows 能 ping 通虚拟机，但 SSH 连不上</td>
+<td>Linux 没装 SSH 服务端</td>
+<td>执行第 5 步四条 systemctl 命令</td>
+</tr>
+<tr>
+<td>Windows 与虚拟机互相 ping 不通</td>
+<td>网络模式有问题/虚拟机没网</td>
+<td>检查 NAT 配置，先保证虚拟机内能上网</td>
+</tr>
+<tr>
+<td>VSCode 连不上，日志报"过程试图写入的管道不存在"</td>
+<td>Windows 侧 <code>~/.ssh</code> 文件夹权限被继承污染</td>
+<td>按九步法重置：<code>.ssh</code> 属性 → 安全 → 高级 → 禁用继承 → 删除所有继承权限 → 添加自己的用户为所有者</td>
+</tr>
+<tr>
+<td>VSCode 配置正确还是连不上</td>
+<td><code>known_hosts</code> 里的旧密钥记录冲突</td>
+<td>删掉 <code>~/\.ssh\known_hosts</code> 对应行或整个文件重连</td>
+</tr>
+<tr>
+<td>VSCode 服务端程序损坏</td>
+<td>远程端 <code>~/.vscode-server</code> 缓存坏</td>
+<td><code>sudo rm -rf ~/.vscode-server</code> 后重装 VSCode 重连</td>
+</tr>
+<tr>
+<td>Hyper-V 装 Linux 报错</td>
+<td>第二代虚拟机默认开启了"安全启动"，Linux 不支持</td>
+<td>虚拟机设置 → 安全 → <strong>取消勾选"启用安全启动"</strong></td>
+</tr>
+<tr>
+<td>静态 IP 配置后不生效</td>
+<td>没重启网络</td>
+<td>图形界面把有线网络开关一次，或 <code>sudo systemctl restart network</code></td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="_3">五、面试速答卡</h2>
+<ul>
+<li><strong>虚拟化是什么</strong>：软件模拟硬件，多 OS 并行运行于一台物理机，资源隔离复用</li>
+<li><strong>NAT/桥接/仅主机区别</strong>：NAT 借宿主机上网且外部不可见；桥接有独立局域网 IP 外部可访问；仅主机只能与宿主机互通</li>
+<li><strong>为什么下载 ISO 要校哈希</strong>：大文件下载易损坏，损坏镜像装系统会莫名报错，校验防"装到一半崩溃"</li>
+<li><strong>Ubuntu 默认能 SSH 连接吗</strong>：桌面版默认没装 openssh-server，需 <code>apt install openssh-server</code> 并 <code>systemctl start/enable ssh</code></li>
+<li><strong>SSH 免密登录原理</strong>：本地生成公私钥对，公钥放进远端 <code>~/.ssh/authorized_keys</code>，连接时用私钥签名验证</li>
+<li><strong>快照的作用</strong>：保存虚拟机状态，系统搞坏后一键回滚，省去重装</li>
+<li><strong>换源为什么能加速</strong>：把包管理器的软件源从海外官方服务器换成国内镜像站，网络延迟和带宽大幅改善</li>
+<li><strong>静态 IP 配置四要素</strong>：IP 地址、子网掩码、网关、DNS——IP 与网关属于同一网段且不与已有设备冲突</li>
+</ul></div>
+      <div class="post-nav"><a class="pn-item prev" href="linux-fu-wu-samba-wen-jian-gong-xiang.html"><span>← 上一篇</span><strong>Linux 服务：Samba 文件共享</strong></a><a class="pn-item next" href="linux-ji-chu-chang-yong-ming-ling-yu-wen-jian-xi-tong.html"><span>下一篇 →</span><strong>Linux 基础：常用命令与文件系统</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">一、概述：虚拟机与虚拟化</a><a href="#_2" class="toc-lv2">二、核心知识</a><a href="#1-iso" class="toc-lv3">1. ISO 镜像与哈希校验（老师强调&quot;重要三遍&quot;）</a><a href="#2" class="toc-lv3">2. 虚拟机的三种网络模式（面试常问的概念）</a><a href="#3-ssh" class="toc-lv3">3. SSH 远程连接三件套</a><a href="#4-vs-vs" class="toc-lv3">4. 快照 vs 检查点 vs 快照（不同厂商叫法不同）</a><a href="#pdf" class="toc-lv2">三、实操流程（老师版 PDF 步骤提炼）</a><a href="#1" class="toc-lv3">第 1 步：下载镜像 + 校验哈希</a><a href="#2-vmware" class="toc-lv3">第 2 步：安装 VMware 并创建虚拟机</a><a href="#3-linux-ubuntu" class="toc-lv3">第 3 步：安装 Linux 系统（Ubuntu 为例）</a><a href="#4" class="toc-lv3">第 4 步：安装后立即做快照（关键中的关键）</a><a href="#5-ssh" class="toc-lv3">第 5 步：安装并启用 SSH 服务</a><a href="#6-ssh" class="toc-lv3">第 6 步：SSH 客户端连接</a><a href="#7-ip-ssh" class="toc-lv3">第 7 步：配置静态 IP（进阶，让 SSH 地址固定不变）</a><a href="#8-vscode" class="toc-lv3">第 8 步：VSCode 免密登录（公私钥）</a><a href="#9-centos8-eol" class="toc-lv3">第 9 步：CentOS8 换源（国内加速 + 处理 EOL）</a><a href="#pdf_1" class="toc-lv2">四、常见问题与排查（全是老师 PDF 里标注的坑）</a><a href="#_3" class="toc-lv2">五、面试速答卡</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

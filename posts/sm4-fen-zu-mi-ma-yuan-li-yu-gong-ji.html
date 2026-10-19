@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SM4-分组密码原理与攻击 · pressure-J</title>
+<meta name="description" content="国密分组对称密码，标准号 GM/T 0002（旧称 SMS4，GB/T 32907）。分组 128 bit、密钥 128 bit，32 轮。设计目标是替代 AES，抗差分/线性分析强度与 AES 同级。">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/sm4-fen-zu-mi-ma-yuan-li-yu-gong-ji.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="SM4-分组密码原理与攻击 · pressure-J">
+<meta property="og:description" content="国密分组对称密码，标准号 GM/T 0002（旧称 SMS4，GB/T 32907）。分组 128 bit、密钥 128 bit，32 轮。设计目标是替代 AES，抗差分/线性分析强度与 AES 同级。">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/crypto.html">密码学</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>SM4-分组密码原理与攻击</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-crypto">密码学</span>
+          <time datetime="2026-10-14">2026-10-14</time>
+          <span>5739 字</span>
+          <span>约 15 分钟</span>
+        </div>
+        <div class="chips post-tags"><span class="chip">crypto</span><span class="chip">symmetric</span><span class="chip">sm4</span></div>
+      </header>
+      <div class="content"><p>国密<strong>分组对称密码</strong>，标准号 <strong>GM/T 0002</strong>（旧称 SMS4，GB/T 32907）。分组 128 bit、密钥 128 bit，<strong>32 轮</strong>。设计目标是替代 AES，抗差分/线性分析强度与 AES 同级。</p>
+<blockquote>
+<p>姊妹篇：<a href="../posts/sm3-za-cou-suan-fa-yuan-li-yu-gong-ji.html">SM3-杂凑算法原理与攻击</a> · <a href="../posts/sm2-tuo-yuan-qu-xian-gong-yao-suan-fa-yuan-li-yu-gong-ji.html">SM2-椭圆曲线公钥算法原理与攻击</a></p>
+</blockquote>
+<h2 id="1">1. 题型识别（看到就用）</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>题面特征</th>
+<th>攻击</th>
+<th>脚本</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>同一 IV 在 OFB/CTR 模式加密两段，给一组已知明密文</td>
+<td>密钥流重用 <code>C_a⊕C_b⊕P_a = P_b</code></td>
+<td><code>SM4-工作模式攻击-solve.py</code> 考点3</td>
+</tr>
+<tr>
+<td>大量重复/结构化明文（cookie、<code>NAME=xxx</code> 模板），密文有重复块</td>
+<td>ECB 结构泄露 → 块重排、明文结构推断</td>
+<td>同上 考点1</td>
+</tr>
+<tr>
+<td>有解密报错反馈（padding oracle）</td>
+<td>CBC padding oracle 逐字节解密</td>
+<td>同上 考点2</td>
+</tr>
+<tr>
+<td>给 S 盒/轮函数实现 + 部分轮密钥</td>
+<td>逆向密钥扩展 / 差分分析</td>
+<td>—</td>
+</tr>
+<tr>
+<td>密码机接口常量 <code>SGD_SM4_CBC = 0x00000402</code></td>
+<td>密码设备接口层（另一维度）</td>
+<td>见 <code>~/notes\CTF备赛\ISCC2026-密码安全赛-速查卡.md</code></td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="2">2. 算法原理</h2>
+<h3 id="21-32-feistel">2.1 整体结构：32 轮非平衡 Feistel</h3>
+<p>明文 128 bit 按<strong>大端</strong>拆成 4 个 32 位字 $X_0 X_1 X_2 X_3$，做 32 轮：</p>
+<p>$$X_{i+4} = X_i \oplus T(X_{i+1} \oplus X_{i+2} \oplus X_{i+3} \oplus rk_i), \quad i = 0,1,\dots,31$$</p>
+<p>输出为<strong>逆序</strong>的<strong>最后四个字</strong>：</p>
+<p>$$Y = (X_{35},\ X_{34},\ X_{33},\ X_{32})$$</p>
+<p>注意：每轮只有<strong>一个新字</strong>参与 S 盒，$X_i$ 是被"挤掉"的那个——这就是"非平衡 Feistel"的含义，32 轮后 4 个字都换过数轮。</p>
+<p><strong>为什么加密轮密钥逆序就是解密</strong>：Feistel 结构每轮可逆，且加解密用同一套电路。实测（本机 gmssl）：</p>
+<blockquote>
+<p>加密 sk[0] = 0xf12186f9<br />
+解密 sk[0] = 0x9124a012  (= 加密 sk[31])<br />
+解密轮密钥恰为加密轮密钥的逆序: True ✅</p>
+</blockquote>
+<h3 id="22-t-l">2.2 轮函数 T = 非线性 τ + 线性 L</h3>
+<p>$$T(x) = L\big(\tau(x)\big)$$</p>
+<p><strong>非线性层 τ</strong>：把 32 位按字节过 S 盒<br />
+$$\tau(x) = S(b_0) | S(b_1) | S(b_2) | S(b_3)$$</p>
+<p><strong>线性层 L</strong>（循环左移 ⊕）：<br />
+$$L(B) = B \oplus (B \lll 2) \oplus (B \lll 10) \oplus (B \lll 18) \oplus (B \lll 24)$$</p>
+<p>实测代码确认（gmssl 的 <code>_sm4_l_t</code> 就是这四个移位量）：</p>
+<blockquote>
+<p>c = bb ^ rotl(bb, 2) ^ rotl(bb, 10) ^ rotl(bb, 18) ^ rotl(bb, 24)</p>
+</blockquote>
+<p><strong>S 盒</strong>：8 bit 输入 → 8 bit 输出，构造为<strong>有限域 $GF(2^8)$ 上求逆 + 仿射变换</strong>（与 AES 同思路，但多项式与仿射矩阵不同）。首 8 项实测：<code>d6 90 e9 fe cc e1 3d b7</code>。</p>
+<blockquote>
+<p>S 盒是 SM4 唯一非线性来源，差分/线性分析都围绕它做。它满足差分均匀度 4、线性偏差有界，这是安全性的基石。</p>
+</blockquote>
+<h3 id="23">2.3 密钥扩展</h3>
+<p>主密钥 $MK = MK_0 MK_1 MK_2 MK_3$（各 32 bit），先异或系统参数：</p>
+<p>$$K_i = MK_i \oplus FK_i, \quad i = 0..3$$</p>
+<p>然后迭代生成 32 个轮密钥，用<strong>完全相同的 T 结构，但 L 换成 $L'$</strong>：</p>
+<p>$$rk_i = K_{i+4} = K_i \oplus T'(K_{i+1} \oplus K_{i+2} \oplus K_{i+3} \oplus CK_i)$$</p>
+<p>$$L'(B) = B \oplus (B \lll 13) \oplus (B \lll 23)$$</p>
+<p><strong>FK（系统参数，实测确认）</strong>：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>常量</th>
+<th>值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FK₀</td>
+<td><code>0xa3b1bac6</code></td>
+</tr>
+<tr>
+<td>FK₁</td>
+<td><code>0x56aa3350</code></td>
+</tr>
+<tr>
+<td>FK₂</td>
+<td><code>0x677d9197</code></td>
+</tr>
+<tr>
+<td>FK₃</td>
+<td><code>0xb27022dc</code></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>CK（固定参数）</strong>：$ck_{i,j}$ = 第 $i$ 个字的第 $j$ 字节 = $(4i + j) \times 7 \bmod 256$</p>
+<p>实测验证这条公式对全部 32 个 CK 成立：</p>
+<blockquote>
+<p>CK[0] = 0x00070e15   CK[31] = 0x646b7279<br />
+CK 全部可由 (4i+j)*7 mod 256 生成: True ✅</p>
+<p>记住 <strong>13/23</strong> 这两个移位量是密钥扩展的 $L'$，与加密用的 <strong>2/10/18/24</strong> 不同——这是区分 <code>T</code> 和 <code>T'</code> 的唯一差别，也是考试常考点。</p>
+</blockquote>
+<h3 id="24-gbt-32907">2.4 标准测试向量（GB/T 32907，本机已核对）</h3>
+<p>密钥 = 明文 = <code>0123456789abcdeffedcba9876543210</code>，单块加密：</p>
+<blockquote>
+<p>密文 = 681edf34d206965e86b3e94f536e4246  ✅ 与官方一致</p>
+</blockquote>
+<p>⚠️ <strong>坑</strong>：<code>openssl enc -sm4-ecb</code> 默认做 PKCS 填充，对标准向量会输出 32 字节。取向量时必须加 <code>-nopad</code>：</p>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>openssl<span class="w"> </span>enc<span class="w"> </span>-sm4-ecb<span class="w"> </span>-nopad<span class="w"> </span>-K<span class="w"> </span>0123456789abcdeffedcba9876543210<span class="w"> </span>-in<span class="w"> </span>block.bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>xxd<span class="w"> </span>-p
+</code></pre></div></div>
+
+<h2 id="3">3. 常见攻击</h2>
+<h3 id="31-ecb">3.1 攻击一：ECB 结构泄露（最易命中）</h3>
+<p>ECB 下<strong>每个块独立加密</strong>，所以相同明文块 → 相同密文块。攻击者不需要密钥就能看出明文结构。</p>
+<p>实测（<code>SM4-工作模式攻击-solve.py</code> 考点1）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>块</th>
+<th>明文</th>
+<th>密文</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td><code>NAME=alice______</code></td>
+<td><code>cce9e88c7941f37dcfab2aae42b2929b</code></td>
+</tr>
+<tr>
+<td>1</td>
+<td><code>NAME=alice______</code></td>
+<td><code>cce9e88c7941f37dcfab2aae42b2929b</code> ⬅ 重复</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>NAME=bob________</code></td>
+<td><code>80319d44a18d22c63a2827b5b5f6bbb8</code></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>利用方式</strong>：</p>
+<ul>
+<li><strong>块重排</strong>：加密结果块可以任意换序，解密后明文对应换序（实测交换后明文顺序确实改变），可做权限字段搬运。</li>
+<li><strong>逐字节猜测</strong>：构造 <code>prefix + 猜测 + suffix</code> 填满块边界，密文块与目标块比对，可在不知道密钥的情况下逐字节还原明文（ECB 版 oracle）。</li>
+<li><strong>cookie/权限字段</strong>：<code>admin=false</code> 与 <code>admin=true_</code> 这类等长字段可整块替换。</li>
+</ul>
+<h3 id="32-cbc">3.2 攻击二：CBC 比特翻转（篡改前置块控制后置块）</h3>
+<p>CBC 解密：$P_i = D(C_i) \oplus C_{i-1}$。</p>
+<p>所以<strong>翻转 $C_{i-1}$ 的某个 bit，$P_i$ 的同一位置也翻转同一 bit</strong>，而 $C_i$ 对应的 $P_i$ 其余字节不受影响；代价是 $P_{i-1}$ 被整体随机化（$D(C_{i-1})$ 变得不可预测）。</p>
+<p>实测（考点2）：</p>
+<blockquote>
+<p>原明文块2 = b'ole=guestXXXXXX\x00'<br />
+篡改 C1 第 4 字节（翻转 'g'^'G' 的差值）后：<br />
+块1 明文 = 随机乱码                &lt;- 牺牲掉<br />
+块2 明文 = b'ole=GuestXXXXXX\x00'  &lt;- 'g' -&gt; 'G' 精确命中<br />
+块2 只改了目标字节: True ✅</p>
+</blockquote>
+<p><strong>利用方式</strong>：当明文是 <code>uid=1234;admin=0</code> 这类结构化数据时，只改一个字节就能篡改字段值。若首块（IV 可控时）也能改，则 IV 直接作为可调参数。</p>
+<h3 id="33-ofbctr">3.3 攻击三：OFB/CTR 密钥流重用（最高频）</h3>
+<p>OFB/CTR 把分组密码变成<strong>流密码</strong>：密钥流 $KS$ 只依赖 (key, IV)，与明文无关。</p>
+<p>$$C = P \oplus KS$$</p>
+<p><strong>同一 IV 用两次 → 同一密钥流</strong>：</p>
+<p>$$C_a \oplus C_b = P_a \oplus P_b \quad\Longrightarrow\quad P_b = C_a \oplus C_b \oplus P_a$$</p>
+<p>只需知道<strong>任意一组</strong>明密文对，就能解出所有用同 IV 的密文。</p>
+<p>实测（考点3）：</p>
+<blockquote>
+<p>OFB 密钥流 = 2677f46b09c122cc975533105bd4a22a2c103bee29b2693cdf<br />
+A 明文 = b'card_num=6228480010301477'<br />
+A 密文 = 4516860f56af57a1aa63012263e09a1a1c210bdd19835d0be8<br />
+B 密文 = 4516860f56af57a1aa63012263e09a1a1c210bdd198b5005e6<br />
+C_a ^ C_b ^ P_a = b'card_num=6228480010309999'  ✅ 解出 B 的明文</p>
+</blockquote>
+<p><strong>OFB 与 CTR 的区别</strong>（易混）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th>密钥流生成</th>
+<th>特点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OFB</td>
+<td>$O_i = E(O_{i-1})$，$O_0 = IV$，反复加密 IV</td>
+<td>迭代反馈；IV 复用即密钥流复用</td>
+</tr>
+<tr>
+<td>CTR</td>
+<td>$O_i = E(IV + i)$，计数器递增</td>
+<td>可并行；计数器复用同样致命</td>
+</tr>
+</tbody>
+</table></div>
+<p>两者 IV/计数器复用<strong>攻击方式完全相同</strong>。实测确认两者的密钥流不同（<code>ks_ctr != ks</code> 为 True），别混为一谈。</p>
+<p><strong>识别方法</strong>：密文长度 = 明文长度（无块对齐填充）、且题面出现 IV/nonce/counter → 优先怀疑流式模式。</p>
+<h3 id="34-cbc-padding-oracle">3.4 攻击四：CBC padding oracle</h3>
+<p>若服务端把"填充错误"与"解密失败"区分反馈（不同错误码/时间/页面），就能<strong>逐字节解密</strong>：</p>
+<ul>
+<li>构造 $C_{i-1}[j] = guess \oplus pad$，观察是否返回填充正确。</li>
+<li>每字节 256 次尝试，一个块最多 $16 \times 256$ 次请求，整段明文可解。</li>
+<li>也常被用来伪造合法密文（绕过 MAC 校验顺序不当的实现）。</li>
+</ul>
+<p>防御：加 MAC 并<strong>先验 MAC 再解密</strong>（Encrypt-then-MAC），错误反馈统一。</p>
+<h3 id="35">3.5 攻击五：差分 / 线性分析（学术向）</h3>
+<ul>
+<li>SM4 共 32 轮，目前公开的最好攻击覆盖 <strong>23 轮</strong>左右（如 2025 年对关键恢复友好的 19 轮差分特征的改进），全 32 轮<strong>无实际可行攻击</strong>。</li>
+<li>SM4 的高安全裕度来自 S 盒的高非线性度与 L 层的良好扩散。研究这类攻击需要大量选择明密文对（$2^{100}$ 量级），CTF 里不会出现，但<strong>面试/答辩会问"SM4 安全吗"</strong>。</li>
+</ul>
+<h3 id="36">3.6 攻击六：侧信道</h3>
+<ul>
+<li><strong>缓存时序</strong>：S 盒查表会泄露访问地址（与 AES 同类问题）。</li>
+<li><strong>功耗/电磁</strong>：相关性功耗分析（CPA）可恢复轮密钥。</li>
+<li>防御：用位切片（bitslicing）实现免查表。</li>
+</ul>
+<h2 id="4">4. 工具链</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>工具</th>
+<th>能力</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>gmssl</code>（Python，本机已装）</td>
+<td><code>CryptSM4</code> 有 <code>crypt_ecb</code> / <code>crypt_cbc</code> / <code>one_round</code>；<strong>没有 OFB/CTR 方法</strong>，要用 <code>one_round</code> 自己拼</td>
+</tr>
+<tr>
+<td>OpenSSL 3.5.5</td>
+<td><code>-sm4-ecb / -cbc / -cfb / -ofb / -ctr</code> 全支持（命令行）</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>gmssl 的坑（实测）</strong>：</p>
+<ul>
+<li><code>crypt_ecb</code> / <code>crypt_cbc</code> <strong>只在 <code>set_key</code> 后可用</strong>，且默认 <code>padding_mode=PKCS7</code>（常量值 0，另有 <code>ZERO=1</code>），加密自动补填充、解密自动剥离；要精确单块操作必须用更底层的 <code>one_round</code>（本笔记标准向量演示就是走 <code>one_round</code>）。</li>
+<li>没有 <code>crypt_ofb</code> / <code>crypt_ctr</code>。用 <code>one_round</code> 自己实现（见 <code>SM4-工作模式攻击-solve.py</code> 的 <code>ofb_keystream</code>）。</li>
+</ul>
+<h2 id="5">5. 面试速答卡</h2>
+<p><strong>问：SM4 和 AES 有什么异同？</strong><br />
+答：同为 128 bit 分组、128 bit 密钥、128 bit 主密钥；都用 S 盒 + 线性扩散。<strong>结构不同</strong>：AES 是 SPN（替代-置换网络），SM4 是 32 轮非平衡 Feistel；AES 轮数按密钥长度 10/12/14，SM4 固定 32 轮。安全性同级。</p>
+<p><strong>问：SM4 的 T 和 T' 差别在哪？</strong><br />
+答：只有线性层的移位量不同——加密用 $L(B)=B\oplus(B\lll2)\oplus(B\lll10)\oplus(B\lll18)\oplus(B\lll24)$；密钥扩展用 $L'(B)=B\oplus(B\lll13)\oplus(B\lll23)$。</p>
+<p><strong>问：为什么 SM4 解密电路和加密一样？</strong><br />
+答：Feistel 结构逐轮可逆，解密只需把 32 个轮密钥<strong>逆序</strong>使用。</p>
+<p><strong>问：ECB 为什么不能用？</strong><br />
+答：相同明文块产生相同密文块，泄露明文结构，且支持块重排攻击。应改用 CBC/CTR/GCM。</p>
+<p><strong>问：CTR 和 OFB 都会密钥流重用，有什么区别？</strong><br />
+答：OFB 是反复加密 IV（迭代反馈，不可并行）；CTR 是加密递增计数器（可并行）。两者 IV 复用后果相同。</p>
+<h2 id="6">6. 验证记录</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>方式</th>
+<th>结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>标准单块向量</td>
+<td><code>one_round</code> 精确加密</td>
+<td>✅ <code>681edf34d206965e86b3e94f536e4246</code> 与 GB/T 32907 一致</td>
+</tr>
+<tr>
+<td>FK / CK 常量</td>
+<td>读 gmssl 源码 + 公式校验</td>
+<td>✅ CK 全部符合 $(4i+j)\times7 \bmod 256$</td>
+</tr>
+<tr>
+<td>解密 = 轮密钥逆序</td>
+<td>比对 <code>sk</code> 列表</td>
+<td>✅ <code>c.sk == d.sk[::-1]</code></td>
+</tr>
+<tr>
+<td>ECB 重复块</td>
+<td>两次相同明文块</td>
+<td>✅ 密文块 0 == 块 1</td>
+</tr>
+<tr>
+<td>CBC 比特翻转</td>
+<td>改 C1 → 控 P2</td>
+<td>✅ 'g'→'G' 精确命中，其余字节不变</td>
+</tr>
+<tr>
+<td>OFB 密钥流重用</td>
+<td>同 IV 两组</td>
+<td>✅ <code>C_a⊕C_b⊕P_a</code> 还原出 P_b</td>
+</tr>
+<tr>
+<td>OFB vs CTR 密钥流</td>
+<td>对比生成</td>
+<td>✅ 两者不同</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="7">7. 相关文件</h2>
+<ul>
+<li>题解脚本（本目录）：<code>SM4-工作模式攻击-solve.py</code></li>
+<li>工具箱：<code>~/tools\CTF工具箱\crypto\22-SM2随机数缺陷与OFB密钥流重用.py</code>（含 SM4-OFB 密钥流重用）</li>
+<li>接口常量表：<code>~/notes\CTF备赛\ISCC2026-密码安全赛-速查卡.md</code></li>
+</ul></div>
+      <div class="post-nav"><a class="pn-item prev" href="sm3-za-cou-suan-fa-yuan-li-yu-gong-ji.html"><span>← 上一篇</span><strong>SM3-杂凑算法原理与攻击</strong></a><a class="pn-item next" href="sm2-tuo-yuan-qu-xian-gong-yao-suan-fa-yuan-li-yu-gong-ji.html"><span>下一篇 →</span><strong>SM2-椭圆曲线公钥算法原理与攻击</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#1" class="toc-lv2">1. 题型识别（看到就用）</a><a href="#2" class="toc-lv2">2. 算法原理</a><a href="#21-32-feistel" class="toc-lv3">2.1 整体结构：32 轮非平衡 Feistel</a><a href="#22-t-l" class="toc-lv3">2.2 轮函数 T = 非线性 τ + 线性 L</a><a href="#23" class="toc-lv3">2.3 密钥扩展</a><a href="#24-gbt-32907" class="toc-lv3">2.4 标准测试向量（GB/T 32907，本机已核对）</a><a href="#3" class="toc-lv2">3. 常见攻击</a><a href="#31-ecb" class="toc-lv3">3.1 攻击一：ECB 结构泄露（最易命中）</a><a href="#32-cbc" class="toc-lv3">3.2 攻击二：CBC 比特翻转（篡改前置块控制后置块）</a><a href="#33-ofbctr" class="toc-lv3">3.3 攻击三：OFB/CTR 密钥流重用（最高频）</a><a href="#34-cbc-padding-oracle" class="toc-lv3">3.4 攻击四：CBC padding oracle</a><a href="#35" class="toc-lv3">3.5 攻击五：差分 / 线性分析（学术向）</a><a href="#36" class="toc-lv3">3.6 攻击六：侧信道</a><a href="#4" class="toc-lv2">4. 工具链</a><a href="#5" class="toc-lv2">5. 面试速答卡</a><a href="#6" class="toc-lv2">6. 验证记录</a><a href="#7" class="toc-lv2">7. 相关文件</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

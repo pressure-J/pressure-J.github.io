@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Git 和 GitHub 基础知识 · pressure-J</title>
+<meta name="description" content="Git 是一个分布式版本控制系统，用于追踪文件的变更历史，支持多人协作开发。">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/git-he-github-ji-chu-zhi-shi.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Git 和 GitHub 基础知识 · pressure-J">
+<meta property="og:description" content="Git 是一个分布式版本控制系统，用于追踪文件的变更历史，支持多人协作开发。">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/base.html">基础</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>Git 和 GitHub 基础知识</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-base">基础</span>
+          <time datetime="2026-08-31">2026-08-31</time>
+          <span>6287 字</span>
+          <span>约 17 分钟</span>
+        </div>
+        
+      </header>
+      <div class="content"><h2 id="git">一、Git 是什么？</h2>
+<p>Git 是一个<strong>分布式版本控制系统</strong>，用于追踪文件的变更历史，支持多人协作开发。</p>
+<h3 id="_1">核心概念</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>概念</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>工作区 (Working Directory)</strong></td>
+<td>你正在编辑的文件所在的目录</td>
+</tr>
+<tr>
+<td><strong>暂存区 (Staging Area)</strong></td>
+<td>用 <code>git add</code> 添加的文件，准备提交</td>
+</tr>
+<tr>
+<td><strong>本地仓库 (Local Repository)</strong></td>
+<td>用 <code>git commit</code> 提交后，存储在 <code>.git</code> 目录</td>
+</tr>
+<tr>
+<td><strong>远程仓库 (Remote Repository)</strong></td>
+<td>GitHub、Gitee 等在线托管平台</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="_2">工作流程</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>工作区 → git add → 暂存区 → git commit → 本地仓库 → git push → 远程仓库
+</code></pre></div></div>
+
+<hr />
+<h2 id="git_1">二、Git 常用命令</h2>
+<h3 id="1">1. 仓库初始化</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># 初始化新仓库</span>
+git<span class="w"> </span>init
+
+<span class="c1"># 克隆远程仓库</span>
+git<span class="w"> </span>clone<span class="w"> </span>&lt;仓库地址&gt;
+</code></pre></div></div>
+
+<h3 id="2">2. 文件操作</h3>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># 查看状态</span>
+git<span class="w"> </span>status
+
+<span class="c1"># 添加到暂存区</span>
+git<span class="w"> </span>add<span class="w"> </span>&lt;文件名&gt;<span class="w">      </span><span class="c1"># 添加单个文件</span>
+git<span class="w"> </span>add<span class="w"> </span>.<span class="w">            </span><span class="c1"># 添加所有文件</span>
+git<span class="w"> </span>add<span class="w"> </span>*.py<span class="w">         </span><span class="c1"># 添加所有 .py 文件</span>
+
+<span class="c1"># 提交到本地仓库</span>
+git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"提交说明"</span>
+
+<span class="c1"># 查看提交历史</span>
+git<span class="w"> </span>log
+git<span class="w"> </span>log<span class="w"> </span>--oneline<span class="w">    </span><span class="c1"># 简洁模式</span>
+</code></pre></div></div>
+
+<h3 id="3">3. 分支管理</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># 查看分支</span>
+git<span class="w"> </span>branch<span class="w">           </span><span class="c1"># 本地分支</span>
+git<span class="w"> </span>branch<span class="w"> </span>-a<span class="w">        </span><span class="c1"># 所有分支（含远程）</span>
+
+<span class="c1"># 创建分支</span>
+git<span class="w"> </span>branch<span class="w"> </span>&lt;分支名&gt;
+
+<span class="c1"># 切换分支</span>
+git<span class="w"> </span>checkout<span class="w"> </span>&lt;分支名&gt;
+git<span class="w"> </span>switch<span class="w"> </span>&lt;分支名&gt;<span class="w">   </span><span class="c1"># 新命令</span>
+
+<span class="c1"># 创建并切换分支</span>
+git<span class="w"> </span>checkout<span class="w"> </span>-b<span class="w"> </span>&lt;分支名&gt;
+git<span class="w"> </span>switch<span class="w"> </span>-c<span class="w"> </span>&lt;分支名&gt;
+
+<span class="c1"># 合并分支</span>
+git<span class="w"> </span>merge<span class="w"> </span>&lt;分支名&gt;
+
+<span class="c1"># 删除分支</span>
+git<span class="w"> </span>branch<span class="w"> </span>-d<span class="w"> </span>&lt;分支名&gt;
+</code></pre></div></div>
+
+<h3 id="4">4. 远程操作</h3>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># 查看远程仓库</span>
+git<span class="w"> </span>remote<span class="w"> </span>-v
+
+<span class="c1"># 添加远程仓库</span>
+git<span class="w"> </span>remote<span class="w"> </span>add<span class="w"> </span>origin<span class="w"> </span>&lt;地址&gt;
+
+<span class="c1"># 推送到远程</span>
+git<span class="w"> </span>push<span class="w"> </span>origin<span class="w"> </span>main
+git<span class="w"> </span>push<span class="w"> </span>-u<span class="w"> </span>origin<span class="w"> </span>main<span class="w">    </span><span class="c1"># 首次推送，设置上游分支</span>
+
+<span class="c1"># 拉取更新</span>
+git<span class="w"> </span>pull<span class="w"> </span>origin<span class="w"> </span>main
+
+<span class="c1"># 获取远程更新（不合并）</span>
+git<span class="w"> </span>fetch<span class="w"> </span>origin
+</code></pre></div></div>
+
+<h3 id="5">5. 撤销操作</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># 撤销工作区修改</span>
+git<span class="w"> </span>checkout<span class="w"> </span>--<span class="w"> </span>&lt;文件名&gt;
+git<span class="w"> </span>restore<span class="w"> </span>&lt;文件名&gt;
+
+<span class="c1"># 撤销暂存区</span>
+git<span class="w"> </span>reset<span class="w"> </span>HEAD<span class="w"> </span>&lt;文件名&gt;
+git<span class="w"> </span>restore<span class="w"> </span>--staged<span class="w"> </span>&lt;文件名&gt;
+
+<span class="c1"># 修改最近一次提交</span>
+git<span class="w"> </span>commit<span class="w"> </span>--amend
+
+<span class="c1"># 回退到指定版本</span>
+git<span class="w"> </span>reset<span class="w"> </span>--hard<span class="w"> </span>&lt;commit_id&gt;
+</code></pre></div></div>
+
+<h3 id="6">6. 暂存工作</h3>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># 暂存当前修改</span>
+git<span class="w"> </span>stash
+
+<span class="c1"># 恢复暂存</span>
+git<span class="w"> </span>stash<span class="w"> </span>pop
+
+<span class="c1"># 查看暂存列表</span>
+git<span class="w"> </span>stash<span class="w"> </span>list
+</code></pre></div></div>
+
+<hr />
+<h2 id="github">三、GitHub 是什么？</h2>
+<p>GitHub 是一个基于 Git 的<strong>在线代码托管和协作平台</strong>，提供版本控制、项目管理、社交编程等功能。</p>
+<h3 id="github-vs-git">GitHub vs Git</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th>Git</th>
+<th>GitHub</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>本质</td>
+<td>版本控制工具</td>
+<td>在线协作平台</td>
+</tr>
+<tr>
+<td>安装</td>
+<td>需要安装在本地</td>
+<td>网页访问</td>
+</tr>
+<tr>
+<td>功能</td>
+<td>代码版本管理</td>
+<td>代码托管 + 协作 + 社交</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="github_1">四、GitHub 核心功能</h2>
+<h3 id="1-repository">1. Repository（仓库）</h3>
+<ul>
+<li>代码存储的基本单位</li>
+<li>每个仓库可以设置<strong>公开 (Public)</strong> 或 <strong>私有 (Private)</strong></li>
+<li>包含代码、README、License 等</li>
+</ul>
+<h3 id="2-fork">2. Fork（复制仓库）</h3>
+<ul>
+<li>将别人的仓库复制到自己的账号下</li>
+<li>用于修改后提交 PR，参与开源项目</li>
+<li>不影响原仓库</li>
+</ul>
+<h3 id="3-pull-requestpr">3. Pull Request（PR，合并请求）</h3>
+<ul>
+<li>向原仓库提交代码合并申请</li>
+<li>是代码审查 (Code Review) 的核心机制</li>
+<li>流程：Fork → 修改 → 开 PR → 审查 → 合并</li>
+</ul>
+<h3 id="4-issue">4. Issue（问题追踪）</h3>
+<ul>
+<li>用于报告 Bug、提出功能需求、讨论问题</li>
+<li>支持标签、指派、里程碑管理</li>
+</ul>
+<h3 id="5-github-actionscicd">5. GitHub Actions（CI/CD）</h3>
+<ul>
+<li>自动化工作流：测试、构建、部署</li>
+<li>配置文件：<code>.github/workflows/xxx.yml</code></li>
+</ul>
+<h3 id="6-github-pages">6. GitHub Pages（静态网站）</h3>
+<ul>
+<li>免费托管静态网站</li>
+<li>访问地址：<code>https://用户名.github.io</code></li>
+<li>项目页面：<code>https://用户名.github.io/仓库名/</code></li>
+</ul>
+<hr />
+<h2 id="github-pages">五、GitHub Pages 搭建</h2>
+<h3 id="1_1">1. 创建用户主页</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># 1. 创建仓库，名字必须是：用户名.github.io</span>
+<span class="c1"># 2. 在仓库中放 index.html 或 index.md</span>
+<span class="c1"># 3. Push 到远程</span>
+<span class="c1"># 4. 等待部署，访问 https://用户名.github.io</span>
+</code></pre></div></div>
+
+<h3 id="2_1">2. 创建项目页面</h3>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># 1. 创建任意名称的仓库</span>
+<span class="c1"># 2. Push 代码</span>
+<span class="c1"># 3. 在 Settings → Pages 中开启</span>
+<span class="c1"># 4. 访问 https://用户名.github.io/仓库名/</span>
+</code></pre></div></div>
+
+<hr />
+<h2 id="git_2">六、Git 认证配置</h2>
+<h3 id="https-token">方式一：HTTPS + Token（推荐新手）</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># 1. 在 GitHub 生成 Personal Access Token</span>
+<span class="c1"># Settings → Developer settings → Personal access tokens → Generate new token</span>
+
+<span class="c1"># 2. 配置凭据管理器</span>
+git<span class="w"> </span>config<span class="w"> </span>--global<span class="w"> </span>credential.helper<span class="w"> </span>store
+
+<span class="c1"># 3. 首次 push 时输入用户名和 Token（代替密码）</span>
+</code></pre></div></div>
+
+<h3 id="ssh-key">方式二：SSH Key（推荐）</h3>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># 1. 生成 SSH 密钥</span>
+ssh-keygen<span class="w"> </span>-t<span class="w"> </span>ed25519<span class="w"> </span>-C<span class="w"> </span><span class="s2">"your_email@example.com"</span>
+
+<span class="c1"># 2. 复制公钥内容</span>
+cat<span class="w"> </span>~/.ssh/id_ed25519.pub
+
+<span class="c1"># 3. 在 GitHub 添加公钥</span>
+<span class="c1"># Settings → SSH and GPG keys → New SSH key</span>
+
+<span class="c1"># 4. 使用 SSH 地址克隆</span>
+git<span class="w"> </span>clone<span class="w"> </span>git@github.com:username/repo.git
+</code></pre></div></div>
+
+<hr />
+<h2 id="gitignore">七、<code>.gitignore</code> 文件</h2>
+<p>用于指定 Git 忽略的文件和目录：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code># 忽略所有 .log 文件
+*.log
+
+# 忽略 build 目录
+build/
+
+# 忽略 node_modules
+node_modules/
+
+# 忽略 .env（包含敏感信息）
+.env
+
+# 忽略 IDE 配置
+.vscode/
+.idea/
+
+# 忽略 OS 文件
+.DS_Store
+Thumbs.db
+</code></pre></div></div>
+
+<hr />
+<h2 id="_3">八、分支策略</h2>
+<h3 id="git-flow">Git Flow</h3>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>main        ─── 稳定版本
+  │
+  └── develop ─── 开发分支
+        │
+        ├── feature/xxx ─── 功能分支
+        ├── feature/yyy ─── 功能分支
+        │
+        └── release/1.0 ─── 发布分支
+              │
+              └── hotfix/xxx ─── 紧急修复
+</code></pre></div></div>
+
+<h3 id="_4">简化流程</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>main        ─── 稳定版本
+  │
+  └── dev    ─── 开发分支
+        │
+        └── feature-xxx ─── 功能分支
+              │
+              └── 完成后合并到 dev
+</code></pre></div></div>
+
+<hr />
+<h2 id="git_3">九、常用 Git 别名</h2>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>git<span class="w"> </span>config<span class="w"> </span>--global<span class="w"> </span>alias.st<span class="w"> </span>status
+git<span class="w"> </span>config<span class="w"> </span>--global<span class="w"> </span>alias.co<span class="w"> </span>checkout
+git<span class="w"> </span>config<span class="w"> </span>--global<span class="w"> </span>alias.br<span class="w"> </span>branch
+git<span class="w"> </span>config<span class="w"> </span>--global<span class="w"> </span>alias.ci<span class="w"> </span>commit
+git<span class="w"> </span>config<span class="w"> </span>--global<span class="w"> </span>alias.lg<span class="w"> </span><span class="s2">"log --oneline --graph --all"</span>
+</code></pre></div></div>
+
+<hr />
+<h2 id="_5">十、常见问题</h2>
+<h3 id="1_2">1. 合并冲突怎么办？</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># 冲突文件会显示：</span>
+<span class="o">&lt;&lt;&lt;&lt;&lt;&lt;</span>&lt;<span class="w"> </span>HEAD
+<span class="nv">你的代码</span>
+<span class="o">=======</span>
+别人的代码
+&gt;&gt;&gt;&gt;&gt;&gt;&gt;<span class="w"> </span>branch-name
+
+<span class="c1"># 手动编辑文件，选择保留哪部分，然后：</span>
+git<span class="w"> </span>add<span class="w"> </span>&lt;文件名&gt;
+git<span class="w"> </span>commit
+</code></pre></div></div>
+
+<h3 id="2-add-commit">2. 忘记 add 就 commit 了？</h3>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>git<span class="w"> </span>add<span class="w"> </span>&lt;文件名&gt;
+git<span class="w"> </span>commit<span class="w"> </span>--amend
+</code></pre></div></div>
+
+<h3 id="3_1">3. 提交了敏感信息？</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># 使用 BFG 工具清理</span>
+<span class="c1"># https://rtyley.github.io/bfg-corrupter/</span>
+bfg<span class="w"> </span>--passwords<span class="w"> </span>my-password.txt
+</code></pre></div></div>
+
+<h3 id="4-push">4. push 被拒绝？</h3>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># 先拉取再推送</span>
+git<span class="w"> </span>pull<span class="w"> </span>origin<span class="w"> </span>main
+git<span class="w"> </span>push<span class="w"> </span>origin<span class="w"> </span>main
+</code></pre></div></div>
+
+<hr />
+<h2 id="origin-upstream">十二、origin 与 upstream：开源协作流程</h2>
+<h3 id="1_3">1. 概念与区别</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>名称</th>
+<th>含义</th>
+<th>谁拥有</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>origin</strong></td>
+<td>自己 clone / push 的远程仓库（通常是自己 fork 的仓库）</td>
+<td>你本人</td>
+</tr>
+<tr>
+<td><strong>upstream</strong></td>
+<td>fork 出来的源头仓库（原作者的项目）</td>
+<td>别人 / 团队</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>origin 和 upstream 只是"远程仓库的别名"，不是 Git 强制规则，只是社区约定俗成的命名。克隆下来的仓库默认只有 origin，upstream 需要手动添加。</p>
+</blockquote>
+<h3 id="2-fork_1">2. Fork 工作流（参与开源项目的标准套路）</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>GitHub 原作者仓库 alice/CyberStrikeAI  ← upstream
+      │ fork（复制到自己账号）
+你/CyberStrikeAI                        ← origin
+      │ clone（下载到本地）
+本地仓库
+</code></pre></div></div>
+
+<h3 id="3_2">3. 完整命令流程</h3>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># 添加 upstream（指向原作者仓库）</span>
+git<span class="w"> </span>remote<span class="w"> </span>add<span class="w"> </span>upstream<span class="w"> </span>https://github.com/原作者/仓库.git
+
+<span class="c1"># 同步原作者更新：先 fetch 再 merge（避免未提交改动直接冲突）</span>
+git<span class="w"> </span>fetch<span class="w"> </span>upstream
+git<span class="w"> </span>checkout<span class="w"> </span>main
+git<span class="w"> </span>merge<span class="w"> </span>upstream/main
+
+<span class="c1"># 切功能分支开发，推到自己 fork</span>
+git<span class="w"> </span>checkout<span class="w"> </span>-b<span class="w"> </span>fix-login-bug
+git<span class="w"> </span>push<span class="w"> </span>origin<span class="w"> </span>fix-login-bug
+
+<span class="c1"># 到 GitHub 你的 fork 页面 → Compare &amp; pull request</span>
+<span class="c1"># 合并方向：你/fix-login-bug → 原作者/main（注意别反了）</span>
+</code></pre></div></div>
+
+<h3 id="4_1">4. 常见坑</h3>
+<ul>
+<li><code>git pull</code> 默认拉 origin，不是 upstream</li>
+<li>upstream 只拉不推（无推送权限）；origin 是你的地盘，随便推</li>
+<li>PR 提交后如需修改，再 push 到同一分支，PR 自动更新，不用重新开</li>
+</ul>
+<h3 id="5-upstream">5. upstream 的第二个含义</h3>
+<p><code>git push -u origin main</code>（-u = --set-upstream）是给分支绑定<strong>跟踪关系</strong>，绑定后直接 <code>git push</code> / <code>git pull</code> 不用带参数。这是"跟踪分支"概念，与"upstream 远程仓库"无关，注意区分：<br />
+- "添加一个 upstream 远程仓库" → 原作者仓库<br />
+- "分支的 upstream 是 origin/main" → 分支跟踪关系</p>
+<hr />
+<h2 id="_6">十三、主分支与功能分支</h2>
+<h3 id="1-fork">1. fork ≠ 分支</h3>
+<p>fork 复制的是<strong>整个仓库</strong>（包含它所有分支），不是切一条分支。fork 出来的仓库里，main 依然是主分支。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>概念</th>
+<th>是什么</th>
+<th>类比</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>仓库（Repo）</td>
+<td>完整代码库，包含所有分支</td>
+<td>整棵树</td>
+</tr>
+<tr>
+<td>分支（Branch）</td>
+<td>树上的某条枝干</td>
+<td>树干 vs 侧枝</td>
+</tr>
+<tr>
+<td>fork</td>
+<td>把整棵树复制一份到自己的账号</td>
+<td>克隆一棵新树</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="2-vs">2. 主分支 vs 功能分支</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>main ───────── 主干道，稳定可发布
+  ├── fix-login-bug  功能分支：修 bug 临时切出，改完合并回 main 再删
+  └── crypto-tools   功能分支：开发新功能临时切出
+</code></pre></div></div>
+
+<ul>
+<li><strong>主分支（main）</strong>：项目主干道，保持能跑、能发布的状态</li>
+<li><strong>功能分支（feature branch）</strong>：从主干临时切出去的"小路"，专门开发某个功能/修 bug，完成后合并回主干再删除（类似 Git Flow 的 feature/xxx）</li>
+</ul>
+<h3 id="3-fork">3. 在自己的 fork 里切功能分支</h3>
+<div class="code-block" data-lang="gitignore"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>你/CyberStrikeAI
+  ├── main            ← 主分支（fork 后依然是主分支，不是功能分支）
+  └── crypto-tools    ← 功能分支（git checkout -b crypto-tools 创建）
+</code></pre></div></div>
+
+<blockquote>
+<p>功能分支不是"fork 出来的那条"，而是你在自己的 fork 里<strong>另外切出</strong>的一条新线。</p>
+</blockquote>
+<h3 id="4-pr-main">4. 为什么推功能分支开 PR，而不是推 main？</h3>
+<ul>
+<li>main 保持干净，可继续同步 upstream</li>
+<li>一个功能一个分支，同时开多个 PR 互不干扰</li>
+<li>直接推 main 开 PR，main 会和上游分叉，后续同步全是坑</li>
+</ul>
+<hr />
+<h2 id="_7">十四、分支的本质</h2>
+<h3 id="1_4">1. 分支 = 指向提交的指针</h3>
+<p>创建分支的那一刻，新指针指向当前提交（包含整个项目全部文件快照），所以分支天生是一份<strong>完整项目</strong>：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>main          → [提交C]   ← main 指针
+crypto-tools  → [提交C]   ← 新指针指向同一提交
+</code></pre></div></div>
+
+<p>之后两个分支独立演进：main 上的提交不影响分支，反之亦然——像从存档点复制了一份完整存档，两边是<strong>平行的完整世界</strong>。</p>
+<h3 id="2_2">2. 合并是增量叠加，不是替代</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>main    ── C ────────── M（合并提交）
+            ↘        ↗
+crypto-tools  D（新功能）
+
+合并后 main = C 原有功能 + D 新功能，旧代码与历史全保留
+</code></pre></div></div>
+
+<ul>
+<li>普通开发：新功能是<strong>增补</strong>进主干，原有功能一条不少</li>
+<li>接近"替代"的情况只有重构 / 修 bug（旧实现被新版本换掉）</li>
+<li>但 Git 历史里旧版本永远在，可随时回退——本质是"演进"而非"替代"</li>
+<li>开源贡献规范：小改动、增量式贡献，避免用大 PR 重写别人存量代码</li>
+</ul>
+<hr />
+<h2 id="git_4">十五、Git 合并原理：三路合并与冲突解决</h2>
+<h3 id="1-three-way-merge">1. 三路合并（three-way merge）</h3>
+<p>Git 合并不直接拼两份文件，而是对比<strong>三份</strong>：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>        [B] 分叉点（merge base）← 两边代码相同的起点
+       /     \
+      /       \
+[主干的新代码] [分支的新代码]
+       \       /
+      [合并结果]
+</code></pre></div></div>
+
+<h3 id="2_3">2. 三种情况</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>情况</th>
+<th>结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>两边改的是不同位置</td>
+<td>自动合并，互不影响</td>
+</tr>
+<tr>
+<td>一边改了、另一边没动</td>
+<td>自动合并，直接采用改动方</td>
+</tr>
+<tr>
+<td>两边改了同一处（同一函数/同一行）</td>
+<td><strong>冲突</strong>，需要人工裁决</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="3_3">3. 冲突标记与解决</h3>
+<p>冲突会直接写进文件：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD
+    return check_token(token) and check_expire(token)     ← 主干版本
+=======
+    return check_token(token) or allow_white_list(token)  ← 分支版本
+&gt;&gt;&gt;&gt;&gt;&gt;&gt; crypto-tools
+</code></pre></div></div>
+
+<p>解决步骤：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># 1. 手动编辑冲突区域，保留/合并成最终版本</span>
+<span class="c1"># 2. 处理完标记解决并提交</span>
+git<span class="w"> </span>add<span class="w"> </span>&lt;文件名&gt;
+git<span class="w"> </span>commit
+</code></pre></div></div>
+
+<h3 id="4_2">4. 关键认知</h3>
+<ul>
+<li>实际项目约 80% 的合并静默完成，冲突多发生在两边改动到同一函数/同一行时</li>
+<li>冲突不是事故，是 Git 强制"开发者确认两边改了什么、由谁拍板"的机制</li>
+<li>VS Code / PyCharm 提供可视化三方合并界面，可以图形化解决冲突</li>
+</ul>
+<hr />
+<h2 id="_8">十一、学习资源</h2>
+<ul>
+<li><a href="https://git-scm.com/doc">Git 官方文档</a></li>
+<li><a href="https://docs.github.com">GitHub 官方文档</a></li>
+<li><a href="https://git-scm.com/book/zh/v2">Pro Git 中文版</a></li>
+<li><a href="https://skills.github.com">GitHub Skills</a></li>
+</ul>
+<hr />
+<p><em>最后更新：2026年8月29日</em></p></div>
+      <div class="post-nav"><a class="pn-item prev" href="linux-ji-chu-xu-ni-ji-wang-luo-pai-cha.html"><span>← 上一篇</span><strong>Linux 基础：虚拟机网络排查</strong></a><a class="pn-item next" href="sql-injection-waf-bypass.html"><span>下一篇 →</span><strong>Web 安全：SQL 盲注与 WAF 绕过解题全流程（Hack World 实战）</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#git" class="toc-lv2">一、Git 是什么？</a><a href="#_1" class="toc-lv3">核心概念</a><a href="#_2" class="toc-lv3">工作流程</a><a href="#git_1" class="toc-lv2">二、Git 常用命令</a><a href="#1" class="toc-lv3">1. 仓库初始化</a><a href="#2" class="toc-lv3">2. 文件操作</a><a href="#3" class="toc-lv3">3. 分支管理</a><a href="#4" class="toc-lv3">4. 远程操作</a><a href="#5" class="toc-lv3">5. 撤销操作</a><a href="#6" class="toc-lv3">6. 暂存工作</a><a href="#github" class="toc-lv2">三、GitHub 是什么？</a><a href="#github-vs-git" class="toc-lv3">GitHub vs Git</a><a href="#github_1" class="toc-lv2">四、GitHub 核心功能</a><a href="#1-repository" class="toc-lv3">1. Repository（仓库）</a><a href="#2-fork" class="toc-lv3">2. Fork（复制仓库）</a><a href="#3-pull-requestpr" class="toc-lv3">3. Pull Request（PR，合并请求）</a><a href="#4-issue" class="toc-lv3">4. Issue（问题追踪）</a><a href="#5-github-actionscicd" class="toc-lv3">5. GitHub Actions（CI/CD）</a><a href="#6-github-pages" class="toc-lv3">6. GitHub Pages（静态网站）</a><a href="#github-pages" class="toc-lv2">五、GitHub Pages 搭建</a><a href="#1_1" class="toc-lv3">1. 创建用户主页</a><a href="#2_1" class="toc-lv3">2. 创建项目页面</a><a href="#git_2" class="toc-lv2">六、Git 认证配置</a><a href="#https-token" class="toc-lv3">方式一：HTTPS + Token（推荐新手）</a><a href="#ssh-key" class="toc-lv3">方式二：SSH Key（推荐）</a><a href="#gitignore" class="toc-lv2">七、.gitignore 文件</a><a href="#_3" class="toc-lv2">八、分支策略</a><a href="#git-flow" class="toc-lv3">Git Flow</a><a href="#_4" class="toc-lv3">简化流程</a><a href="#git_3" class="toc-lv2">九、常用 Git 别名</a><a href="#_5" class="toc-lv2">十、常见问题</a><a href="#1_2" class="toc-lv3">1. 合并冲突怎么办？</a><a href="#2-add-commit" class="toc-lv3">2. 忘记 add 就 commit 了？</a><a href="#3_1" class="toc-lv3">3. 提交了敏感信息？</a><a href="#4-push" class="toc-lv3">4. push 被拒绝？</a><a href="#origin-upstream" class="toc-lv2">十二、origin 与 upstream：开源协作流程</a><a href="#1_3" class="toc-lv3">1. 概念与区别</a><a href="#2-fork_1" class="toc-lv3">2. Fork 工作流（参与开源项目的标准套路）</a><a href="#3_2" class="toc-lv3">3. 完整命令流程</a><a href="#4_1" class="toc-lv3">4. 常见坑</a><a href="#5-upstream" class="toc-lv3">5. upstream 的第二个含义</a><a href="#_6" class="toc-lv2">十三、主分支与功能分支</a><a href="#1-fork" class="toc-lv3">1. fork ≠ 分支</a><a href="#2-vs" class="toc-lv3">2. 主分支 vs 功能分支</a><a href="#3-fork" class="toc-lv3">3. 在自己的 fork 里切功能分支</a><a href="#4-pr-main" class="toc-lv3">4. 为什么推功能分支开 PR，而不是推 main？</a><a href="#_7" class="toc-lv2">十四、分支的本质</a><a href="#1_4" class="toc-lv3">1. 分支 = 指向提交的指针</a><a href="#2_2" class="toc-lv3">2. 合并是增量叠加，不是替代</a><a href="#git_4" class="toc-lv2">十五、Git 合并原理：三路合并与冲突解决</a><a href="#1-three-way-merge" class="toc-lv3">1. 三路合并（three-way merge）</a><a href="#2_3" class="toc-lv3">2. 三种情况</a><a href="#3_3" class="toc-lv3">3. 冲突标记与解决</a><a href="#4_2" class="toc-lv3">4. 关键认知</a><a href="#_8" class="toc-lv2">十一、学习资源</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>循环异或 · 已知明文前缀推密钥周期（DASCTF 深空信号站 KS-3） · pressure-J</title>
+<meta name="description" content="三条线索拼起来就是标准解法：明文[i] = 混合字节[i] ^ key[i % n]，其中 n &lt; 8。">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/xun-huan-yi-huo-yi-zhi-ming-wen-qian-zhui-tui-mi-yao-zhou-qi-dasctf.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="循环异或 · 已知明文前缀推密钥周期（DASCTF 深空信号站 KS-3） · pressure-J">
+<meta property="og:description" content="三条线索拼起来就是标准解法：明文[i] = 混合字节[i] ^ key[i % n]，其中 n &lt; 8。">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/crypto.html">密码学</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>循环异或 · 已知明文前缀推密钥周期（DASCTF 深空信号站 KS-3）</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-crypto">密码学</span>
+          <time datetime="2026-10-08">2026-10-08</time>
+          <span>955 字</span>
+          <span>约 3 分钟</span>
+        </div>
+        
+      </header>
+      <div class="content"><h2 id="_1">题面线索怎么读</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>题面原话</th>
+<th>对应的技术点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>格式符合标准 RFC 4648 字母表（A-Z a-z 0-9 + / 与 = 填充），长度恰为 4 的倍数</td>
+<td>外层是<strong>标准 Base64</strong>，先剥一层</td>
+</tr>
+<tr>
+<td>信号进基带前经过"按字节循环混合"，<strong>混合宽度不足 8 字节</strong></td>
+<td>解码后的字节被<strong>周期 ≤ 7 的密钥逐字节异或</strong></td>
+</tr>
+<tr>
+<td>所有站内明文一律以 <strong>5 个字符的固定站首码</strong>开头</td>
+<td>给了<strong>已知明文前缀</strong>（本题就是 flag 的 <code>CTF2{</code>）</td>
+</tr>
+</tbody>
+</table></div>
+<p>三条线索拼起来就是标准解法：<code>明文[i] = 混合字节[i] ^ key[i % n]</code>，其中 n &lt; 8。</p>
+<h2 id="_2">推导（不用爆破）</h2>
+<p>循环异或的可乘之机在<strong>前 n 个字节</strong>：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>key[i] = 混合字节[i] ^ 明文[i]      # i = 0..n-1，明文前缀已知
+</code></pre></div></div>
+
+<p>站首码有 5 个字符，直接算出密钥流的前 5 个字节。本题：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>密文(b64) : EA0IcSg9diU1anoiNnQvcjBvY3dman9uam8rdX44eyFjaC10a2p8cmMk
+外层解码  : 10 0d 08 71 28 3d 76 25 35 6a 7a 22 ...
+已知前缀  : C  T  F  2  {   (CTF2{)
+密钥流    : 53 59 4e 43 53  -&gt;  b"SYNCS"
+</code></pre></div></div>
+
+<p>密钥流是 <code>SYNCS</code>，首尾都是 <code>S</code>，说明<strong>周期 = 4</strong>（<code>SYNC</code> 循环），与"宽度不足 8 字节"吻合。用 <code>SYNC</code> 解全部 42 字节即得明文。</p>
+<h2 id="flag">flag</h2>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>CTF2{d8ff34ae-a1c6-4531-96e6-a5b01c783210}
+</code></pre></div></div>
+
+<h2 id="_3">脚本</h2>
+<p><code>~/tools\CTF工具箱\crypto\21-循环异或-已知明文前缀推密钥周期.py</code><br />
+（只改顶部 <code>CIPHER</code> / <code>KNOWN_PREFIX</code>，若外层还有 Base64 就把 <code>IS_BASE64</code> 置 True）</p>
+<h2 id="_4">要点备忘</h2>
+<ul>
+<li><strong>别上爆破</strong>：站首码给了 5 个字节的已知明文，密钥直接算出来，比枚举 2^8 空间快得多；周期靠"算出的密钥流在哪里开始重复"确定。</li>
+<li>若已知明文前缀比分钥周期短（比如只有 <code>flag{</code>），就用遍历 <code>k ∈ [1,7]</code> 并校验解出的字节是否全落在 Base64 字母表内的方式筛周期。</li>
+<li>相似的题面关键词：<code>循环混合</code> / <code>重复密钥</code> / <code>短密钥流</code> / <code>已知明文头</code>，都是同一族。</li>
+</ul></div>
+      <div class="post-nav"><a class="pn-item prev" href="web-an-quan-wen-jian-bao-han-php-filter-wei-xie-yi-writeup-jiang-lu.html"><span>← 上一篇</span><strong>Web安全 · 文件包含 + php://filter 伪协议 WriteUp —「蒋璐源的秘密」</strong></a><a class="pn-item next" href="misc-mi-mi-wen-jian-ftp-liu-liang-ti-qu-jia-mi-rar.html"><span>下一篇 →</span><strong>Misc-秘密文件-FTP流量提取加密RAR</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">题面线索怎么读</a><a href="#_2" class="toc-lv2">推导（不用爆破）</a><a href="#flag" class="toc-lv2">flag</a><a href="#_3" class="toc-lv2">脚本</a><a href="#_4" class="toc-lv2">要点备忘</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

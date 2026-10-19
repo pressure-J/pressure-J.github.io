@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RSA-Wiener攻击 · pressure-J</title>
+<meta name="description" content="看到的特征二选一即可怀疑：">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/rsa-wiener-gong-ji.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="RSA-Wiener攻击 · pressure-J">
+<meta property="og:description" content="看到的特征二选一即可怀疑：">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/crypto.html">密码学</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>RSA-Wiener攻击</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-crypto">密码学</span>
+          <time datetime="2026-09-03">2026-09-03</time>
+          <span>1270 字</span>
+          <span>约 3 分钟</span>
+        </div>
+        <div class="chips post-tags"><span class="chip">crypto</span></div>
+      </header>
+      <div class="content"><h2 id="_1">题型识别</h2>
+<p>看到的特征二选一即可怀疑：<br />
+- <strong>e 非常大</strong>（位数接近 n，比如 1024 位 n 配 1020 位 e）<br />
+- <strong>d 很小</strong>（构造脚本里 <code>d = getPrime(200)</code> 之类，或题目暗示"私钥短"）</p>
+<h2 id="_2">适用条件</h2>
+<p>$$d &lt; \frac{1}{3} n^{1/4}$$<br />
+理论根源：此条件下 $k/d$ 必然出现在 $e/n$ 连分数的收敛子里。</p>
+<h2 id="_3">原理（核心推导，三行）</h2>
+<ol>
+<li>$ed \equiv 1 \pmod{\varphi(n)} \Rightarrow ed = 1 + k\varphi(n)$，故<br />
+$$\frac{e}{\varphi(n)} \approx \frac{k}{d} \quad,\quad \varphi(n) \approx n \quad\Rightarrow\quad \frac{e}{n} \approx \frac{k}{d}$$</li>
+<li>$d &lt; \frac13 n^{1/4}$ 时 $\left|\frac{e}{n} - \frac{k}{d}\right| &lt; \frac{1}{2d^2}$ → 满足<strong>连分数最佳逼近定理</strong> → $k/d$ 是 $e/n$ 的某个<strong>收敛子</strong></li>
+<li>遍历 $e/n$ 连分数的所有收敛子 $(k_i, d_i)$ 当候选：<br />
+   - $\varphi = (ed_i - 1)/k_i$ 需为整数<br />
+   - 由韦达定理：$p + q = n - \varphi + 1$，$pq = n$ → 解 $x^2 - (n-\varphi+1)x + n = 0$<br />
+   - <strong>判别式是完全平方</strong> → 得 $p, q$，验证 $pq = n$ 即成功</li>
+</ol>
+<h2 id="_4">解题脚本</h2>
+<p>见同目录 <code>RSA-Wiener攻击-solve.py</code>（纯 Python 无依赖，填 <code>e/n</code> 即跑；留空则内置自测）。</p>
+<h2 id="2026-09-03">验证记录（2026-09-03）</h2>
+<ul>
+<li>512 位 p、q + 200 位 d 的实例：<strong>攻击耗时 1.57 ms</strong>，p/q/d 完全恢复，解密还原 ✓</li>
+<li>反例（标准 e=65537、d 正常）：正确返回失败（None）✓</li>
+</ul>
+<h2 id="_5">易错点 / 经验</h2>
+<ol>
+<li><strong>k=0 的收敛子跳过</strong>（除零/无意义）</li>
+<li><strong>判别式 &lt; 0 要 continue</strong>，不是直接失败</li>
+<li>判别式平方根用 <code>isqrt</code>，不要用浮点 <code>int(sqrt())</code>（大数精度会炸）</li>
+<li>最终判据双重保险：判别式完全平方 <strong>且</strong> $p \cdot q = n$</li>
+<li>d 不满足条件时攻击返回 None 属正常——<strong>此时换 Boneh-Durfee</strong>（放宽到 $d &lt; n^{0.292}$，需要格基约化 LLL，学到格后再补）</li>
+<li>若题目给了 c，恢复 d 后直接 <code>m = pow(c, d, n)</code> 解密</li>
+</ol>
+<h2 id="_6">面试速答卡</h2>
+<ul>
+<li><strong>Q: Wiener 攻击的条件？</strong> A: $d &lt; \frac13 n^{1/4}$，e 通常很大</li>
+<li><strong>Q: 为什么连分数收敛子能找到 k/d？</strong> A: 条件满足时 $e/n$ 与 $k/d$ 的距离 &lt; $1/(2d^2)$，连分数最佳逼近定理保证 $k/d$ 是收敛子</li>
+<li><strong>Q: Wiener 和 Boneh-Durfee 的区别？</strong> A: 同为低 d 攻击；Wiener 用连分数（$d &lt; n^{1/4}/3$），BD 用格把界推到 $n^{0.292}$，需要 LLL</li>
+</ul>
+<p><em>最后更新：2026年9月3日</em></p></div>
+      <div class="post-nav"><a class="pn-item prev" href="rsa-gong-mo-gong-ji.html"><span>← 上一篇</span><strong>RSA共模攻击</strong></a><a class="pn-item next" href="rsa-gong-su-shu-pollardrho-bian-ti.html"><span>下一篇 →</span><strong>RSA共素数-PollardRho变体</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">题型识别</a><a href="#_2" class="toc-lv2">适用条件</a><a href="#_3" class="toc-lv2">原理（核心推导，三行）</a><a href="#_4" class="toc-lv2">解题脚本</a><a href="#2026-09-03" class="toc-lv2">验证记录（2026-09-03）</a><a href="#_5" class="toc-lv2">易错点 / 经验</a><a href="#_6" class="toc-lv2">面试速答卡</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

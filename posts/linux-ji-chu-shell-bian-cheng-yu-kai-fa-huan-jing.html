@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Linux 基础：Shell 编程与开发环境 · pressure-J</title>
+<meta name="description" content="在 Linux 上开发，完整链条是：编辑器写代码（Vim/VSCode）→ 编译器构建（GCC）→ 调试器排错（GDB）→ 构建工具管理多文件（Make）→ 容器化交付（Docker）→ 版本控制协作（Git）→ 终端复用提升效率（…">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/linux-ji-chu-shell-bian-cheng-yu-kai-fa-huan-jing.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Linux 基础：Shell 编程与开发环境 · pressure-J">
+<meta property="og:description" content="在 Linux 上开发，完整链条是：编辑器写代码（Vim/VSCode）→ 编译器构建（GCC）→ 调试器排错（GDB）→ 构建工具管理多文件（Make）→ 容器化交付（Docker）→ 版本控制协作（Git）→ 终端复用提升效率（…">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/linux.html">Linux</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>Linux 基础：Shell 编程与开发环境</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-linux">Linux</span>
+          <time datetime="2026-08-28">2026-08-28</time>
+          <span>8592 字</span>
+          <span>约 23 分钟</span>
+        </div>
+        
+      </header>
+      <div class="content"><blockquote>
+<p>来源：Linux操作系统课程实验《配置Linux编程开发环境（VSCode、Docker、Git）》（老师版 PDF 28 页，讲师 myth）＋《Linux编程环境、网络配置、Shell编程与正则表达式》（本人报告 docx）＋《Tmux使用》（老师版 PDF）<br />
+定位：从"会用 Linux"到"能用 Linux 干活"的跨越。写脚本自动化、Docker 快速部署靶机（如 DVWA）、Git 版本管理是网安学习和工作的日常；Shell 与正则更是渗透测试、日志分析的看家本领</p>
+</blockquote>
+<hr />
+<h2 id="linux">一、概述：一条完整的 Linux 开发工作流</h2>
+<p>在 Linux 上开发，完整链条是：<strong>编辑器写代码（Vim/VSCode）→ 编译器构建（GCC）→ 调试器排错（GDB）→ 构建工具管理多文件（Make）→ 容器化交付（Docker）→ 版本控制协作（Git）→ 终端复用提升效率（Tmux）→ 脚本自动化（Shell）</strong>。</p>
+<ul>
+<li><strong>Shell（bash）</strong> 是人与内核交互的解释器，把命令"翻译"给系统执行。<strong>Shell 脚本 = 把一串命令 + 判断 + 循环写成文件</strong>，实现自动化（批量部署、定时任务、提权 payload 都得靠它）。</li>
+<li><strong>正则表达式</strong> 是"文本的模式描述语言"，配合 grep/sed/awk 完成搜索、替换、提取——分析日志、过滤流量包靠这套组合拳。</li>
+<li><strong>Docker</strong> 把应用和依赖打包成镜像，一键跑成容器；网安用它三分钟拉起 DVWA、靶场环境。</li>
+<li><strong>Tmux</strong> 解决"关窗口进程就死"的问题：会话与窗口解绑，SSH 断了重连也不丢任务。</li>
+</ul>
+<hr />
+<h2 id="_1">二、核心知识</h2>
+<h3 id="1-vim">1. Vim 三模式（背熟切换键）</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>模式</th>
+<th>作用</th>
+<th>进入方式</th>
+<th>常用命令</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>命令模式</td>
+<td>移动光标、删除、复制</td>
+<td>启动默认 / Esc</td>
+<td><code>dd</code> 删行、<code>yy</code> 复制、<code>p</code> 粘贴、<code>/xxx</code> 搜索</td>
+</tr>
+<tr>
+<td>插入模式</td>
+<td>编辑输入</td>
+<td>命令模式按 <code>i</code></td>
+<td>随便打字，Esc 退出</td>
+</tr>
+<tr>
+<td>底行模式</td>
+<td>保存退出、替换</td>
+<td>命令模式按 <code>:</code></td>
+<td><code>wq</code> 保存退出、<code>q!</code> 不保存退出、<code>%s/old/new/g</code> 全局替换</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="2-gcc">2. GCC 编译流程（四步，面试常问）</h3>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>gcc<span class="w"> </span>test.c<span class="w"> </span>-o<span class="w"> </span><span class="nb">test</span><span class="w">    </span><span class="c1"># 一步到位：编译 + 链接生成可执行文件 test</span>
+./test<span class="w">                </span><span class="c1"># 运行</span>
+</code></pre></div></div>
+
+<p>编译内部实际分四步：<strong>预处理（去掉注释、展开头文件）→ 编译（C 转汇编 .s）→ 汇编（汇编转机器码 .o）→ 链接（把库合并成可执行文件）</strong>。分步执行：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>gcc<span class="w"> </span>-E<span class="w"> </span>test.c<span class="w"> </span>-o<span class="w"> </span>test.i<span class="w">        </span><span class="c1"># 1 预处理</span>
+gcc<span class="w"> </span>-S<span class="w"> </span>test.i<span class="w"> </span>-o<span class="w"> </span>test.s<span class="w">        </span><span class="c1"># 2 编译成汇编</span>
+gcc<span class="w"> </span>-c<span class="w"> </span>test.s<span class="w"> </span>-o<span class="w"> </span>test.o<span class="w">        </span><span class="c1"># 3 汇编成机器码目标文件</span>
+gcc<span class="w"> </span>test.o<span class="w"> </span>-o<span class="w"> </span><span class="nb">test</span><span class="w">             </span><span class="c1"># 4 链接成可执行文件</span>
+gcc<span class="w"> </span>-g<span class="w"> </span>test.c<span class="w"> </span>-o<span class="w"> </span><span class="nb">test</span><span class="w">          </span><span class="c1"># 加 -g 生成调试信息（GDB 必需）</span>
+gcc<span class="w"> </span>-Wall<span class="w"> </span>test.c<span class="w"> </span>-o<span class="w"> </span><span class="nb">test</span><span class="w">       </span><span class="c1"># 打开所有警告，养成好习惯</span>
+</code></pre></div></div>
+
+<h3 id="3-gdb">3. GDB 调试（断点→运行→单步→查变量）</h3>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>gcc<span class="w"> </span>-g<span class="w"> </span>test.c<span class="w"> </span>-o<span class="w"> </span><span class="nb">test</span><span class="w">    </span><span class="c1"># 必须带 -g 编译</span>
+gdb<span class="w"> </span><span class="nb">test</span><span class="w">                 </span><span class="c1"># 进入调试器</span>
+<span class="o">(</span>gdb<span class="o">)</span><span class="w"> </span>list<span class="w">               </span><span class="c1"># 查看源码</span>
+<span class="o">(</span>gdb<span class="o">)</span><span class="w"> </span><span class="k">break</span><span class="w"> </span><span class="m">5</span><span class="w">            </span><span class="c1"># 第 5 行设断点（break main 也行）</span>
+<span class="o">(</span>gdb<span class="o">)</span><span class="w"> </span>run<span class="w">                </span><span class="c1"># 运行到断点</span>
+<span class="o">(</span>gdb<span class="o">)</span><span class="w"> </span>next<span class="w">               </span><span class="c1"># 单步执行（不进入函数）</span>
+<span class="o">(</span>gdb<span class="o">)</span><span class="w"> </span>step<span class="w">               </span><span class="c1"># 单步（进入函数内部）</span>
+<span class="o">(</span>gdb<span class="o">)</span><span class="w"> </span>print<span class="w"> </span>n<span class="w">            </span><span class="c1"># 查看变量 n 的值</span>
+<span class="o">(</span>gdb<span class="o">)</span><span class="w"> </span>quit<span class="w">               </span><span class="c1"># 退出</span>
+</code></pre></div></div>
+
+<h3 id="4-make-makefile">4. Make 与 Makefile（多文件自动化编译）</h3>
+<p>Makefile 的规则格式：<code>目标: 依赖</code> + 下一行 Tab 缩进的命令——<strong>依赖比目标新才执行命令</strong>，实现了"只重新编译改过的文件"。</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c"># 例：两个源文件 a.c b.c 编译成 app</span>
+<span class="nf">app</span><span class="o">:</span><span class="w"> </span><span class="n">a</span>.<span class="n">o</span> <span class="n">b</span>.<span class="n">o</span>
+<span class="w">        </span>gcc<span class="w"> </span>a.o<span class="w"> </span>b.o<span class="w"> </span>-o<span class="w"> </span>app<span class="w">        </span><span class="c1"># 注意：必须是 Tab 缩进，不能是空格</span>
+<span class="nf">a.o</span><span class="o">:</span><span class="w"> </span><span class="n">a</span>.<span class="n">c</span>
+<span class="w">        </span>gcc<span class="w"> </span>-c<span class="w"> </span>a.c
+<span class="nf">b.o</span><span class="o">:</span><span class="w"> </span><span class="n">b</span>.<span class="n">c</span>
+<span class="w">        </span>gcc<span class="w"> </span>-c<span class="w"> </span>b.c
+<span class="nf">clean</span><span class="o">:</span>
+<span class="w">        </span>rm<span class="w"> </span>-f<span class="w"> </span>*.o<span class="w"> </span>app
+</code></pre></div></div>
+
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>make<span class="w">          </span><span class="c1"># 按依赖自动编译，缺哪个编哪个</span>
+make<span class="w"> </span>clean<span class="w">    </span><span class="c1"># 执行 clean 目标清理</span>
+</code></pre></div></div>
+
+<h3 id="5-shell">5. Shell 编程基础</h3>
+<p><strong>脚本三部曲</strong>：编辑 → 加执行权限 → 运行：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>vim<span class="w"> </span>test.sh<span class="w">                       </span><span class="c1"># 第一行写 #!/bin/bash（声明用 bash 解释）</span>
+chmod<span class="w"> </span>+x<span class="w"> </span>test.sh<span class="w">                  </span><span class="c1"># 加执行权限（见权限篇）</span>
+./test.sh<span class="w">                         </span><span class="c1"># 当前目录运行</span>
+bash<span class="w"> </span>test.sh<span class="w">                      </span><span class="c1"># 或用解释器直接跑（无需执行权限）</span>
+</code></pre></div></div>
+
+<p><strong>变量与参数</strong>：</p>
+<div class="code-block" data-lang="makefile"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="nv">name</span><span class="o">=</span><span class="s2">"alice"</span><span class="w">                      </span><span class="c1"># 定义变量（= 两边不能有空格）</span>
+<span class="nb">echo</span><span class="w"> </span><span class="nv">$name</span><span class="w">                        </span><span class="c1"># $ 引用变量</span>
+<span class="nb">echo</span><span class="w"> </span><span class="si">${</span><span class="nv">name</span><span class="si">}</span>abc<span class="w">                   </span><span class="c1"># {} 隔离变量边界</span>
+<span class="nb">echo</span><span class="w"> </span><span class="nv">$0</span><span class="w"> </span><span class="nv">$1</span><span class="w"> </span><span class="nv">$2</span><span class="w">                     </span><span class="c1"># $0=脚本名 $1=第1个参数 $2=第2个参数</span>
+<span class="nb">echo</span><span class="w"> </span><span class="nv">$#</span><span class="w">                           </span><span class="c1"># 参数个数</span>
+<span class="nb">echo</span><span class="w"> </span><span class="nv">$*</span><span class="w">                           </span><span class="c1"># 所有参数</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">PATH</span><span class="o">=</span><span class="nv">$PATH</span>:/opt/mybin<span class="w">      </span><span class="c1"># 环境变量：把目录加进 PATH 全局搜索路径</span>
+<span class="nb">read</span><span class="w"> </span>-p<span class="w"> </span><span class="s2">"输入:"</span><span class="w"> </span>input<span class="w">             </span><span class="c1"># 从键盘读输入</span>
+<span class="nb">echo</span><span class="w"> </span><span class="nv">$?</span><span class="w">                           </span><span class="c1"># 上一条命令的返回值（0=成功，非0=失败）</span>
+</code></pre></div></div>
+
+<p><strong>运算符与判断</strong>（<code>expr</code> 用于算术，注意空格）：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>expr<span class="w"> </span><span class="m">5</span><span class="w"> </span>+<span class="w"> </span><span class="m">3</span><span class="w">                        </span><span class="c1"># 算术：+ - \* / %（* 要转义）</span>
+<span class="o">[</span><span class="w"> </span><span class="m">5</span><span class="w"> </span>-gt<span class="w"> </span><span class="m">3</span><span class="w"> </span><span class="o">]</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span>yes<span class="w">           </span><span class="c1"># test 简写 []，-gt 大于</span>
+<span class="o">[</span><span class="w"> </span><span class="s2">"a"</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"a"</span><span class="w"> </span><span class="o">]</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span>equal<span class="w">       </span><span class="c1"># 字符串相等</span>
+<span class="o">[</span><span class="w"> </span>-d<span class="w"> </span>/tmp<span class="w"> </span><span class="o">]</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"是目录"</span><span class="w">      </span><span class="c1"># -d 判断目录、-f 判断文件、-e 判断存在</span>
+</code></pre></div></div>
+
+<p><strong>流程控制四兄弟</strong>：</p>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># if-then</span>
+<span class="k">if</span><span class="w"> </span><span class="o">[</span><span class="w"> </span><span class="nv">$1</span><span class="w"> </span>-gt<span class="w"> </span><span class="m">10</span><span class="w"> </span><span class="o">]</span><span class="p">;</span><span class="w"> </span><span class="k">then</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"大"</span><span class="p">;</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"小"</span><span class="p">;</span><span class="w"> </span><span class="k">fi</span>
+
+<span class="c1"># case（多分支）</span>
+<span class="k">case</span><span class="w"> </span><span class="nv">$1</span><span class="w"> </span><span class="k">in</span>
+<span class="w">  </span>start<span class="o">)</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"启动"</span><span class="p">;;</span>
+<span class="w">  </span>stop<span class="o">)</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"停止"</span><span class="p">;;</span>
+<span class="w">  </span>*<span class="o">)</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"未知"</span><span class="p">;;</span>
+<span class="k">esac</span>
+
+<span class="c1"># for 循环</span>
+<span class="k">for</span><span class="w"> </span>i<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="m">3</span><span class="p">;</span><span class="w"> </span><span class="k">do</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="nv">$i</span><span class="p">;</span><span class="w"> </span><span class="k">done</span>
+<span class="k">for</span><span class="w"> </span>f<span class="w"> </span><span class="k">in</span><span class="w"> </span>*.txt<span class="p">;</span><span class="w"> </span><span class="k">do</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="nv">$f</span><span class="p">;</span><span class="w"> </span><span class="k">done</span>
+
+<span class="c1"># while 循环</span>
+<span class="nv">n</span><span class="o">=</span><span class="m">1</span>
+<span class="k">while</span><span class="w"> </span><span class="o">[</span><span class="w"> </span><span class="nv">$n</span><span class="w"> </span>-le<span class="w"> </span><span class="m">5</span><span class="w"> </span><span class="o">]</span><span class="p">;</span><span class="w"> </span><span class="k">do</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="nv">$n</span><span class="p">;</span><span class="w"> </span><span class="nv">n</span><span class="o">=</span><span class="k">$((</span><span class="nv">n</span><span class="o">+</span><span class="m">1</span><span class="k">))</span><span class="p">;</span><span class="w"> </span><span class="k">done</span>
+
+<span class="c1"># 函数</span>
+say_hello<span class="o">()</span><span class="w"> </span><span class="o">{</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"Hello, </span><span class="nv">$1</span><span class="s2">"</span><span class="p">;</span><span class="w"> </span><span class="o">}</span>
+say_hello<span class="w"> </span>world
+</code></pre></div></div>
+
+<p><strong>注释</strong>：<code>#</code> 开头是注释（<code>#!</code> 是声明解释器的特殊行，不算普通注释）。</p>
+<h3 id="6">6. 正则表达式与文本三剑客</h3>
+<p><strong>元字符速记表</strong>：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>元字符</th>
+<th>含义</th>
+<th>反义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>\w</code></td>
+<td>字母、数字、汉字、下划线</td>
+<td><code>\W</code></td>
+</tr>
+<tr>
+<td><code>\b</code></td>
+<td>单词边界（开头/结尾）</td>
+<td><code>\B</code></td>
+</tr>
+<tr>
+<td><code>\s</code></td>
+<td>空白符</td>
+<td><code>\S</code></td>
+</tr>
+<tr>
+<td><code>\d</code></td>
+<td>数字</td>
+<td><code>\D</code></td>
+</tr>
+<tr>
+<td><code>^</code> / <code>$</code></td>
+<td>行首 / 行尾</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>*</code> / <code>?</code></td>
+<td>前一个字符 0~多次 / 0~1 次</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>{n}</code></td>
+<td>前一个字符恰好 n 次</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>[a-z]</code></td>
+<td>字符簇：任意小写字母</td>
+<td>—</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>文本三剑客</strong>：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>grep<span class="w"> </span>-E<span class="w"> </span><span class="s2">"^\d{3}"</span><span class="w"> </span>/var/log/xxx.log<span class="w">   </span><span class="c1"># 按正则过滤行（ls 不支持正则，配合管道把输出交给 grep）</span>
+sed<span class="w"> </span><span class="s1">'s/old/new/g'</span><span class="w"> </span>file.txt<span class="w">          </span><span class="c1"># 全局替换（s=替换，g=全部）</span>
+sed<span class="w"> </span><span class="s1">'/^#/d'</span><span class="w"> </span>file.txt<span class="w">                </span><span class="c1"># 删除注释行（d=删除）</span>
+sed<span class="w"> </span><span class="s1">'2a 新行'</span><span class="w"> </span>file.txt<span class="w">              </span><span class="c1"># 在第 2 行后追加（a=追加）</span>
+sed<span class="w"> </span>-n<span class="w"> </span><span class="s1">'5,10p'</span><span class="w"> </span>file.txt<span class="w">             </span><span class="c1"># 只显示第 5-10 行（p=打印）</span>
+awk<span class="w"> </span><span class="s1">'{print $1}'</span><span class="w"> </span>file.txt<span class="w">           </span><span class="c1"># 按空白拆列，打印第 1 列</span>
+awk<span class="w"> </span><span class="s1">'$3 &gt; 50 {print $1}'</span><span class="w"> </span>file.txt<span class="w">   </span><span class="c1"># 带逻辑条件：第3列&gt;50 才打印第1列</span>
+</code></pre></div></div>
+
+<blockquote>
+<p>经典组合拳：<code>ps aux | grep mysql | grep -v grep</code> 找进程；<code>cat access.log | awk '{print $1}' | sort | uniq -c | sort -rn</code> 统计访问最多的 IP。</p>
+</blockquote>
+<h3 id="7-tmux">7. Tmux 终端复用（最简工作流）</h3>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>apt<span class="w"> </span>install<span class="w"> </span>tmux<span class="w">               </span><span class="c1"># 安装</span>
+tmux<span class="w"> </span>new<span class="w"> </span>-s<span class="w"> </span>mywork<span class="w">                  </span><span class="c1"># 新建命名会话</span>
+<span class="c1"># 会话里跑长任务...</span>
+Ctrl+b<span class="w"> </span>d<span class="w">                            </span><span class="c1"># 分离（任务继续后台跑）</span>
+tmux<span class="w"> </span>ls<span class="w">                             </span><span class="c1"># 列出会话</span>
+tmux<span class="w"> </span>attach<span class="w"> </span>-t<span class="w"> </span>mywork<span class="w">               </span><span class="c1"># 重新接入，任务还在！</span>
+tmux<span class="w"> </span>kill-session<span class="w"> </span>-t<span class="w"> </span>mywork<span class="w">         </span><span class="c1"># 杀死会话</span>
+</code></pre></div></div>
+
+<p>快捷键速记（前缀都是 <code>Ctrl+b</code> 再按）：<code>d</code> 分离、<code>%</code> 左右分窗格、<code>"</code> 上下分窗格、<code>c</code> 新建窗口、<code>n/p</code> 切换窗口、<code>x</code> 关闭窗格、<code>z</code> 窗格全屏、<code>?</code> 帮助。<strong>核心价值：SSH 断了、窗口关了，任务还在后台跑，重连即恢复</strong>。</p>
+<h3 id="8-docker">8. Docker：镜像与容器（类=实例的关系）</h3>
+<p><strong>镜像（Image）是只读模板（相当于"类"），容器（Container）是镜像运行时的实例（相当于"对象"）</strong>，同一个镜像可生成多个容器。镜像拉取/构建 → 容器运行/停止，全流程命令：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>类别</th>
+<th>命令</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>镜像</td>
+<td><code>docker pull ubuntu:22.04</code></td>
+<td>从仓库（默认 Docker Hub）拉镜像</td>
+</tr>
+<tr>
+<td></td>
+<td><code>docker image ls</code></td>
+<td>列出本地镜像</td>
+</tr>
+<tr>
+<td></td>
+<td><code>docker rmi 镜像ID/名</code></td>
+<td>删除镜像</td>
+</tr>
+<tr>
+<td></td>
+<td><code>docker build -t nginx:v3 .</code></td>
+<td>按 Dockerfile 构建镜像</td>
+</tr>
+<tr>
+<td></td>
+<td><code>docker save alpine -o alpine.tar</code> / <code>docker load -i alpine.tar</code></td>
+<td>镜像导出/导入（换机器迁移）</td>
+</tr>
+<tr>
+<td>容器</td>
+<td><code>docker run -it --rm ubuntu:22.04 bash</code></td>
+<td>交互式启动容器（-i 交互、-t 终端、--rm 退出即删）</td>
+</tr>
+<tr>
+<td></td>
+<td><code>docker run -d -p 80:80 nginx:alpine</code></td>
+<td>后台运行 + 端口映射（宿主机80→容器80）</td>
+</tr>
+<tr>
+<td></td>
+<td><code>docker ps</code> / <code>docker ps -a</code></td>
+<td>查看运行中 / 所有容器</td>
+</tr>
+<tr>
+<td></td>
+<td><code>docker stop 容器ID</code> / <code>docker start 容器ID</code></td>
+<td>温和停止 / 重启已停止容器</td>
+</tr>
+<tr>
+<td></td>
+<td><code>docker kill 容器ID</code></td>
+<td>直接 SIGKILL 强杀</td>
+</tr>
+<tr>
+<td></td>
+<td><code>docker rm 容器ID</code></td>
+<td>删除容器（停着的也要占空间，记得删）</td>
+</tr>
+<tr>
+<td></td>
+<td><code>docker exec -it 容器ID bash</code></td>
+<td>进入运行中容器（推荐；attach 退出会把容器也停掉）</td>
+</tr>
+<tr>
+<td></td>
+<td><code>docker logs 容器ID</code></td>
+<td>查看容器输出日志</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Docker 与虚拟机的区别（高频面试题）</strong>：虚拟机虚拟的是<strong>硬件</strong>（重量级，自带完整 OS）；Docker 虚拟的是<strong>操作系统层</strong>，容器与宿主机<strong>共享内核</strong>，只隔离进程/文件/网络命名空间——所以容器秒级启动、性能开销极低（几 MB vs 几 GB）。</p>
+<p><strong>端口映射</strong>：容器内应用要对外访问必须映射端口：<code>-p 宿主机端口:容器端口</code>（如 <code>-p 8000:80</code>）。网安常用来一键拉起靶场：<code>docker run -d -p 8080:80 vulnerables/web-dvwa</code>。</p>
+<h3 id="9-git">9. Git 版本控制（提交→推送闭环）</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>git<span class="w"> </span>config<span class="w"> </span>--global<span class="w"> </span>user.name<span class="w"> </span><span class="s2">"你的名字"</span><span class="w">       </span><span class="c1"># 首次配置身份</span>
+git<span class="w"> </span>config<span class="w"> </span>--global<span class="w"> </span>user.email<span class="w"> </span><span class="s2">"你的邮箱"</span>
+ssh-keygen<span class="w"> </span>-t<span class="w"> </span>rsa<span class="w"> </span>-b<span class="w"> </span><span class="m">4096</span><span class="w"> </span>-C<span class="w"> </span><span class="s2">"邮箱"</span><span class="w">            </span><span class="c1"># 生成密钥，公钥(id_rsa.pub)贴到 GitHub → Settings → SSH Keys</span>
+
+git<span class="w"> </span>clone<span class="w"> </span>git@github.com:用户名/仓库名.git<span class="w">       </span><span class="c1"># 克隆远程仓库</span>
+<span class="nb">cd</span><span class="w"> </span>仓库<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>写代码
+git<span class="w"> </span>add<span class="w"> </span>.<span class="w">                            </span><span class="c1"># 暂存所有改动</span>
+git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"提交说明"</span><span class="w">              </span><span class="c1"># 提交到本地</span>
+git<span class="w"> </span>push<span class="w"> </span>origin<span class="w"> </span>main<span class="w">                 </span><span class="c1"># 推送到远程</span>
+</code></pre></div></div>
+
+<blockquote>
+<p>面试小知识：<code>git add</code> 把改动放进<strong>暂存区</strong>，<code>commit</code> 固化到本地历史，<code>push</code> 才上远程——三者是三个不同区域。网络差导致 push 失败时，可把 git 端口从 22 改用 443（<code>ssh -T -p 443 git@ssh.github.com</code>）。</p>
+</blockquote>
+<h3 id="10-vscode">10. VSCode 远程开发（详见安装篇，这里补插件环节）</h3>
+<p>Remote-SSH 连上后，<strong>插件要装到远程服务器上</strong>（点插件右下角"SSH: 主机名"标识）；强烈推荐 <strong>Code Runner</strong> 插件，写代码后一键编译运行。经典组合：远程写好 <code>test.c</code> → 终端 <code>gcc test.c -o test &amp;&amp; ./test</code>，或用 Code Runner 直接跑。</p>
+<hr />
+<h2 id="pdf">三、实操流程（老师版 PDF 主线）</h2>
+<h3 id="1vscode">任务 1：VSCode 远程开发闭环</h3>
+<ol>
+<li>确保 SSH 服务已启动、已配静态 IP（见安装篇）。</li>
+<li>VSCode 装 Remote-SSH → 连接 → 在远程打开 <code>/home/用户名</code> 作为工作目录（规范习惯）。</li>
+<li>远程安装 Python / C/C++ 插件 + Code Runner。</li>
+<li>新建 <code>test.c</code> 写 fork 小程序 → Ctrl+Shift+<code>打开远程终端 →</code>gcc test.c -o test &amp;&amp; ./test` 验证编译运行链路通畅。</li>
+</ol>
+<h3 id="2docker-ubuntu-docker-ce">任务 2：Docker 安装（Ubuntu docker-ce 版）</h3>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>apt<span class="w"> </span>update<span class="w"> </span>-y
+sudo<span class="w"> </span>apt<span class="w"> </span>install<span class="w"> </span>ca-certificates<span class="w"> </span>curl<span class="w"> </span>-y
+sudo<span class="w"> </span>install<span class="w"> </span>-m<span class="w"> </span><span class="m">0755</span><span class="w"> </span>-d<span class="w"> </span>/etc/apt/keyrings
+<span class="c1"># 下载官方 GPG 密钥（网络差会报 curl: (35) SSL connect reset，改用阿里云）</span>
+sudo<span class="w"> </span>curl<span class="w"> </span>-fsSL<span class="w"> </span>https://mirrors.aliyun.com/docker-ce/linux/ubuntu/gpg<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-o<span class="w"> </span>/etc/apt/keyrings/docker.asc
+sudo<span class="w"> </span>chmod<span class="w"> </span>a+r<span class="w"> </span>/etc/apt/keyrings/docker.asc
+<span class="c1"># 写入软件源（一行 exec；若报 Malformed entry 说明 docker.list 格式错，vim 改回单行）</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">"deb [arch=</span><span class="k">$(</span>dpkg<span class="w"> </span>--print-architecture<span class="k">)</span><span class="s2"> signed-by=/etc/apt/keyrings/docker.asc] https://mirrors.aliyun.com/docker-ce/linux/ubuntu </span><span class="k">$(</span>.<span class="w"> </span>/etc/os-release<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"</span><span class="nv">$VERSION_CODENAME</span><span class="s2">"</span><span class="k">)</span><span class="s2"> stable"</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sudo<span class="w"> </span>tee<span class="w"> </span>/etc/apt/sources.list.d/docker.list<span class="w"> </span>&gt;<span class="w"> </span>/dev/null
+sudo<span class="w"> </span>apt<span class="w"> </span>update<span class="w"> </span>-y
+sudo<span class="w"> </span>apt<span class="w"> </span>install<span class="w"> </span>docker-ce<span class="w"> </span>docker-ce-cli<span class="w"> </span>containerd.io<span class="w"> </span>docker-buildx-plugin<span class="w"> </span>docker-compose-plugin
+<span class="c1"># 启动 + 开机自启 + 免 sudo（加 docker 组）</span>
+sudo<span class="w"> </span>systemctl<span class="w"> </span>start<span class="w"> </span>docker<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>sudo<span class="w"> </span>systemctl<span class="w"> </span><span class="nb">enable</span><span class="w"> </span>docker
+sudo<span class="w"> </span>usermod<span class="w"> </span>-aG<span class="w"> </span>docker<span class="w"> </span><span class="nv">$USER</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>newgrp<span class="w"> </span>docker
+docker<span class="w"> </span>--version<span class="w">        </span><span class="c1"># 验证</span>
+</code></pre></div></div>
+
+<blockquote>
+<p>备选方案：嫌 docker-ce 麻烦可直接 <code>sudo apt install docker.io</code>，Ubuntu/Kali/Debian 通吃（Debian 官方维护版）。Kali 装 Docker 走官网 Debian 教程。</p>
+</blockquote>
+<h3 id="3">任务 3：拉镜像、跑容器、配加速</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>docker<span class="w"> </span>run<span class="w"> </span>hello-world<span class="w">                        </span><span class="c1"># 测试：能打印 Hello from Docker 即成功</span>
+docker<span class="w"> </span>pull<span class="w"> </span>ubuntu:22.04<span class="w">                      </span><span class="c1"># 拉镜像</span>
+docker<span class="w"> </span>run<span class="w"> </span>-it<span class="w"> </span>--rm<span class="w"> </span>ubuntu:22.04<span class="w"> </span>bash<span class="w">         </span><span class="c1"># 进容器执行 cat /etc/os-release 看版本</span>
+</code></pre></div></div>
+
+<p><strong>拉取超时（context deadline exceeded）→ 配国内镜像加速</strong>：</p>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>vim<span class="w"> </span>/etc/docker/daemon.json<span class="w">              </span><span class="c1"># 写入：</span>
+<span class="c1"># { "registry-mirrors": ["https://docker.nju.edu.cn","https://docker.m.daocloud.io",</span>
+<span class="c1">#   "https://mirror.baidubce.com","https://hub-mirror.c.163.com"] }</span>
+sudo<span class="w"> </span>systemctl<span class="w"> </span>daemon-reload<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>sudo<span class="w"> </span>systemctl<span class="w"> </span>restart<span class="w"> </span>docker
+docker<span class="w"> </span>run<span class="w"> </span>hello-world<span class="w">                        </span><span class="c1"># 再试</span>
+</code></pre></div></div>
+
+<p>进阶玩法：<code>docker build -t nginx:v3 .</code> 用 Dockerfile 定制镜像；<code>docker run -d -p 8000:80 wordpress</code> 式端口映射；<code>docker compose up -d</code> 一个 yml 文件拉起 WordPress+MySQL 多容器（网安可换成 LNMP 或 DVWA 靶场）。</p>
+<h3 id="4git-github">任务 4：Git 从零推到 GitHub</h3>
+<p>注册 GitHub → 装 git → 配置 name/email → <code>ssh-keygen</code> 并把公钥贴进 GitHub → 网页建仓库 → <code>git clone</code> → 写文件 → <code>add</code> → <code>commit</code> → <code>push</code> → 网页刷新看到代码。选做：<code>username.github.io</code> 仓库 + GitHub Pages 免费托管个人静态网页；Hexo（<code>npm install hexo-cli -g</code> → <code>hexo init Myblog</code> → <code>hexo generate</code> → <code>hexo deploy</code>）搭博客。</p>
+<h3 id="5-shell_1">任务 5：写一个实战 Shell 脚本（分词库：备份）</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="ch">#!/bin/bash</span>
+<span class="c1"># 备份脚本：把 /etc 打包并带时间戳</span>
+<span class="nv">backup_dir</span><span class="o">=</span><span class="s2">"/home/</span><span class="nv">$USER</span><span class="s2">/backups"</span>
+mkdir<span class="w"> </span>-p<span class="w"> </span><span class="nv">$backup_dir</span>
+tar<span class="w"> </span>-czf<span class="w"> </span><span class="nv">$backup_dir</span>/etc_<span class="k">$(</span>date<span class="w"> </span>+%Y%m%d<span class="k">)</span>.tar.gz<span class="w"> </span>/etc<span class="w"> </span><span class="m">2</span>&gt;/dev/null
+<span class="k">if</span><span class="w"> </span><span class="o">[</span><span class="w"> </span><span class="nv">$?</span><span class="w"> </span>-eq<span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="o">]</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"备份成功: </span><span class="nv">$backup_dir</span><span class="s2">"</span>
+<span class="k">else</span>
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"备份失败"</span>
+<span class="k">fi</span>
+</code></pre></div></div>
+
+<h3 id="6tmux">任务 6：Tmux 长任务工作流</h3>
+<p>SSH 登录 → <code>tmux new -s scan</code> → 在会话里跑长时间扫描/编译 → <code>Ctrl+b d</code> 分离 → 断网重连 → <code>tmux attach -t scan</code> 任务完好无损。</p>
+<hr />
+<h2 id="_2">四、常见问题与排查</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>现象</th>
+<th>原因</th>
+<th>解决</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>docker 安装时 <code>curl: (35) SSL connect reset</code></td>
+<td>download.docker.com 连接被重置</td>
+<td>GPG 密钥改用 <code>mirrors.aliyun.com/docker-ce</code> 下载</td>
+</tr>
+<tr>
+<td>apt 报 <code>E: Malformed entry ... docker.list</code></td>
+<td>软件源文件格式错误</td>
+<td>vim 检查，改成单行、各字段空格分隔</td>
+</tr>
+<tr>
+<td><code>docker run</code> 提示 <code>context deadline exceeded</code></td>
+<td>连不上 Docker Hub</td>
+<td>配 /etc/docker/daemon.json 加速镜像源并重启 docker</td>
+</tr>
+<tr>
+<td>docker 命令要加 sudo 很烦</td>
+<td>用户不在 docker 组</td>
+<td><code>sudo usermod -aG docker $USER</code> + <code>newgrp docker</code> 重新登录</td>
+</tr>
+<tr>
+<td>gcc 编译报 <code>fatal error: xxx.h: No such file</code></td>
+<td>缺头文件（开发包）</td>
+<td><code>apt install build-essential</code>；缺库则装对应 <code>-dev</code> 包</td>
+</tr>
+<tr>
+<td>git push 失败（22 端口被墙）</td>
+<td>网络环境问题</td>
+<td>用 https 地址 clone；或把 SSH 端口改 443 连接 ssh.github.com</td>
+</tr>
+<tr>
+<td>VSCode 连不上报"过程试图写入的管道不存在"</td>
+<td>本地 .ssh 权限问题</td>
+<td>见安装篇九步法；仍不行删 <code>~/.vscode-server</code> 重装</td>
+</tr>
+<tr>
+<td>脚本运行报 <code>bash: ./test.sh: Permission denied</code></td>
+<td>没加执行权限</td>
+<td><code>chmod +x test.sh</code> 或 <code>bash test.sh</code> 运行</td>
+</tr>
+<tr>
+<td>脚本里 <code>if [ ]</code> 报错</td>
+<td>中括号两边必须有空格、变量要加引号</td>
+<td><code>[ "$1" = "a" ]</code> 规范写法</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="_3">五、面试速答卡</h2>
+<ul>
+<li><strong>GCC 编译四步</strong>：预处理 → 编译（C→汇编）→ 汇编（→机器码）→ 链接（→可执行文件）；加 <code>-g</code> 才能用 GDB</li>
+<li><strong>GDB 核心流程</strong>：<code>gcc -g</code> → <code>break</code> 断点 → <code>run</code> → <code>next/step</code> 单步 → <code>print</code> 查变量</li>
+<li><strong>Makefile 规则三要素</strong>：目标、依赖、Tab 缩进的命令；依赖新于目标才重新执行</li>
+<li><strong>Shell 脚本 <code>$?</code> 是什么</strong>：上一条命令的退出码，0 成功非 0 失败，脚本里做错误判断神器</li>
+<li><strong>正则 <code>^</code> <code>$</code> <code>\d</code> <code>\w</code> <code>[a-z]</code> 各指什么</strong>：行首、行尾、数字、字母数字下划线、小写字母簇</li>
+<li><strong>grep/sed/awk 分工</strong>：grep 过滤行、sed 流式替换删除、awk 按列提取统计</li>
+<li><strong>Docker 镜像与容器区别</strong>：镜像=只读模板（类），容器=运行实例（对象）；同一镜像可生成多个容器</li>
+<li><strong>Docker 为什么比虚拟机轻</strong>：容器共享宿主机内核，只隔离用户态；虚拟机虚拟整套硬件和 OS</li>
+<li><strong>Tmux 解决什么问题</strong>：会话与窗口解绑，SSH 断开任务不丢，重连 <code>tmux attach</code> 恢复现场</li>
+<li><strong>Git 三区</strong>：工作区 → add 暂存区 → commit 本地仓库 → push 远程仓库</li>
+</ul></div>
+      <div class="post-nav"><a class="pn-item prev" href="web-ji-chu-zhan-dian-da-jian-yu-http-gong-zuo-yuan-li.html"><span>← 上一篇</span><strong>Web 基础：站点搭建与 HTTP 工作原理</strong></a><a class="pn-item next" href="ji-shu-zhan-yu-xiang-mu-kai-fa-ji-chu-zhi-shi.html"><span>下一篇 →</span><strong>技术栈与项目开发基础知识</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#linux" class="toc-lv2">一、概述：一条完整的 Linux 开发工作流</a><a href="#_1" class="toc-lv2">二、核心知识</a><a href="#1-vim" class="toc-lv3">1. Vim 三模式（背熟切换键）</a><a href="#2-gcc" class="toc-lv3">2. GCC 编译流程（四步，面试常问）</a><a href="#3-gdb" class="toc-lv3">3. GDB 调试（断点→运行→单步→查变量）</a><a href="#4-make-makefile" class="toc-lv3">4. Make 与 Makefile（多文件自动化编译）</a><a href="#5-shell" class="toc-lv3">5. Shell 编程基础</a><a href="#6" class="toc-lv3">6. 正则表达式与文本三剑客</a><a href="#7-tmux" class="toc-lv3">7. Tmux 终端复用（最简工作流）</a><a href="#8-docker" class="toc-lv3">8. Docker：镜像与容器（类=实例的关系）</a><a href="#9-git" class="toc-lv3">9. Git 版本控制（提交→推送闭环）</a><a href="#10-vscode" class="toc-lv3">10. VSCode 远程开发（详见安装篇，这里补插件环节）</a><a href="#pdf" class="toc-lv2">三、实操流程（老师版 PDF 主线）</a><a href="#1vscode" class="toc-lv3">任务 1：VSCode 远程开发闭环</a><a href="#2docker-ubuntu-docker-ce" class="toc-lv3">任务 2：Docker 安装（Ubuntu docker-ce 版）</a><a href="#3" class="toc-lv3">任务 3：拉镜像、跑容器、配加速</a><a href="#4git-github" class="toc-lv3">任务 4：Git 从零推到 GitHub</a><a href="#5-shell_1" class="toc-lv3">任务 5：写一个实战 Shell 脚本（分词库：备份）</a><a href="#6tmux" class="toc-lv3">任务 6：Tmux 长任务工作流</a><a href="#_2" class="toc-lv2">四、常见问题与排查</a><a href="#_3" class="toc-lv2">五、面试速答卡</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

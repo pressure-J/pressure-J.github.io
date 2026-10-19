@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Windows 日志分析基础 · pressure-J</title>
+<meta name="description" content="title: Windows日志分析基础 tags: [应急响应, 日志分析, Windows]">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/windows-ri-zhi-fen-xi-ji-chu.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Windows 日志分析基础 · pressure-J">
+<meta property="og:description" content="title: Windows日志分析基础 tags: [应急响应, 日志分析, Windows]">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/ir.html">应急响应</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>Windows 日志分析基础</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-ir">应急响应</span>
+          <time datetime="2026-08-14">2026-08-14</time>
+          <span>5526 字</span>
+          <span>约 15 分钟</span>
+        </div>
+        
+      </header>
+      <div class="content"><p>﻿---<br />
+title: Windows日志分析基础<br />
+tags: [应急响应, 日志分析, Windows]<br />
+date: 2026-07-10<br />
+category: 01-基础知识</p>
+<hr />
+<h2 id="_1">概述</h2>
+<p>Windows 系统日志是应急响应中最常用的数据源之一。掌握日志存放位置、关键事件 ID 和分析方法，是解题和实战的基本功。</p>
+<hr />
+<h2 id="_2">一、日志存放位置</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>日志类型</th>
+<th>默认路径</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>安全日志</strong></td>
+<td>C:\Windows\System32\winevt\Logs\Security.evtx</td>
+<td>登录、权限变更、策略修改</td>
+</tr>
+<tr>
+<td><strong>系统日志</strong></td>
+<td>C:\Windows\System32\winevt\Logs\System.evtx</td>
+<td>系统服务、驱动、开机事件</td>
+</tr>
+<tr>
+<td><strong>应用日志</strong></td>
+<td>C:\Windows\System32\winevt\Logs\Application.evtx</td>
+<td>应用程序错误、崩溃信息</td>
+</tr>
+<tr>
+<td><strong>PowerShell</strong></td>
+<td>...\Microsoft-Windows-PowerShell%4Operational.evtx</td>
+<td>PowerShell 命令执行记录</td>
+</tr>
+<tr>
+<td><strong>RDP</strong></td>
+<td>...\Microsoft-Windows-TerminalServices-*</td>
+<td>远程桌面连接记录</td>
+</tr>
+<tr>
+<td><strong>计划任务</strong></td>
+<td>...\Microsoft-Windows-TaskScheduler%4Operational.evtx</td>
+<td>计划任务创建/执行</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>提示：.evtx 是二进制格式，需要用工具解析（Event Log Explorer、LogParser、python-evtx）。</p>
+</blockquote>
+<hr />
+<h2 id="id">二、安全日志关键事件 ID</h2>
+<h3 id="_3">登录相关</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>EventID</th>
+<th>含义</th>
+<th>应急关注点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>4624</strong></td>
+<td>登录成功</td>
+<td>关注 LogonType=10（RDP）</td>
+</tr>
+<tr>
+<td><strong>4625</strong></td>
+<td>登录失败</td>
+<td>大量失败 = 暴力破解，统计源 IP</td>
+</tr>
+<tr>
+<td><strong>4634</strong></td>
+<td>登出</td>
+<td>辅助确认会话时长</td>
+</tr>
+<tr>
+<td><strong>4648</strong></td>
+<td>显式凭据登录</td>
+<td>可能涉及横向移动</td>
+</tr>
+<tr>
+<td><strong>4672</strong></td>
+<td>特殊权限分配</td>
+<td>管理员登录时触发</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="_4">账户与策略</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>EventID</th>
+<th>含义</th>
+<th>应急关注点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>4720</strong></td>
+<td>用户账户创建</td>
+<td>攻击者创建后门账户</td>
+</tr>
+<tr>
+<td><strong>4722/4725</strong></td>
+<td>账户启用/禁用</td>
+<td>禁用管理员可能是攻击</td>
+</tr>
+<tr>
+<td><strong>4732</strong></td>
+<td>成员添加到本地组</td>
+<td>加入 Admins 组 = 提权</td>
+</tr>
+<tr>
+<td><strong>4776</strong></td>
+<td>NTLM 认证</td>
+<td>暴力破解时大量失败</td>
+</tr>
+<tr>
+<td><strong>4778/4779</strong></td>
+<td>RDP 会话重连/断开</td>
+<td>追踪远程桌面使用</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="logontype">三、LogonType 速查表</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>LogonType</th>
+<th>名称</th>
+<th>说明</th>
+<th>应急场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2</td>
+<td>Interactive</td>
+<td>本地控制台</td>
+<td>物理接触</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Network</td>
+<td>网络访问（IPC$）</td>
+<td>横向移动</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Batch</td>
+<td>计划任务</td>
+<td>持久化</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Service</td>
+<td>服务启动</td>
+<td>后门服务</td>
+</tr>
+<tr>
+<td><strong>10</strong></td>
+<td><strong>RemoteInteractive</strong></td>
+<td><strong>RDP 远程桌面</strong></td>
+<td><strong>暴力破解重点</strong></td>
+</tr>
+<tr>
+<td>11</td>
+<td>CachedInteractive</td>
+<td>缓存凭据登录</td>
+<td>离线认证</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="_5">四、分析方法</h2>
+<h3 id="python-evtx">Python 解析 EVTX</h3>
+<p>`python</p>
+<h2 id="pip-install-python-evtx">pip install python-evtx</h2>
+<p>from Evtx.Evtx import FileHeader<br />
+from Evtx.Views import evtx_file_xml_view</p>
+<p>with open('Security.evtx', 'rb') as f:<br />
+    data = f.read()<br />
+    header = FileHeader(data, strict=False)<br />
+    for record in evtx_file_xml_view(header):<br />
+        if '4625' in record.xml_str:<br />
+            print(record.xml_str[:500])<br />
+<code>"
+--- title: Windows日志分析基础 tags: [应急响应, 日志分析, Windows] date: 2026-07-10 category: 01-基础知识 ---  # Windows 日志分析基础  ## 概述  Windows 系统日志是应急响应中最常用的数据源之一。掌握日志存放位置、关键事件 ID 和分析方法，是解题和实战的基本功。  ---  ## 一、日志存放位置  | 日志类型 | 默认路径 | 说明 | |---------|---------|------| | **安全日志** | C:\Windows\System32\winevt\Logs\Security.evtx | 登录、权限变更、策略修改 | | **系统日志** | C:\Windows\System32\winevt\Logs\System.evtx | 系统服务、驱动、开机事件 | | **应用日志** | C:\Windows\System32\winevt\Logs\Application.evtx | 应用程序错误、崩溃信息 | | **PowerShell** | ...\Microsoft-Windows-PowerShell%4Operational.evtx | PowerShell 命令执行记录 | | **RDP** | ...\Microsoft-Windows-TerminalServices-* | 远程桌面连接记录 | | **计划任务** | ...\Microsoft-Windows-TaskScheduler%4Operational.evtx | 计划任务创建/执行 |  &gt; 提示：.evtx 是二进制格式，需要用工具解析（Event Log Explorer、LogParser、python-evtx）。  ---  ## 二、安全日志关键事件 ID  ### 登录相关  | EventID | 含义 | 应急关注点 | |---------|------|-----------| | **4624** | 登录成功 | 关注 LogonType=10（RDP） | | **4625** | 登录失败 | 大量失败 = 暴力破解，统计源 IP | | **4634** | 登出 | 辅助确认会话时长 | | **4648** | 显式凭据登录 | 可能涉及横向移动 | | **4672** | 特殊权限分配 | 管理员登录时触发 |  ### 账户与策略  | EventID | 含义 | 应急关注点 | |---------|------|-----------| | **4720** | 用户账户创建 | 攻击者创建后门账户 | | **4722/4725** | 账户启用/禁用 | 禁用管理员可能是攻击 | | **4732** | 成员添加到本地组 | 加入 Admins 组 = 提权 | | **4776** | NTLM 认证 | 暴力破解时大量失败 | | **4778/4779** | RDP 会话重连/断开 | 追踪远程桌面使用 |  ---  ## 三、LogonType 速查表  | LogonType | 名称 | 说明 | 应急场景 | |-----------|------|------|---------| | 2 | Interactive | 本地控制台 | 物理接触 | | 3 | Network | 网络访问（IPC$） | 横向移动 | | 4 | Batch | 计划任务 | 持久化 | | 5 | Service | 服务启动 | 后门服务 | | **10** | **RemoteInteractive** | **RDP 远程桌面** | **暴力破解重点** | | 11 | CachedInteractive | 缓存凭据登录 | 离线认证 |  ---  ## 四、分析方法  ### Python 解析 EVTX</code>python # pip install python-evtx from Evtx.Evtx import FileHeader from Evtx.Views import evtx_file_xml_view  with open('Security.evtx', 'rb') as f:     data = f.read()     header = FileHeader(data, strict=False)     for record in evtx_file_xml_view(header):         if '4625' in record.xml_str:             print(record.xml_str[:500]) += "<br />
+--- title: Windows日志分析基础 tags: [应急响应, 日志分析, Windows] date: 2026-07-10 category: 01-基础知识 ---  # Windows 日志分析基础  ## 概述  Windows 系统日志是应急响应中最常用的数据源之一。掌握日志存放位置、关键事件 ID 和分析方法，是解题和实战的基本功。  ---  ## 一、日志存放位置  | 日志类型 | 默认路径 | 说明 | |---------|---------|------| | <strong>安全日志</strong> | C:\Windows\System32\winevt\Logs\Security.evtx | 登录、权限变更、策略修改 | | <strong>系统日志</strong> | C:\Windows\System32\winevt\Logs\System.evtx | 系统服务、驱动、开机事件 | | <strong>应用日志</strong> | C:\Windows\System32\winevt\Logs\Application.evtx | 应用程序错误、崩溃信息 | | <strong>PowerShell</strong> | ...\Microsoft-Windows-PowerShell%4Operational.evtx | PowerShell 命令执行记录 | | <strong>RDP</strong> | ...\Microsoft-Windows-TerminalServices-* | 远程桌面连接记录 | | <strong>计划任务</strong> | ...\Microsoft-Windows-TaskScheduler%4Operational.evtx | 计划任务创建/执行 |  &gt; 提示：.evtx 是二进制格式，需要用工具解析（Event Log Explorer、LogParser、python-evtx）。  ---  ## 二、安全日志关键事件 ID  ### 登录相关  | EventID | 含义 | 应急关注点 | |---------|------|-----------| | <strong>4624</strong> | 登录成功 | 关注 LogonType=10（RDP） | | <strong>4625</strong> | 登录失败 | 大量失败 = 暴力破解，统计源 IP | | <strong>4634</strong> | 登出 | 辅助确认会话时长 | | <strong>4648</strong> | 显式凭据登录 | 可能涉及横向移动 | | <strong>4672</strong> | 特殊权限分配 | 管理员登录时触发 |  ### 账户与策略  | EventID | 含义 | 应急关注点 | |---------|------|-----------| | <strong>4720</strong> | 用户账户创建 | 攻击者创建后门账户 | | <strong>4722/4725</strong> | 账户启用/禁用 | 禁用管理员可能是攻击 | | <strong>4732</strong> | 成员添加到本地组 | 加入 Admins 组 = 提权 | | <strong>4776</strong> | NTLM 认证 | 暴力破解时大量失败 | | <strong>4778/4779</strong> | RDP 会话重连/断开 | 追踪远程桌面使用 |  ---  ## 三、LogonType 速查表  | LogonType | 名称 | 说明 | 应急场景 | |-----------|------|------|---------| | 2 | Interactive | 本地控制台 | 物理接触 | | 3 | Network | 网络访问（IPC$） | 横向移动 | | 4 | Batch | 计划任务 | 持久化 | | 5 | Service | 服务启动 | 后门服务 | | <strong>10</strong> | <strong>RemoteInteractive</strong> | <strong>RDP 远程桌面</strong> | <strong>暴力破解重点</strong> | | 11 | CachedInteractive | 缓存凭据登录 | 离线认证 |  ---  ## 四、分析方法  ### Python 解析 EVTX  `python # pip install python-evtx from Evtx.Evtx import FileHeader from Evtx.Views import evtx_file_xml_view  with open('Security.evtx', 'rb') as f:     data = f.read()     header = FileHeader(data, strict=False)     for record in evtx_file_xml_view(header):         if '4625' in record.xml_str:             print(record.xml_str[:500]) += </p>
+<ol>
+<li>将 .evtx 导出为 XML 格式</li>
+<li>Excel → 文件 → 打开 → 选择 XML → 作为 XML 表</li>
+<li>筛选 EventID 列，用数据透视表统计</li>
+</ol>
+<hr />
+<h2 id="ctf">五、CTF 常见考点</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>考点</th>
+<th>解题思路</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>暴力破解源 IP</td>
+<td>筛选 4625，按 IP 分组统计</td>
+</tr>
+<tr>
+<td>成功登录账户</td>
+<td>筛选 4624 + LogonType，提取 TargetUserName</td>
+</tr>
+<tr>
+<td>后门账户创建</td>
+<td>搜索 4720 + 4732</td>
+</tr>
+<tr>
+<td>RDP 远程登录</td>
+<td>LogonType=10 的 4624 记录</td>
+</tr>
+<tr>
+<td>计划任务持久化</td>
+<td>搜索 4698</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="_6">六、常用工具</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>工具</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>LogParser</strong></td>
+<td>SQL 语法查询 Windows 日志</td>
+</tr>
+<tr>
+<td><strong>Event Log Explorer</strong></td>
+<td>GUI 查看 .evtx</td>
+</tr>
+<tr>
+<td><strong>python-evtx</strong></td>
+<td>Python 解析 EVTX</td>
+</tr>
+<tr>
+<td><strong>EvtxECmd</strong></td>
+<td>批量解析输出 CSV</td>
+</tr>
+<tr>
+<td><strong>BLA</strong></td>
+<td>自动化日志分析</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="_7">七、快速记忆口诀</h2>
+<p>4624 成功 4625 失败，LogonType=10 是 RDP<br />
+4720 创建 4732 加组，后门账户这样找<br />
+evtx 二进制要用工具，LogParser SQL 来处理</p></div>
+      <div class="post-nav"><a class="pn-item prev" href="shiro-deserialization-traffic.html"><span>← 上一篇</span><strong>Shiro反序列化RCE流量分析WriteUp</strong></a><a class="pn-item next" href="python-class-lei-zhi-shi-zong-jie.html"><span>下一篇 →</span><strong>Python Class（类）知识总结</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">概述</a><a href="#_2" class="toc-lv2">一、日志存放位置</a><a href="#id" class="toc-lv2">二、安全日志关键事件 ID</a><a href="#_3" class="toc-lv3">登录相关</a><a href="#_4" class="toc-lv3">账户与策略</a><a href="#logontype" class="toc-lv2">三、LogonType 速查表</a><a href="#_5" class="toc-lv2">四、分析方法</a><a href="#python-evtx" class="toc-lv3">Python 解析 EVTX</a><a href="#pip-install-python-evtx" class="toc-lv2">pip install python-evtx</a><a href="#ctf" class="toc-lv2">五、CTF 常见考点</a><a href="#_6" class="toc-lv2">六、常用工具</a><a href="#_7" class="toc-lv2">七、快速记忆口诀</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

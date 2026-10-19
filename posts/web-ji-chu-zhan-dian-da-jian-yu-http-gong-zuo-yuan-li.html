@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Web 基础：站点搭建与 HTTP 工作原理 · pressure-J</title>
+<meta name="description" content="WWW（万维网） 是构建在互联网之上、由互相链接的超文本文档组成的信息系统。1989 年蒂姆·伯纳斯-李在 CERN 发明了它，并定义了三大关键技术：">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/web-ji-chu-zhan-dian-da-jian-yu-http-gong-zuo-yuan-li.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Web 基础：站点搭建与 HTTP 工作原理 · pressure-J">
+<meta property="og:description" content="WWW（万维网） 是构建在互联网之上、由互相链接的超文本文档组成的信息系统。1989 年蒂姆·伯纳斯-李在 CERN 发明了它，并定义了三大关键技术：">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/web.html">Web 安全</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>Web 基础：站点搭建与 HTTP 工作原理</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-web">Web 安全</span>
+          <time datetime="2026-08-28">2026-08-28</time>
+          <span>6344 字</span>
+          <span>约 17 分钟</span>
+        </div>
+        
+      </header>
+      <div class="content"><blockquote>
+<p>来源：课程实验《Web站点搭建与工作原理分析》（LAMP 环境 + 虚拟主机 + WordPress，2025-2026 第二学期），以课件详细版（27 页实验指导）为主<br />
+定位：Web 安全的知识底盘——不懂"一次访问全流程"就理解不了后面所有攻击发生在哪一环；面试网络基础必答<br />
+实战场景：任何 Web 渗透测试的起点；讲项目时"我在 Kali 上搭了整套 LAMP 靶场"是最好的开场</p>
+</blockquote>
+<hr />
+<h2 id="web">一、原理概述：Web 是什么</h2>
+<p><strong>WWW（万维网）</strong> 是构建在互联网之上、由互相链接的超文本文档组成的信息系统。1989 年蒂姆·伯纳斯-李在 CERN 发明了它，并定义了<strong>三大关键技术</strong>：</p>
+<ol>
+<li><strong>URI</strong>（统一资源定位符）：给互联网上每个资源一个唯一地址</li>
+<li><strong>HTML</strong>（超文本标记语言）：描述网页内容的格式</li>
+<li><strong>HTTP</strong>（超文本传输协议）：浏览器与服务器之间的通信标准</li>
+</ol>
+<p><strong>必须分清的概念</strong>（面试基础题）：<strong>Web ≠ 互联网（Internet）</strong>——互联网是承载万物的网络基础设施，Web 只是跑在它上面的众多服务之一（还有邮件、FTP、DNS 等）。Web 的规范不是哪家公司定的，而是 <strong>W3C（万维网联盟）</strong> 制定的，核心标准是 HTML、CSS、XML。</p>
+<p><strong>几个关键角色</strong>：<br />
+- <strong>Web 服务器</strong>：存放网页文档的计算机（Apache、Nginx、IIS）<br />
+- <strong>Web 客户端</strong>：读取网页的计算机，通过<strong>浏览器</strong>查看页面<br />
+- 浏览器的读取过程：发一个 HTTP 请求 → 服务器返回 HTML → 浏览器按 HTML 标签的"结构说明"渲染出页面</p>
+<hr />
+<h2 id="_1">二、一次访问的全流程（面试核心，必须能画出来）</h2>
+<p>从输入网址回车到看到页面，完整链路是：<strong>DNS 解析 → TCP 三次握手 → HTTP 请求 → 服务器处理 → HTTP 响应 → TCP 四次挥手 → 浏览器渲染</strong>。</p>
+<h3 id="1-dns-ip">1. DNS 域名解析（把域名翻译成 IP）</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>步骤</th>
+<th>动作</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>①</td>
+<td>浏览器向<strong>本地 DNS 服务器</strong>发送域名查询报文</td>
+</tr>
+<tr>
+<td>②</td>
+<td>本地 DNS 把请求转发到<strong>根 DNS 服务器</strong></td>
+</tr>
+<tr>
+<td>③</td>
+<td>根服务器根据 <code>.com</code> 后缀返回 <strong>com 顶级域名服务器</strong> 的 IP</td>
+</tr>
+<tr>
+<td>④</td>
+<td>本地 DNS 带着域名访问顶级域名服务器</td>
+</tr>
+<tr>
+<td>⑤</td>
+<td>顶级服务器根据 <code>imooc.com</code> 返回 <strong>二级域名服务器</strong> IP</td>
+</tr>
+<tr>
+<td>⑥</td>
+<td>本地 DNS 访问二级域名服务器</td>
+</tr>
+<tr>
+<td>⑦</td>
+<td>二级服务器查询到域名对应的<strong>真实 IP</strong>（如 210.1.17.89）返回</td>
+</tr>
+<tr>
+<td>⑧</td>
+<td>本地 DNS 把最终 IP 透传给浏览器</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>本质</strong>：DNS 是一棵从根向叶子逐级查询的树，每一级只负责告诉"下一级去哪找"。这也是为什么 <strong>hosts 文件能劫持域名</strong>——本地解析优先于网络查询，实验里给 www.static.com 绑 127.0.0.1 就是手动"造假"了一条 DNS 记录，实现不注册域名也能访问站点。</p>
+<h3 id="2-tcp">2. TCP 三次握手（建立连接）</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>客户端 ──SYN (seq=J)──────────▶ 服务器   客户端进入 SYN_SENT
+客户端 ◀──SYN+ACK (ack=J+1)─── 服务器   服务器进入 SYN_RCVD
+客户端 ──ACK (ack=K+1)────────▶ 服务器   双方进入 ESTABLISHED
+</code></pre></div></div>
+
+<p><strong>为什么是三次</strong>：双方都需要确认"我能发、你能收"。两次不够（服务器无法确认客户端的接收能力），四次浪费。</p>
+<h3 id="3-http">3. HTTP 请求与响应</h3>
+<p>请求报文 = <strong>请求行 + 请求头 + 空行 + 请求体</strong>；响应报文 = <strong>状态行 + 响应头 + 空行 + 响应体</strong>。Chrome 按 F12 → Network 能直接看到原始报文，这是之后所有抓包分析的基础。</p>
+<p><strong>状态码速查</strong>（面试必背）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>类别</th>
+<th>代表状态码</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1xx</td>
+<td>100 Continue</td>
+<td>服务器已收到请求头，请继续</td>
+</tr>
+<tr>
+<td>2xx</td>
+<td>200 OK</td>
+<td>请求成功</td>
+</tr>
+<tr>
+<td>3xx</td>
+<td>301 Moved Permanently</td>
+<td>资源转移，请求被重定向</td>
+</tr>
+<tr>
+<td>4xx</td>
+<td>404 Not Found</td>
+<td>资源不存在（客户端错误）</td>
+</tr>
+<tr>
+<td>5xx</td>
+<td>500 Internal Server Error</td>
+<td>服务器内部错误</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>安全视角：<strong>401/403</strong>（未认证/未授权）与 200 的差异、<strong>302 跳转目标</strong>，都是渗透测试判断"接口是否可越权、重定向去哪"的依据。</p>
+</blockquote>
+<h3 id="4">4. 服务器内部处理链路</h3>
+<p>请求打进服务器后：<strong>网关层（Nginx）</strong> 最先接收 → 路由转发到 Web 服务 → 业务逻辑（可能要查数据库）→ 返回结果。开发者的日常工作集中在"Web 业务服务"这一环（Spring/Django/ThinkPHP 等框架）。</p>
+<h3 id="5-tcp">5. TCP 四次挥手（断开连接）</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>客户端 ──FIN (seq=u)──────────▶ 服务器   ① 我要断开了
+客户端 ◀──ACK (ack=u+1)──────── 服务器   ② 收到你的断开请求
+客户端 ◀──FIN (seq=w)────────── 服务器   ③ 我也要断开了
+客户端 ──ACK (ack=w+1)────────▶ 服务器   ④ 确认，连接关闭
+</code></pre></div></div>
+
+<p><strong>为什么是四次</strong>：TCP 是全双工的，每一方向都要单独完成"我要关→对方确认"，所以比握手多一次。</p>
+<h3 id="6">6. 浏览器渲染（把代码变成页面）</h3>
+<p>服务器返回的 HTML/CSS/JS 要经过浏览器解析才能显示：<br />
+- <strong>HTML 解析器</strong>：标签 → <strong>DOM 树</strong>节点<br />
+- <strong>CSS 解析器</strong>：生成 CSS 规则树（选择器从右到左匹配）<br />
+- <strong>JS 解析器</strong>：解析脚本</p>
+<p><strong>关键细节（面试加分）</strong>：HTML 和 CSS 解析是<strong>多线程并行</strong>的，CSS 解析失败不影响 HTML；但 <strong>JS 解析一旦异常会终止 HTML 解析</strong>——这是历史上"把 <code>&lt;script&gt;</code> 放在 body 底部、用 defer/async"的根本原因。<strong>安全视角：XSS 注入的 <code>&lt;script&gt;</code> 正是钻进了解析链里被执行。</strong></p>
+<hr />
+<h2 id="web-lamp">三、Web 前后端与 LAMP 架构</h2>
+<h3 id="vs">前端 vs 后端（分工理解）</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th>前端</th>
+<th>后端</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>职责</td>
+<td>用户可见的一切：布局、特效、交互</td>
+<td>业务逻辑、数据存取、权限判断</td>
+</tr>
+<tr>
+<td>技术</td>
+<td>HTML、CSS、JavaScript（进阶 Vue/React/Angular）</td>
+<td>PHP、Java、Python、ASP.NET 等 + 数据库</td>
+</tr>
+<tr>
+<td>典型例子</td>
+<td>注册表单的页面长什么样</td>
+<td>注册信息存进数据库、登录时比对密码</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>一次注册请求的完整故事</strong>（实验的核心代码流程）：前端表单收集用户名密码 → <code>register.php</code> 接 POST 请求 → <code>mysqli_query</code> 把数据 <code>INSERT INTO users</code> → 返回"Record inserted successfully"。登录则是 <code>SELECT ... WHERE username='$user' AND password='$pwd'</code>，查到就 <code>session_start()</code> 标记 <code>$_SESSION['loggedin']=true</code> 并跳转主页面。</p>
+<blockquote>
+<p><strong>安全视角（重点）</strong>：实验里这些"能跑就行"的代码正是后面的漏洞温床——<code>INSERT INTO users ... '$user'</code> 是<strong>字符串拼接 SQL = SQL 注入</strong>；把用户输入直接 <code>echo</code> 回页面 = <strong>XSS</strong>；session 直接信任不换 ID = 会话固定。<strong>能看懂这份安全代码，才懂后面为什么漏洞那么多。</strong></p>
+</blockquote>
+<h3 id="_2">常见后端服务器分类（面试可背）</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>类型</th>
+<th>代表</th>
+<th>职责</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Web 服务器</td>
+<td>Apache、Nginx、IIS</td>
+<td>收 HTTP 请求、返回静态资源</td>
+</tr>
+<tr>
+<td>应用服务器</td>
+<td>Tomcat、JBoss、WebLogic</td>
+<td>跑业务逻辑</td>
+</tr>
+<tr>
+<td>数据库服务器</td>
+<td>MySQL、Oracle、SQL Server</td>
+<td>存储与查询数据</td>
+</tr>
+<tr>
+<td>缓存服务器</td>
+<td>Redis、Memcached</td>
+<td>热点数据放内存加速</td>
+</tr>
+<tr>
+<td>文件/消息队列/安全</td>
+<td>FTP、RabbitMQ/Kafka、防火墙/反代</td>
+<td>各自专项</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="lamp">LAMP 架构</h3>
+<p><strong>LAMP = Linux + Apache + MySQL + PHP</strong>，最经典的开源 Web 架构：Linux 是操作系统底座，Apache 收 HTTP 请求，MySQL 存数据，PHP 写业务。开源、免费、稳定、可扩展，能满足大多数 Web 应用需求。Windows 下的等价替代：<strong>XAMPP、PHPStudy、WampServer</strong>。</p>
+<hr />
+<h2 id="_3">四、网站构建实战（方法论）</h2>
+<h3 id="1-lamp">1. LAMP 环境搭建与常用命令</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># Apache 服务管理（Kali 自带；Ubuntu 需 apt install apache2）</span>
+sudo<span class="w"> </span>service<span class="w"> </span>apache2<span class="w"> </span>start<span class="p">|</span>stop<span class="p">|</span>restart<span class="p">|</span>status<span class="w">     </span><span class="c1"># 或 systemctl 同款</span>
+sudo<span class="w"> </span>systemctl<span class="w"> </span><span class="nb">enable</span><span class="w"> </span>apache2<span class="w">                       </span><span class="c1"># 开机自启</span>
+apache2<span class="w"> </span>-v<span class="w">                                          </span><span class="c1"># 查版本</span>
+
+<span class="c1"># MySQL（Ubuntu 需 apt install mysql-server）</span>
+sudo<span class="w"> </span>service<span class="w"> </span>mysql<span class="w"> </span>start
+sudo<span class="w"> </span>mysql<span class="w"> </span>-u<span class="w"> </span>root<span class="w">                                  </span><span class="c1"># root 登录</span>
+
+<span class="c1"># PHP 测试：/var/www/html 下建 test.php</span>
+<span class="c1"># &lt;?php echo "&lt;h1&gt;Hello World!&lt;/h1&gt;"; ?&gt;</span>
+<span class="c1"># 浏览器访问 http://localhost/test.php 看到输出 = PHP 在 Apache 上跑通</span>
+</code></pre></div></div>
+
+<p><strong>为什么这三样要装在一起</strong>：页面要动态生成（PHP）→ 数据要存（MySQL）→ 对外要有人收请求（Apache），每个环节各管一摊，这就是"架构"。</p>
+<h3 id="2">2. 虚拟主机：一台服务器，多个站点</h3>
+<p><strong>原理</strong>：同一台 Apache 按<strong>域名</strong>把请求分发到不同目录，如同多台"逻辑主机"共用一个物理服务器，目录之间互不干扰——这就是站点<strong>隔离</strong>的实现基础。</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c"># /etc/apache2/sites-available/www-static-com.conf</span>
+<span class="nt">&lt;VirtualHost</span><span class="w"> </span><span class="s">*:80</span><span class="nt">&gt;</span>
+<span class="w">    </span><span class="nb">ServerName</span><span class="w"> </span>www.static.com
+<span class="w">    </span><span class="nb">DocumentRoot</span><span class="w"> </span><span class="sx">/var/www/static</span>
+<span class="w">    </span><span class="nt">&lt;Directory</span><span class="w"> </span><span class="s">"/var/www/static"</span><span class="nt">&gt;</span>
+<span class="w">        </span><span class="nb">Options</span><span class="w"> </span>Indexes<span class="w"> </span>FollowSymLinks
+<span class="w">        </span><span class="nb">AllowOverride</span><span class="w"> </span><span class="k">All</span>
+<span class="w">        </span><span class="nb">Require</span><span class="w"> </span><span class="k">all</span><span class="w"> </span>granted
+<span class="w">    </span><span class="nt">&lt;/Directory&gt;</span>
+<span class="nt">&lt;/VirtualHost&gt;</span>
+</code></pre></div></div>
+
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>a2ensite<span class="w"> </span>www-static-com.conf<span class="w">   </span><span class="c1"># 建立符号链接启用站点</span>
+sudo<span class="w"> </span>service<span class="w"> </span>apache2<span class="w"> </span>restart<span class="w">         </span><span class="c1"># 重启生效</span>
+sudo<span class="w"> </span>gedit<span class="w"> </span>/etc/hosts<span class="w">                </span><span class="c1"># 客户端加一行：127.0.0.1 www.static.com</span>
+</code></pre></div></div>
+
+<p><strong>部署三步</strong>：写配置文件 → <code>a2ensite</code> 启用 → hosts 指向 IP。实验里 www.static.com / www.dynamic.com / www.blog.com 三个站点就是同一台机器按此流程依次部署的。</p>
+<h3 id="3-vs">3. 静态网站 vs 动态网站（必考对比）</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th>静态网站</th>
+<th>动态网站</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>页面内容</td>
+<td>写死的 HTML（最多带点 JS 特效）</td>
+<td>按请求实时生成（查数据库）</td>
+</tr>
+<tr>
+<td>技术</td>
+<td>HTML/CSS/JS</td>
+<td>后端语言 + 数据库</td>
+</tr>
+<tr>
+<td>特点</td>
+<td>快、简单、无法个性化</td>
+<td>能注册登录、千人千面</td>
+</tr>
+<tr>
+<td>本实验例子</td>
+<td><code>index.html</code> 用 <code>document.write()</code> 输出标题</td>
+<td>注册/登录/查库全套流程</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="4_1">4. 动态网站的数据库设计（实验代码提炼）</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="k">CREATE</span><span class="w"> </span><span class="k">DATABASE</span><span class="w"> </span><span class="n">loginsystem</span><span class="p">;</span>
+<span class="n">USE</span><span class="w"> </span><span class="n">loginsystem</span><span class="p">;</span>
+<span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">users</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="n">id</span><span class="w"> </span><span class="nb">INT</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="w"> </span><span class="n">AUTO_INCREMENT</span><span class="p">,</span>
+<span class="w">    </span><span class="n">username</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">50</span><span class="p">)</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="w"> </span><span class="k">UNIQUE</span><span class="p">,</span>
+<span class="w">    </span><span class="n">password</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">50</span><span class="p">)</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">    </span><span class="n">created_at</span><span class="w"> </span><span class="n">DATETIME</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="k">CURRENT_TIMESTAMP</span>
+<span class="p">);</span>
+<span class="k">CREATE</span><span class="w"> </span><span class="k">USER</span><span class="w"> </span><span class="s1">'user'</span><span class="o">@</span><span class="s1">'%'</span><span class="w"> </span><span class="n">IDENTIFIED</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="s1">'password'</span><span class="p">;</span><span class="w">      </span><span class="c1">-- 最小权限：应用账号≠root</span>
+<span class="k">GRANT</span><span class="w"> </span><span class="k">ALL</span><span class="w"> </span><span class="k">PRIVILEGES</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="n">loginsystem</span><span class="p">.</span><span class="o">*</span><span class="w"> </span><span class="k">TO</span><span class="w"> </span><span class="s1">'user'</span><span class="o">@</span><span class="s1">'%'</span><span class="p">;</span>
+<span class="n">FLUSH</span><span class="w"> </span><span class="k">PRIVILEGES</span><span class="p">;</span>
+</code></pre></div></div>
+
+<div class="code-block" data-lang="apache"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="x">// config.php：统一数据库连接（所有页面 require 它）</span>
+<span class="x">$link = mysqli_connect('localhost', 'user', 'password', 'loginsystem');</span>
+</code></pre></div></div>
+
+<p><strong>流程串起来</strong>：建库建表 → config.php 连接 → register.php 注册写入 → login.php 查库验证 + session → main.php 主页面。<strong>最小权限原则从这里就该养成</strong>：给应用一个独立账号而不是用 root 连库——这正是后面 SQL 注入防御"Web 账号不连 root"的先例。</p>
+<h3 id="5-cms-wordpress">5. CMS 快速部署（WordPress 博客）</h3>
+<p>下载模板 → <code>tar -zxvf</code> 解压 → 复制到站点目录 → 建库建用户赋权 → 配虚拟主机 + hosts → 浏览器图形化安装向导 → 后台 <code>/wp-login.php</code>。</p>
+<blockquote>
+<p>强制搭建 vs 一键安装的意义：亲手走一遍 LAMP 才能在出问题时知道是哪一层（服务/语法/权限/配置）出问题，这也是渗透测试里排查靶场的通用思路。</p>
+</blockquote>
+<hr />
+<h2 id="_4">五、安全视角复盘（这份基础里埋着哪些雷）</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>代码/配置</th>
+<th>问题</th>
+<th>对应漏洞</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>"SELECT ... WHERE username='$user'"</code> 字符串拼 SQL</td>
+<td>用户输入直接进 SQL 语句</td>
+<td>SQL 注入</td>
+</tr>
+<tr>
+<td>用户输入直接 <code>echo</code> 输出到页面</td>
+<td>输入被浏览器当代码解析</td>
+<td>XSS</td>
+</tr>
+<tr>
+<td><code>$_SESSION['loggedin']=true</code> 后不换 session ID</td>
+<td>会话 ID 可被固定/预测</td>
+<td>会话固定、弱会话</td>
+</tr>
+<tr>
+<td>验证码/权限只做前端判断</td>
+<td>后端没有真正校验</td>
+<td>逻辑漏洞（CAPTCHA 绕过、越权）</td>
+</tr>
+<tr>
+<td><code>include($_GET['page'])</code> 动态包含</td>
+<td>参数决定加载哪个文件</td>
+<td>文件包含</td>
+</tr>
+<tr>
+<td>上传目录在 Web 根目录内且可写</td>
+<td>可执行文件被直接访问</td>
+<td>文件上传</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>一句话</strong>：把"用户可控的任何东西"（输入、参数、文件名、URL）直接交给"执行类操作"（SQL、HTML 输出、include、执行命令），就产生了 Web 安全里绝大部分漏洞。<strong>面试时把这份"地基"和攻击对应起来讲，比单背漏洞点强得多。</strong></p>
+<hr />
+<h2 id="_5">六、面试速答卡</h2>
+<ul>
+<li><strong>浏览器输入网址到显示页面经历了什么</strong>：DNS 解析 → TCP 三次握手 → HTTP 请求 → 服务器处理 → HTTP 响应 → 四次挥手 → 浏览器渲染</li>
+<li><strong>DNS 解析流程</strong>：本地 DNS → 根 → 顶级域（.com）→ 二级域 → 真实 IP，逐级向下查询</li>
+<li><strong>为什么三次握手</strong>：双方各自确认"你发我能收、我发你能收"，两次不够四次浪费</li>
+<li><strong>为什么四次挥手</strong>：TCP 全双工，每个方向单独完成关闭，各自要一次 FIN+ACK</li>
+<li><strong>静态 vs 动态网站</strong>：内容写死 vs 按请求实时生成（查库），动态才能有注册登录</li>
+<li><strong>LAMP 是什么</strong>：Linux + Apache + MySQL + PHP；Windows 用 XAMPP/PHPStudy 替代</li>
+<li><strong>虚拟主机是什么</strong>：一台服务器按域名分发请求到不同目录，实现多站点与隔离</li>
+<li><strong>hosts 文件为什么能劫持域名</strong>：本地解析优先于 DNS 查询，实验里手动把域名指向 127.0.0.1</li>
+<li><strong>前端安全的基本原则</strong>：前端所有算法/校验对用户透明，安全边界必须放在后端</li>
+<li><strong>这份基础对应哪些漏洞</strong>：SQL 拼接→SQLi、原样输出→XSS、动态包含→文件包含、不可信上传→WebShell</li>
+</ul></div>
+      <div class="post-nav"><a class="pn-item prev" href="linux-fu-wu-apache-web-fu-wu-qi.html"><span>← 上一篇</span><strong>Linux 服务：Apache Web 服务器</strong></a><a class="pn-item next" href="linux-ji-chu-shell-bian-cheng-yu-kai-fa-huan-jing.html"><span>下一篇 →</span><strong>Linux 基础：Shell 编程与开发环境</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#web" class="toc-lv2">一、原理概述：Web 是什么</a><a href="#_1" class="toc-lv2">二、一次访问的全流程（面试核心，必须能画出来）</a><a href="#1-dns-ip" class="toc-lv3">1. DNS 域名解析（把域名翻译成 IP）</a><a href="#2-tcp" class="toc-lv3">2. TCP 三次握手（建立连接）</a><a href="#3-http" class="toc-lv3">3. HTTP 请求与响应</a><a href="#4" class="toc-lv3">4. 服务器内部处理链路</a><a href="#5-tcp" class="toc-lv3">5. TCP 四次挥手（断开连接）</a><a href="#6" class="toc-lv3">6. 浏览器渲染（把代码变成页面）</a><a href="#web-lamp" class="toc-lv2">三、Web 前后端与 LAMP 架构</a><a href="#vs" class="toc-lv3">前端 vs 后端（分工理解）</a><a href="#_2" class="toc-lv3">常见后端服务器分类（面试可背）</a><a href="#lamp" class="toc-lv3">LAMP 架构</a><a href="#_3" class="toc-lv2">四、网站构建实战（方法论）</a><a href="#1-lamp" class="toc-lv3">1. LAMP 环境搭建与常用命令</a><a href="#2" class="toc-lv3">2. 虚拟主机：一台服务器，多个站点</a><a href="#3-vs" class="toc-lv3">3. 静态网站 vs 动态网站（必考对比）</a><a href="#4_1" class="toc-lv3">4. 动态网站的数据库设计（实验代码提炼）</a><a href="#5-cms-wordpress" class="toc-lv3">5. CMS 快速部署（WordPress 博客）</a><a href="#_4" class="toc-lv2">五、安全视角复盘（这份基础里埋着哪些雷）</a><a href="#_5" class="toc-lv2">六、面试速答卡</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

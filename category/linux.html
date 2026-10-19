@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Linux · pressure-J</title>
+<meta name="description" content="基础命令、服务搭建、内核模块与虚拟机网络排查">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/category/linux.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Linux · pressure-J">
+<meta property="og:description" content="基础命令、服务搭建、内核模块与虚拟机网络排查">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html">文章</a><a href="../category/index.html" class="on">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap section">
+  <nav class="breadcrumb"><a href="../index.html">首页</a><span>/</span>分类</nav>
+  <header class="page-head page-head-cat">
+    <h1><span class="cat-badge cat-linux">Linux</span> 13 篇</h1>
+    <p>基础命令、服务搭建、内核模块与虚拟机网络排查</p>
+  </header>
+  <div class="post-list"><article class="post-card" data-cat="linux"
+     data-hay="linux 基础：wsl 下的 linux 入手操作 一句话：wsl2 是微软官方提供的轻量虚拟机，跑的是真实 linux 内核，但由 windows 深度托管——没有 bios、没有虚拟网卡配置界面、不用装系统、不用等开机。 ">
+  <div class="card-top">
+    <a class="cat-badge cat-linux" href="../category/linux.html">Linux</a>
+    <time datetime="2026-10-19">2026-10-19</time>
+  </div>
+  <h3><a href="../posts/linux-ji-chu-wsl-xia-de-linux-ru-shou-cao-zuo.html">Linux 基础：WSL 下的 Linux 入手操作</a></h3>
+  <p class="card-desc">一句话：WSL2 是微软官方提供的轻量虚拟机，跑的是真实 Linux 内核，但由 Windows 深度托管——没有 BIOS、没有虚拟网卡配置界面、不用装系统、不用等开机。</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">25 min · 9651 字</span>
+  </div>
+</article><article class="post-card" data-cat="linux"
+     data-hay="linux 基础：虚拟机网络排查 vm 没网 ≠ 一定是 vm 的问题。网络是一层层叠起来的，任何一层断了都表现为&quot;没网&quot;。正确姿势是从外到内逐层排除，而不是上来就乱敲命令。 ">
+  <div class="card-top">
+    <a class="cat-badge cat-linux" href="../category/linux.html">Linux</a>
+    <time datetime="2026-08-31">2026-08-31</time>
+  </div>
+  <h3><a href="../posts/linux-ji-chu-xu-ni-ji-wang-luo-pai-cha.html">Linux 基础：虚拟机网络排查</a></h3>
+  <p class="card-desc">VM 没网 ≠ 一定是 VM 的问题。网络是一层层叠起来的，任何一层断了都表现为&quot;没网&quot;。正确姿势是从外到内逐层排除，而不是上来就乱敲命令。</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">13 min · 5127 字</span>
+  </div>
+</article><article class="post-card" data-cat="linux"
+     data-hay="linux 基础：shell 编程与开发环境 在 linux 上开发，完整链条是：编辑器写代码（vim/vscode）→ 编译器构建（gcc）→ 调试器排错（gdb）→ 构建工具管理多文件（make）→ 容器化交付（docker）→ 版本控制协作（git）→ 终端复用提升效率（… ">
+  <div class="card-top">
+    <a class="cat-badge cat-linux" href="../category/linux.html">Linux</a>
+    <time datetime="2026-08-28">2026-08-28</time>
+  </div>
+  <h3><a href="../posts/linux-ji-chu-shell-bian-cheng-yu-kai-fa-huan-jing.html">Linux 基础：Shell 编程与开发环境</a></h3>
+  <p class="card-desc">在 Linux 上开发，完整链条是：编辑器写代码（Vim/VSCode）→ 编译器构建（GCC）→ 调试器排错（GDB）→ 构建工具管理多文件（Make）→ 容器化交付（Docker）→ 版本控制协作（Git）→ 终端复用提升效率（…</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">23 min · 8592 字</span>
+  </div>
+</article><article class="post-card" data-cat="linux"
+     data-hay="linux 服务：apache web 服务器 www 与 http：www 采用客户/服务器结构，浏览器（chrome/firefox 等）是 http 客户端，apache/iis 是 http 服务器软件。http 默认端口 80（默认可省略），改其他端口（如 8080）必… ">
+  <div class="card-top">
+    <a class="cat-badge cat-linux" href="../category/linux.html">Linux</a>
+    <time datetime="2026-08-28">2026-08-28</time>
+  </div>
+  <h3><a href="../posts/linux-fu-wu-apache-web-fu-wu-qi.html">Linux 服务：Apache Web 服务器</a></h3>
+  <p class="card-desc">WWW 与 HTTP：WWW 采用客户/服务器结构，浏览器（Chrome/Firefox 等）是 HTTP 客户端，Apache/IIS 是 HTTP 服务器软件。HTTP 默认端口 80（默认可省略），改其他端口（如 8080）必…</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">15 min · 5568 字</span>
+  </div>
+</article><article class="post-card" data-cat="linux"
+     data-hay="linux 服务：ftp 文件传输 ftp（file transfer protocol）：文件传输协议，可靠性强、传输效率高，采用 c/s 结构，默认控制端口 21，数据通道端口为 20（主动模式）。 ">
+  <div class="card-top">
+    <a class="cat-badge cat-linux" href="../category/linux.html">Linux</a>
+    <time datetime="2026-08-28">2026-08-28</time>
+  </div>
+  <h3><a href="../posts/linux-fu-wu-ftp-wen-jian-chuan-shu.html">Linux 服务：FTP 文件传输</a></h3>
+  <p class="card-desc">FTP（File Transfer Protocol）：文件传输协议，可靠性强、传输效率高，采用 C/S 结构，默认控制端口 21，数据通道端口为 20（主动模式）。</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">14 min · 5316 字</span>
+  </div>
+</article><article class="post-card" data-cat="linux"
+     data-hay="linux 服务：dns 域名解析 dns（domain name system）：把&quot;方便人记的域名&quot;翻译成&quot;机器可用的 ip 地址&quot;，可理解为一张巨大的分布式电话本。它是一个分布式数据库，命名系统呈倒置树的层次结构，称为域名空间（树最大深度 127 层，节点最长… ">
+  <div class="card-top">
+    <a class="cat-badge cat-linux" href="../category/linux.html">Linux</a>
+    <time datetime="2026-08-28">2026-08-28</time>
+  </div>
+  <h3><a href="../posts/linux-fu-wu-dns-yu-ming-jie-xi.html">Linux 服务：DNS 域名解析</a></h3>
+  <p class="card-desc">DNS（Domain Name System）：把&quot;方便人记的域名&quot;翻译成&quot;机器可用的 IP 地址&quot;，可理解为一张巨大的分布式电话本。它是一个分布式数据库，命名系统呈倒置树的层次结构，称为域名空间（树最大深度 127 层，节点最长…</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">14 min · 5288 字</span>
+  </div>
+</article><article class="post-card" data-cat="linux"
+     data-hay="linux 基础：用户权限与软件管理 linux 是多用户多任务系统，一切权限控制围绕三个身份展开：用户（user）、用户组（group）、其他人（others）。 ">
+  <div class="card-top">
+    <a class="cat-badge cat-linux" href="../category/linux.html">Linux</a>
+    <time datetime="2026-08-28">2026-08-28</time>
+  </div>
+  <h3><a href="../posts/linux-ji-chu-yong-hu-quan-xian-yu-ruan-jian-guan-li.html">Linux 基础：用户权限与软件管理</a></h3>
+  <p class="card-desc">Linux 是多用户多任务系统，一切权限控制围绕三个身份展开：用户（user）、用户组（group）、其他人（others）。</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">14 min · 5171 字</span>
+  </div>
+</article><article class="post-card" data-cat="linux"
+     data-hay="linux 基础：常用命令与文件系统 一句话原理：linux 遵循&quot;一切皆文件&quot;的设计思想——普通文件、目录、硬盘、键盘、网卡、进程，统统被抽象成文件，通过统一的命令进行操作。而&quot;命令行&quot;就是操作这些文件的工具箱：每个命令是一个小程序，专注做一件事；通过管道 |、重定向… ">
+  <div class="card-top">
+    <a class="cat-badge cat-linux" href="../category/linux.html">Linux</a>
+    <time datetime="2026-08-28">2026-08-28</time>
+  </div>
+  <h3><a href="../posts/linux-ji-chu-chang-yong-ming-ling-yu-wen-jian-xi-tong.html">Linux 基础：常用命令与文件系统</a></h3>
+  <p class="card-desc">一句话原理：Linux 遵循&quot;一切皆文件&quot;的设计思想——普通文件、目录、硬盘、键盘、网卡、进程，统统被抽象成文件，通过统一的命令进行操作。而&quot;命令行&quot;就是操作这些文件的工具箱：每个命令是一个小程序，专注做一件事；通过管道 |、重定向…</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">14 min · 5137 字</span>
+  </div>
+</article><article class="post-card" data-cat="linux"
+     data-hay="linux 基础：安装与系统配置 一句话原理：虚拟化软件在一台物理电脑上，用软件&quot;模拟&quot;出 cpu、内存、硬盘、网卡等硬件，让多个操作系统互不干扰地同时运行，仿佛各自占有一台独立电脑。这样做的价值是：资源复用、环境隔离、随手备份——网安学习最需要的就是&quot;随便折腾、坏… ">
+  <div class="card-top">
+    <a class="cat-badge cat-linux" href="../category/linux.html">Linux</a>
+    <time datetime="2026-08-28">2026-08-28</time>
+  </div>
+  <h3><a href="../posts/linux-ji-chu-an-zhuang-yu-xi-tong-pei-zhi.html">Linux 基础：安装与系统配置</a></h3>
+  <p class="card-desc">一句话原理：虚拟化软件在一台物理电脑上，用软件&quot;模拟&quot;出 CPU、内存、硬盘、网卡等硬件，让多个操作系统互不干扰地同时运行，仿佛各自占有一台独立电脑。这样做的价值是：资源复用、环境隔离、随手备份——网安学习最需要的就是&quot;随便折腾、坏…</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">13 min · 4830 字</span>
+  </div>
+</article><article class="post-card" data-cat="linux"
+     data-hay="linux 服务：samba 文件共享 samba 是什么：在 linux 上实现 smb/cifs 协议的开源软件，让 linux 可以无缝参与 windows 局域网资源共享。smb 协议（server message block）可看作局域网上共享文件和打印机的一种… ">
+  <div class="card-top">
+    <a class="cat-badge cat-linux" href="../category/linux.html">Linux</a>
+    <time datetime="2026-08-28">2026-08-28</time>
+  </div>
+  <h3><a href="../posts/linux-fu-wu-samba-wen-jian-gong-xiang.html">Linux 服务：Samba 文件共享</a></h3>
+  <p class="card-desc">Samba 是什么：在 Linux 上实现 SMB/CIFS 协议的开源软件，让 Linux 可以无缝参与 Windows 局域网资源共享。SMB 协议（Server Message Block）可看作局域网上共享文件和打印机的一种…</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">12 min · 4697 字</span>
+  </div>
+</article><article class="post-card" data-cat="linux"
+     data-hay="linux 进阶：内核编译与内核模块 linux 内核：操作系统的核心，管理进程调度、内存、文件系统、设备驱动、网络协议栈。发行版预编译的内核是通用配置，企业常按需裁剪/优化，或打安全补丁。 ">
+  <div class="card-top">
+    <a class="cat-badge cat-linux" href="../category/linux.html">Linux</a>
+    <time datetime="2026-08-28">2026-08-28</time>
+  </div>
+  <h3><a href="../posts/linux-jin-jie-nei-he-bian-yi-yu-nei-he-mo-kuai.html">Linux 进阶：内核编译与内核模块</a></h3>
+  <p class="card-desc">Linux 内核：操作系统的核心，管理进程调度、内存、文件系统、设备驱动、网络协议栈。发行版预编译的内核是通用配置，企业常按需裁剪/优化，或打安全补丁。</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">12 min · 4668 字</span>
+  </div>
+</article><article class="post-card" data-cat="linux"
+     data-hay="linux 服务：nfs 网络文件系统 nfs（network file system，网络文件系统）：让 linux 客户端像访问本地磁盘一样访问远程服务器上的文件系统，本地工作站省磁盘空间、home 目录全网可用、光驱等存储设备可被多机共享。 ">
+  <div class="card-top">
+    <a class="cat-badge cat-linux" href="../category/linux.html">Linux</a>
+    <time datetime="2026-08-28">2026-08-28</time>
+  </div>
+  <h3><a href="../posts/linux-fu-wu-nfs-wang-luo-wen-jian-xi-tong.html">Linux 服务：NFS 网络文件系统</a></h3>
+  <p class="card-desc">NFS（Network File System，网络文件系统）：让 Linux 客户端像访问本地磁盘一样访问远程服务器上的文件系统，本地工作站省磁盘空间、home 目录全网可用、光驱等存储设备可被多机共享。</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">12 min · 4406 字</span>
+  </div>
+</article><article class="post-card" data-cat="linux"
+     data-hay="linux 服务：dhcp 地址分配 dhcp（dynamic host configuration protocol，动态主机配置协议）：自动管理局域网内主机的 ip 地址、子网掩码、网关、dns 等参数，提升 ip 利用率、降低人工运维成本。 ">
+  <div class="card-top">
+    <a class="cat-badge cat-linux" href="../category/linux.html">Linux</a>
+    <time datetime="2026-08-28">2026-08-28</time>
+  </div>
+  <h3><a href="../posts/linux-fu-wu-dhcp-di-zhi-fen-pei.html">Linux 服务：DHCP 地址分配</a></h3>
+  <p class="card-desc">DHCP（Dynamic Host Configuration Protocol，动态主机配置协议）：自动管理局域网内主机的 IP 地址、子网掩码、网关、DNS 等参数，提升 IP 利用率、降低人工运维成本。</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">11 min · 4311 字</span>
+  </div>
+</article></div>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

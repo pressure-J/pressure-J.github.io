@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rabin密码 · pressure-J</title>
+<meta name="description" content="公钥加密算法（Michael Rabin, 1979），可以理解成&quot;RSA 的平方版&quot;：把 RSA 里的 $e$ 固定成 2，加密就是求平方。">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/rabin-mi-ma.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Rabin密码 · pressure-J">
+<meta property="og:description" content="公钥加密算法（Michael Rabin, 1979），可以理解成&quot;RSA 的平方版&quot;：把 RSA 里的 $e$ 固定成 2，加密就是求平方。">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/crypto.html">密码学</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>Rabin密码</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-crypto">密码学</span>
+          <time datetime="2026-10-04">2026-10-04</time>
+          <span>2507 字</span>
+          <span>约 7 分钟</span>
+        </div>
+        <div class="chips post-tags"><span class="chip">crypto</span></div>
+      </header>
+      <div class="content"><p>公钥加密算法（Michael Rabin, 1979），可以理解成"RSA 的平方版"：把 RSA 里的 $e$ 固定成 2，加密就是<strong>求平方</strong>。</p>
+<h2 id="_1">题型识别（看到就用）</h2>
+<ul>
+<li>题面出现 <strong>Rabin</strong> 字样，或者"加密算法和某位刺客/名人同名"这种提示</li>
+<li>给了 $n$（往往很小、一眼能分解）和密文 $c$</li>
+<li>给了一段<strong>校验码 / 冗余信息</strong>，并说明"放在明文后一起加密""明文与密文长度相同"</li>
+<li>最后要求对明文做 md5 提交（说明明文是个数字串而不是直接可读文本）</li>
+</ul>
+<h2 id="_2">原理</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th>RSA</th>
+<th>Rabin</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>密钥</td>
+<td>$n=pq$，$e$ 任意</td>
+<td>$n=pq$，$e$ 固定为 2</td>
+</tr>
+<tr>
+<td>加密</td>
+<td>$c=m^e \bmod n$</td>
+<td>$c=m^2 \bmod n$</td>
+</tr>
+<tr>
+<td>解密</td>
+<td>$\varphi(n)$、$d=e^{-1}$，唯一解</td>
+<td>解 $x^2\equiv c \pmod p$ 和 $\pmod q$ 再 CRT</td>
+</tr>
+<tr>
+<td>解的数量</td>
+<td>1 个</td>
+<td><strong>4 个</strong></td>
+</tr>
+<tr>
+<td>安全性</td>
+<td>依赖大数分解（未被证明等价）</td>
+<td><strong>攻破 ⟺ 大数分解</strong>，有严格证明</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>为什么有 4 个根</strong>：$n=pq$ 时同余式 $x^2 \equiv c \pmod p$ 有 $\pm r_p$ 两根（$p$ 为奇素数），$\pmod q$ 有 $\pm r_q$ 两根，各取一个用 CRT 组合，共 $2\times 2 = 4$ 个根：</p>
+<p>$$x \in { \mathrm{CRT}(r_p, r_q),\ \mathrm{CRT}(r_p, -r_q),\ \mathrm{CRT}(-r_p, r_q),\ \mathrm{CRT}(-r_p, -r_q) }$$</p>
+<p><strong>为什么要有校验码</strong>：4 个根里解密方也不知道哪个是原文，所以 Rabin 必须额外携带冗余——原文后面拼一段已知的二进制/尾数（本题就是 6 位 <code>110001</code>），四个根里只有一个的尾部对得上。</p>
+<h2 id="_3">解题四步</h2>
+<ol>
+<li><strong>分解 $n$</strong>：小 $n$ 直接 <code>sympy.factorint</code>；$p,q$ 接近用 Fermat；再大用 Pollard rho（本题 $523798549 = 10663 \times 49123$ 秒破）</li>
+<li><strong>模素数开平方</strong>：<code>sqrt_mod</code> / 手写 Tonelli–Shanks，得 $r_p, r_q$</li>
+<li><strong>CRT 组合出 4 根</strong>，此时每个根的平方 $\bmod n$ 都等于 $c$（可作自检）</li>
+<li><strong>用校验码筛</strong>：把每个根按校验码的位数/进制切掉尾部，只有一根的尾部与之相符 → 剩下的就是明文</li>
+</ol>
+<p>本题实测：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>根</th>
+<th>低 6 位</th>
+<th>是否符合 <code>110001</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>115739001</td>
+<td>111001</td>
+<td>✗</td>
+</tr>
+<tr>
+<td>214318436</td>
+<td>100100</td>
+<td>✗</td>
+</tr>
+<tr>
+<td><strong>309480113</strong></td>
+<td><strong>110001</strong></td>
+<td><strong>✓ → 明文 = 309480113 &gt;&gt; 6 = 4835626</strong></td>
+</tr>
+<tr>
+<td>408059548</td>
+<td>011100</td>
+<td>✗</td>
+</tr>
+</tbody>
+</table></div>
+<p>两条自检：$309480113^2 \bmod 523798549 = 162853095$（等于密文）✓；<code>309480113</code> 与密文 <code>162853095</code> 同为 9 位数字 ✓（"明文与密文长度相同"就是因为拼了校验码后位数不变）</p>
+<h2 id="_4">脚本</h2>
+<ul>
+<li><code>Rabin密码-solve.py</code>（本目录，含本题数据，纯 <code>py</code> 直跑）</li>
+<li><code>~/tools\CTF工具箱\crypto\20-Rabin密码.py</code>（通用模板，改顶部 <code>N / C / CHECK</code> 三行；支持二进制校验码和十进制拼接两种 <code>CHECK_DECIMAL</code> 模式，自动分解 + 自动筛根 + 顺带出 md5）</li>
+</ul>
+<h2 id="_5">易错点</h2>
+<ol>
+<li><strong><code>p == q</code> 时 4 根退化</strong>——CRT 在模数不互素时会失败（<code>base is not invertible</code>）。标准 Rabin 要求 $p\ne q$ 的奇素数，脚本里已加保护。素数平方 $n=p^2$ 属于另一个题型，不能套这个模板。</li>
+<li><strong>校验码的进制别搞混</strong>：<code>110001</code> 是二进制（=49），不是十进制 110001。用 <code>int(CHECK, 2)</code>。</li>
+<li><strong>剥离方式取决于题目"怎么拼"</strong>：<br />
+   - 位拼接（<code>m_拼接 = (m &lt;&lt; k) | check</code>）→ 明文 = <code>root &gt;&gt; k</code><br />
+   - 十进制字符串拼接（<code>明文4835626</code> + <code>49</code>）→ 明文 = <code>root // 10**len(check)</code>，且此时要校验 <code>root % 10**k == check</code><br />
+   两种含义下明文不同，本题是<strong>位拼接</strong>（明文 4835626）。脚本里 <code>CHECK_DECIMAL</code> 开关切换。</li>
+<li><strong>只有两个根也是正常的</strong>：$c$ 与 $p$ 或 $q$ 不互素、或 $c$ 是 0 时根会退化，别以为算错了。</li>
+<li><strong>md5 要对"明文"做，不是对根做</strong>：本题两个哈希都不一样，提交要的是 <code>md5("4835626")</code>。</li>
+<li>$n$ 若大到纯 Python 分解吃力（&gt; 60 位半素数），别硬跑——<code>sympy.factorint</code> / SageMath / yafu 接力。</li>
+</ol>
+<h2 id="_6">面试速答卡</h2>
+<ul>
+<li><strong>Q: Rabin 和 RSA 的关系？</strong> A: Rabin 是 $e=2$ 的特例，加密为平方，解密为开平方；代价是四选一、必须带冗余。</li>
+<li><strong>Q: Rabin 为什么"可证明安全"？</strong> A: 能解密（选出正确根）就意味着能分解 $n$：已知 $c$ 的两个不同根 $r_1, r_2$，则 $r_1 \not\equiv \pm r_2$，$\gcd(r_1-r_2, n)$ 直接给出 $p$ 或 $q$。</li>
+<li><strong>Q: 为什么要有校验码？</strong> A: 4 个根无法区分，冗余信息用于唯一确定原文。</li>
+<li><strong>Q: 4 个根怎么来的？</strong> A: 模 $p$、模 $q$ 各两根，CRT 独立组合 → $2\times2=4$。</li>
+</ul>
+<h2 id="2026-10-04">验证记录（2026-10-04）</h2>
+<ul>
+<li>本题：$n=523798549$ → <code>{10663: 1, 49123: 1}</code>；4 根 <code>[115739001, 214318436, 309480113, 408059548]</code>，校验码命中 309480113，明文 <strong>4835626</strong>，<code>md5 = ca5cec442b2734735406d78c88e90f35</code></li>
+<li>模板脚本：6 组小素数随机实例 + 145330 组随机往返（$n&lt;2^{42}$）分解与四根全部正确，失败 0；<code>p==q</code> 保护与"非二次剩余返回空"两条边界均有断言覆盖</li>
+</ul>
+<p><em>最后更新：2026年10月4日</em></p></div>
+      <div class="post-nav"><a class="pn-item prev" href="schnorr-xie-yi.html"><span>← 上一篇</span><strong>Schnorr协议</strong></a><a class="pn-item next" href="web-an-quan-unicorn-shop-dan-zi-fu-shu-zi-jie-xi-writeup-dasctf-huan.html"><span>下一篇 →</span><strong>Web安全 · Unicorn Shop「单字符 &amp;&amp; 数字解析」WriteUp（DASCTF 环境）</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">题型识别（看到就用）</a><a href="#_2" class="toc-lv2">原理</a><a href="#_3" class="toc-lv2">解题四步</a><a href="#_4" class="toc-lv2">脚本</a><a href="#_5" class="toc-lv2">易错点</a><a href="#_6" class="toc-lv2">面试速答卡</a><a href="#2026-10-04" class="toc-lv2">验证记录（2026-10-04）</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

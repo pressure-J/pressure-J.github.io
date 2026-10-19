@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Linux 进阶：内核编译与内核模块 · pressure-J</title>
+<meta name="description" content="Linux 内核：操作系统的核心，管理进程调度、内存、文件系统、设备驱动、网络协议栈。发行版预编译的内核是通用配置，企业常按需裁剪/优化，或打安全补丁。">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/linux-jin-jie-nei-he-bian-yi-yu-nei-he-mo-kuai.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Linux 进阶：内核编译与内核模块 · pressure-J">
+<meta property="og:description" content="Linux 内核：操作系统的核心，管理进程调度、内存、文件系统、设备驱动、网络协议栈。发行版预编译的内核是通用配置，企业常按需裁剪/优化，或打安全补丁。">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/linux.html">Linux</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>Linux 进阶：内核编译与内核模块</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-linux">Linux</span>
+          <time datetime="2026-08-28">2026-08-28</time>
+          <span>4668 字</span>
+          <span>约 12 分钟</span>
+        </div>
+        
+      </header>
+      <div class="content"><blockquote>
+<p>来源：课程实验（Linux操作系统，Ubuntu 22.04，2025-2026 第一学期），老师版PDF为底料<br />
+定位：Linux 系统管理的高阶内容，运维中掌握内核编译可做性能优化、安全补丁定制、驱动适配；安全角度上内核模块（LKM）是 rootkit 和提权利用的经典载体（如隐藏进程/端口），应急响应查内核模块列表是标配动作。</p>
+</blockquote>
+<hr />
+<h2 id="_1">一、概念与原理</h2>
+<p><strong>Linux 内核</strong>：操作系统的核心，管理进程调度、内存、文件系统、设备驱动、网络协议栈。发行版预编译的内核是通用配置，企业常按需裁剪/优化，或打安全补丁。</p>
+<p><strong>内核版本</strong>：<code>uname -r</code> 查看（如 Ubuntu 22.04 为 6.8.0-45-generic）。与内核发布版（上游版本号 6.10.13）不同，发行版会带后缀（-generic 等）。内核及配置文件位于 /boot/：<code>vmlinuz-*</code>（内核镜像）、<code>config-*</code>（内核配置）、<code>initrd.img-*</code>（初始内存盘）。</p>
+<p><strong>内核模块（LKM，Loadable Kernel Module）</strong>：可在运行时动态加载/卸载的"内核插件"，用于扩展驱动和功能，免去每次改动都重编译内核。对应文件为 <code>.ko</code>（kernel object），存放在 <code>/lib/modules/$(uname -r)/</code> 下。</p>
+<p><strong>模块管理命令</strong>：<code>insmod</code>（加载，按文件路径）、<code>rmmod</code>（卸载，按模块名）、<code>modprobe</code>（智能加载/卸载，自动处理依赖）、<code>lsmod</code>（查看已加载模块）、<code>dmesg</code>（查看内核日志，printk 输出在这里）。</p>
+<hr />
+<h2 id="_2">二、环境准备（源码下载与依赖）</h2>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>uname<span class="w"> </span>-r<span class="w">                                   </span><span class="c1"># 6.8.0-45-generic</span>
+<span class="c1"># 选一个接近的稳定版本，如 6.10.13（建议官网下载，国内镜像可能不完整）</span>
+wget<span class="w"> </span>https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.10.13.tar.xz
+tar<span class="w"> </span>-Jxvf<span class="w"> </span>linux-6.10.13.tar.xz
+sudo<span class="w"> </span>apt<span class="w"> </span>update<span class="w"> </span>-y<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>sudo<span class="w"> </span>apt<span class="w"> </span>upgrade<span class="w"> </span>-y
+sudo<span class="w"> </span>apt<span class="w"> </span>install<span class="w"> </span>git<span class="w"> </span>fakeroot<span class="w"> </span>build-essential<span class="w"> </span>ncurses-dev<span class="w"> </span>xz-utils<span class="w"> </span>gcc<span class="w"> </span>make<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>libncurses5-dev<span class="w"> </span>openssl<span class="w"> </span>libssl-dev<span class="w"> </span>pkg-config<span class="w"> </span>libc6-dev<span class="w"> </span>bison<span class="w"> </span>flex<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>libelf-dev<span class="w"> </span>bc<span class="w"> </span>dwarves<span class="w"> </span>-y
+</code></pre></div></div>
+
+<hr />
+<h2 id="config">三、配置详解（.config）</h2>
+<p><strong>官方源码不带配置</strong>，需要从当前系统复制一份做底子再更新：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>linux-6.10.13
+cp<span class="w"> </span>/boot/config-<span class="k">$(</span>uname<span class="w"> </span>-r<span class="k">)</span><span class="w"> </span>.config<span class="w">      </span><span class="c1"># 以当前内核配置为蓝本</span>
+make<span class="w"> </span>olddefconfig<span class="w">                         </span><span class="c1"># 用新内核默认值补齐缺失的配置项</span>
+</code></pre></div></div>
+
+<p><strong>两组必改项</strong>（新版内核要求签名证书，发行版证书路径在源码环境里不存在，编译安装会失败）：</p>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>./scripts/config<span class="w"> </span>--file<span class="w"> </span>.config<span class="w"> </span>--set-str<span class="w"> </span>SYSTEM_TRUSTED_KEYS<span class="w"> </span><span class="s1">''</span>
+./scripts/config<span class="w"> </span>--file<span class="w"> </span>.config<span class="w"> </span>--set-str<span class="w"> </span>SYSTEM_REVOCATION_KEYS<span class="w"> </span><span class="s1">''</span>
+<span class="c1"># 等价于 vim .config 把 CONFIG_SYSTEM_TRUSTED_KEYS 与 CONFIG_SYSTEM_REVOCATION_KEYS 置空</span>
+</code></pre></div></div>
+
+<p><strong>交互式配置</strong>：<code>make menuconfig</code>（文本图形界面，可逐项选择"启用/禁用/编译为模块"）。</p>
+<p><strong>改源码验证自己内核</strong>：编辑 <code>init/main.c</code>，在内核启动函数 <code>start_kernel()</code>（约 903 行）里加一行：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">printk</span><span class="p">(</span><span class="n">KERN_ALERT</span><span class="w"> </span><span class="s">"Hello, World! This is my custom kernel!</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+</code></pre></div></div>
+
+<p>重启后能看到自己内核打的第一条日志，验证"我的内核真的被编译了"。</p>
+<hr />
+<h2 id="_3">四、编译与安装</h2>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>make<span class="w"> </span>-j8<span class="w">            </span><span class="c1"># 并行编译，-j$(nproc) 按 CPU 核数加速；第一次编译非常久（6核约7小时）</span>
+sudo<span class="w"> </span>make<span class="w"> </span><span class="nv">INSTALL_MOD_STRIP</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>modules_install<span class="w">   </span><span class="c1"># 安装内核模块（去掉调试符号减小体积）</span>
+sudo<span class="w"> </span>make<span class="w"> </span>install<span class="w">        </span><span class="c1"># 安装内核镜像与 initrd</span>
+sudo<span class="w"> </span>update-grub<span class="w">         </span><span class="c1"># 更新引导程序，识别新内核</span>
+sudo<span class="w"> </span>shutdown<span class="w"> </span>now<span class="w">        </span><span class="c1"># 关机重启</span>
+</code></pre></div></div>
+
+<p>重启时长按 Shift 进 Grub → "Advanced options for ubuntu" → 选择自编译的 6.10.13 内核。验证：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>uname<span class="w"> </span>-r<span class="w">                                  </span><span class="c1"># 应显示 6.10.13</span>
+sudo<span class="w"> </span>dmesg<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span><span class="s2">"Hello, World"</span><span class="w">          </span><span class="c1"># 应看到 [0.000000] Hello, World! This is my custom kernel!</span>
+</code></pre></div></div>
+
+<hr />
+<h2 id="hello-kernel">五、内核模块编写（Hello, Kernel! 完整流程）</h2>
+<h3 id="51-hello_modulec">5.1 编写 hello_module.c</h3>
+<div class="code-block" data-lang="c"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;linux/module.h&gt;</span><span class="w">   </span><span class="c1">// 模块核心头文件</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;linux/kernel.h&gt;</span><span class="w">   </span><span class="c1">// 内核相关头文件</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;linux/init.h&gt;</span><span class="w">     </span><span class="c1">// 模块初始化/清理宏</span>
+
+<span class="k">static</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">__init</span><span class="w"> </span><span class="nf">hello_init</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">printk</span><span class="p">(</span><span class="n">KERN_INFO</span><span class="w"> </span><span class="s">"Hello, Kernel!</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span><span class="w">   </span><span class="c1">// 加载时打印到内核日志</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w">                               </span><span class="c1">// 返回 0 表示加载成功</span>
+<span class="p">}</span>
+<span class="k">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">__exit</span><span class="w"> </span><span class="nf">hello_exit</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">printk</span><span class="p">(</span><span class="n">KERN_INFO</span><span class="w"> </span><span class="s">"Goodbye, Kernel!</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span><span class="w"> </span><span class="c1">// 卸载时打印</span>
+<span class="p">}</span>
+<span class="n">module_init</span><span class="p">(</span><span class="n">hello_init</span><span class="p">);</span><span class="w">        </span><span class="c1">// 指定初始化函数</span>
+<span class="n">module_exit</span><span class="p">(</span><span class="n">hello_exit</span><span class="p">);</span><span class="w">        </span><span class="c1">// 指定清理函数</span>
+<span class="n">MODULE_LICENSE</span><span class="p">(</span><span class="s">"GPL"</span><span class="p">);</span><span class="w">          </span><span class="c1">// 许可证（必需，否则内核报 taint）</span>
+<span class="n">MODULE_AUTHOR</span><span class="p">(</span><span class="s">"Your Name"</span><span class="p">);</span>
+<span class="n">MODULE_DESCRIPTION</span><span class="p">(</span><span class="s">"A simple hello world Linux kernel module"</span><span class="p">);</span>
+<span class="n">MODULE_VERSION</span><span class="p">(</span><span class="s">"1.0"</span><span class="p">);</span>
+</code></pre></div></div>
+
+<h3 id="52-makefile">5.2 编写 Makefile</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="nv">obj-m</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span>hello_module.o<span class="w">     </span><span class="c1"># 把 hello_module.o 编成内核模块</span>
+<span class="nf">all</span><span class="o">:</span>
+<span class="w">    </span>make<span class="w"> </span>-C<span class="w"> </span>/lib/modules/<span class="k">$(</span>shell<span class="w"> </span>uname<span class="w"> </span>-r<span class="k">)</span>/build<span class="w"> </span><span class="nv">M</span><span class="o">=</span><span class="k">$(</span>PWD<span class="k">)</span><span class="w"> </span>modules
+<span class="nf">clean</span><span class="o">:</span>
+<span class="w">    </span>make<span class="w"> </span>-C<span class="w"> </span>/lib/modules/<span class="k">$(</span>shell<span class="w"> </span>uname<span class="w"> </span>-r<span class="k">)</span>/build<span class="w"> </span><span class="nv">M</span><span class="o">=</span><span class="k">$(</span>PWD<span class="k">)</span><span class="w"> </span>clean
+</code></pre></div></div>
+
+<p><code>-C</code> 指定进入内核源码构建目录，<code>M=$(PWD)</code> 表示编译当前目录的模块。</p>
+<h3 id="53">5.3 编译→加载→验证→卸载→清理</h3>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>make<span class="w">                          </span><span class="c1"># 生成 hello_module.ko（编译好的内核模块）</span>
+sudo<span class="w"> </span>insmod<span class="w"> </span>hello_module.ko<span class="w">   </span><span class="c1"># 加载模块</span>
+sudo<span class="w"> </span>dmesg<span class="w"> </span><span class="p">|</span><span class="w"> </span>tail<span class="w">             </span><span class="c1"># 看到 [104146.705925] Hello, Kernel!</span>
+sudo<span class="w"> </span>rmmod<span class="w"> </span>hello_module<span class="w">       </span><span class="c1"># 卸载（用模块名，不带 .ko）</span>
+sudo<span class="w"> </span>dmesg<span class="w"> </span><span class="p">|</span><span class="w"> </span>tail<span class="w">             </span><span class="c1"># 看到 [104192.111439] Goodbye, Kernel!</span>
+make<span class="w"> </span>clean<span class="w">                    </span><span class="c1"># 清理编译产物</span>
+</code></pre></div></div>
+
+<hr />
+<h2 id="_4">六、常见问题与排查</h2>
+<ol>
+<li><strong>编译报错 <code>the compiler differs from the one used to build the kernel</code></strong>：内核源码比当前 gcc 新 → <code>sudo apt install gcc-12</code> 装对应版本再编。</li>
+<li><strong>安装失败 <code>No such file or directory</code> / 证书相关</strong>：多半是 SYSTEM_TRUSTED_KEYS/SYSTEM_REVOCATION_KEYS 没置空，用 scripts/config 命令处理。</li>
+<li><strong>编译时间超长</strong>：正常现象，用 <code>make -j$(nproc)</code> 并行；虚拟机建议给足 CPU 核数（实验 6 核约 7 小时）。</li>
+<li><strong>重启后没进新内核</strong>：确认 update-grub 执行过，Grub 里 Advanced options 手动选；也可改 /etc/default/grub 设默认启动项。</li>
+<li><strong>模块加载失败 <code>Invalid module format</code></strong>：模块与当前运行内核版本不匹配（insmod 必须在编译该模块的同一内核下使用）。</li>
+<li><strong>dmesg 看不到输出</strong>：printk 级别（KERN_INFO）低于 console_loglevel 时终端不显示但日志里有，用 <code>dmesg | tail</code> 查。</li>
+</ol>
+<hr />
+<h2 id="_5">七、安全加固要点（内核视角）</h2>
+<ul>
+<li><strong>LKM 是 rootkit 经典载体</strong>：恶意模块可隐藏进程/文件/端口、开后门。应急响应必查：<code>lsmod</code> 对比基线、<code>dmesg</code> 找异常加载记录、检查 /lib/modules 下可疑 .ko、用 rkhunter/chkrootkit 扫描。</li>
+<li><strong>禁用未签名模块</strong>：启用内核模块签名校验（CONFIG_MODULE_SIG_FORCE + <code>module.sig_enforce=1</code>），只加载可信厂商签名模块，阻止恶意 LKM 注入。</li>
+<li><strong>lockdown 模式</strong>：<code>lockdown=confidentiality</code> 内核参数限制 /dev/mem、kexec 等敏感接口，防内核级提权利用。</li>
+<li><strong>及时更新内核</strong>：内核漏洞（如脏牛 Dirty COW、Dirty Pipe）影响面大，云服务器直接升级内核补 CVE。</li>
+<li><strong>系统硬化基线</strong>：sysctl 加固（禁 IP 转发、防 SYN 洪水）、关无用内核参数；生产内核编译时裁剪不需要的功能模块，缩小攻击面。</li>
+<li>编译环境与生产环境分离：不要在公网裸奔编译机；内核源码完整性校验（校验和/签名）。</li>
+</ul>
+<hr />
+<h2 id="_6">八、面试速答卡</h2>
+<ul>
+<li><strong>Linux 内核编译流程</strong>：下载源码 → 复制现有 config（cp /boot/config-$(uname -r) .config）→ make olddefconfig → 改配置（menuconfig/scripts/config）→ make -j$(nproc) 编译 → modules_install + make install → update-grub → 重启选内核。</li>
+<li><strong>内核模块四个头文件/宏的作用</strong>：module.h（核心）、init.h（__init/__exit 宏）、kernel.h（printk 等）；module_init/module_exit 注册加载卸载函数，MODULE_LICENSE("GPL") 声明许可证。</li>
+<li><strong>insmod/rmmod/modprobe/lsmod 区别</strong>：insmod/rmmod 按路径/名字加载卸载、不做依赖处理；modprobe 自动处理依赖；lsmod 列已加载模块。</li>
+<li><strong>.ko 与 printk/dmesg</strong>：.ko 是编译出的内核模块；模块里 printk 输出进内核日志，用 dmesg 查看。</li>
+<li><strong>为什么模块比重编内核方便</strong>：LKM 运行时热插拔，改驱动/加功能不用重编译整个内核。</li>
+<li><strong>内核模块安全风险</strong>：恶意 LKM 可提权、隐藏痕迹（rootkit），用模块签名（module.sig_enforce=1）和 lsmod/dmesg 审计防御。</li>
+</ul></div>
+      <div class="post-nav"><a class="pn-item prev" href="web-an-quan-wen-jian-shang-chuan-yu-wen-jian-bao-han.html"><span>← 上一篇</span><strong>Web 安全：文件上传与文件包含</strong></a><a class="pn-item next" href="linux-fu-wu-samba-wen-jian-gong-xiang.html"><span>下一篇 →</span><strong>Linux 服务：Samba 文件共享</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">一、概念与原理</a><a href="#_2" class="toc-lv2">二、环境准备（源码下载与依赖）</a><a href="#config" class="toc-lv2">三、配置详解（.config）</a><a href="#_3" class="toc-lv2">四、编译与安装</a><a href="#hello-kernel" class="toc-lv2">五、内核模块编写（Hello, Kernel! 完整流程）</a><a href="#51-hello_modulec" class="toc-lv3">5.1 编写 hello_module.c</a><a href="#52-makefile" class="toc-lv3">5.2 编写 Makefile</a><a href="#53" class="toc-lv3">5.3 编译→加载→验证→卸载→清理</a><a href="#_4" class="toc-lv2">六、常见问题与排查</a><a href="#_5" class="toc-lv2">七、安全加固要点（内核视角）</a><a href="#_6" class="toc-lv2">八、面试速答卡</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

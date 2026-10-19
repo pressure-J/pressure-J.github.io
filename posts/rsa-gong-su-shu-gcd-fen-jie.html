@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RSA共素数-gcd分解 · pressure-J</title>
+<meta name="description" content="本质：复用同一个素数 p 生成多个模数 → 任意两个 n 的 gcd 就是 p。">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/rsa-gong-su-shu-gcd-fen-jie.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="RSA共素数-gcd分解 · pressure-J">
+<meta property="og:description" content="本质：复用同一个素数 p 生成多个模数 → 任意两个 n 的 gcd 就是 p。">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/crypto.html">密码学</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>RSA共素数-gcd分解</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-crypto">密码学</span>
+          <time datetime="2026-09-08">2026-09-08</time>
+          <span>991 字</span>
+          <span>约 3 分钟</span>
+        </div>
+        <div class="chips post-tags"><span class="chip">crypto</span></div>
+      </header>
+      <div class="content"><h2 id="_1">题型识别（一眼看出）</h2>
+<ul>
+<li>给了<strong>多组 <code>(n, c)</code></strong>（常见 20+ 组），且 <strong>e 固定</strong>（常为 65537）</li>
+<li>出题脚本形如：</li>
+</ul>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">p</span> <span class="o">=</span> <span class="n">getPrime</span><span class="p">(</span><span class="mi">512</span><span class="p">)</span>          <span class="c1"># 所有 n 共用一个 p</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="o">...</span><span class="p">):</span>
+    <span class="n">q_i</span> <span class="o">=</span> <span class="n">getPrime</span><span class="p">(</span><span class="mi">512</span><span class="p">)</span>
+    <span class="n">n_i</span> <span class="o">=</span> <span class="n">p</span> <span class="o">*</span> <span class="n">q_i</span>          <span class="c1"># 只有 q 不同</span>
+    <span class="n">c_i</span> <span class="o">=</span> <span class="nb">pow</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">e</span><span class="p">,</span> <span class="n">n_i</span><span class="p">)</span>   <span class="c1"># 同一个明文 m</span>
+</code></pre></div></div>
+
+<p><strong>本质</strong>：复用同一个素数 p 生成多个模数 → 任意两个 n 的 <strong>gcd 就是 p</strong>。</p>
+<h2 id="_2">攻击条件</h2>
+<ul>
+<li>至少两个 n 共享素数（gcd ≠ 1）</li>
+<li>拿到公共素数 p 后，<code>q = n/p</code> 即可完整分解</li>
+</ul>
+<h2 id="_3">原理推导</h2>
+<p>$$n_1 = p \cdot q_1, \quad n_2 = p \cdot q_2 \Rightarrow \gcd(n_1, n_2) = p$$</p>
+<p>两两求最大公约数，直接命中共享素数，<strong>完全不需要分解大数</strong>。</p>
+<h2 id="_4">解题脚本</h2>
+<p>见 <code>~/tools\CTF工具箱\crypto\17-RSA共素数-gcd分解.py</code></p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">math</span><span class="w"> </span><span class="kn">import</span> <span class="n">gcd</span>
+<span class="c1"># NS=[n1,n2,...], CS=[c1,c2,...], E=65537  （同一下标一一对应）</span>
+<span class="n">p</span> <span class="o">=</span> <span class="n">gcd</span><span class="p">(</span><span class="n">NS</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">NS</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>        <span class="c1"># 两两求 gcd 得共享素数</span>
+<span class="n">q</span> <span class="o">=</span> <span class="n">NS</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">//</span> <span class="n">p</span>
+<span class="n">d</span> <span class="o">=</span> <span class="nb">pow</span><span class="p">(</span><span class="n">E</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">(</span><span class="n">p</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">q</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>  <span class="c1"># 模逆</span>
+<span class="n">m</span> <span class="o">=</span> <span class="nb">pow</span><span class="p">(</span><span class="n">CS</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">d</span><span class="p">,</span> <span class="n">NS</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">to_bytes</span><span class="p">(</span><span class="o">...</span><span class="p">))</span>       <span class="c1"># flag</span>
+</code></pre></div></div>
+
+<h2 id="_5">易错点与区分</h2>
+<ol>
+<li><strong>优先 gcd，别先硬分解</strong>：多组 n 的题，第一反应就是两两 <code>gcd</code>，秒出；不要 ECM 硬啃</li>
+<li><strong>与"低指数广播"区分</strong>：共享素数靠<strong>多个 n 的 gcd</strong>；低指数广播靠<strong>多个 n + 小 e(3/5) + CRT 开方</strong>。看 e 大(65537)→共享素数；e 小→广播</li>
+<li><strong>p 必须与 n 互素才是素数</strong>：若 gcd 得到的 p 是合数或不互素，此法退化为 rho 变体（见 <code>RSA共素数-rho变体-solve.py</code>）</li>
+<li>两个 n 解出的 m 应相同（同一明文），可互相校验</li>
+</ol>
+<h2 id="_6">实战记录</h2>
+<ul>
+<li>来源：某多组 n 共素数题（21 组 n，e=65537）</li>
+<li>第 5 组 n（2282203973...）与第 18 组 n（1959144138...）共享素数 p，gcd 秒出</li>
+<li>结果：<code>flag{abdcbe5fd94e23b3de429223ab9c2fdf}</code></li>
+</ul>
+<p><em>最后更新：2026年9月8日</em></p></div>
+      <div class="post-nav"><a class="pn-item prev" href="shu-zi-chuan-chu-li-ji-qiao-ctf.html"><span>← 上一篇</span><strong>数字串处理技巧（CTF）</strong></a><a class="pn-item next" href="rsa-gou-zao-a-fan-tui-can-shu.html"><span>下一篇 →</span><strong>RSA-构造A反推参数</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">题型识别（一眼看出）</a><a href="#_2" class="toc-lv2">攻击条件</a><a href="#_3" class="toc-lv2">原理推导</a><a href="#_4" class="toc-lv2">解题脚本</a><a href="#_5" class="toc-lv2">易错点与区分</a><a href="#_6" class="toc-lv2">实战记录</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

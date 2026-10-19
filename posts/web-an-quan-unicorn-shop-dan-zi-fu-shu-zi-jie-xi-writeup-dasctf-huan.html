@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Web安全 · Unicorn Shop「单字符 &amp;&amp; 数字解析」WriteUp（DASCTF 环境） · pressure-J</title>
+<meta name="description" content="/charge 页面是一个「独角兽商店」，列了 4 件商品，price 字段通过 POST 提交：">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/web-an-quan-unicorn-shop-dan-zi-fu-shu-zi-jie-xi-writeup-dasctf-huan.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Web安全 · Unicorn Shop「单字符 &amp;&amp; 数字解析」WriteUp（DASCTF 环境） · pressure-J">
+<meta property="og:description" content="/charge 页面是一个「独角兽商店」，列了 4 件商品，price 字段通过 POST 提交：">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/web.html">Web 安全</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>Web安全 · Unicorn Shop「单字符 &amp;&amp; 数字解析」WriteUp（DASCTF 环境）</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-web">Web 安全</span>
+          <time datetime="2026-10-05">2026-10-05</time>
+          <span>3366 字</span>
+          <span>约 9 分钟</span>
+        </div>
+        
+      </header>
+      <div class="content"><blockquote>
+<p>目标：<code>http://5670c971f83d93299ca71233.http-ctf2.dasctf.com/charge</code><br />
+考点：Unicode 数字解析 + 字符计数型长度校验的绕过<br />
+原型：ASIS CTF 2019 Quals "Unicorn shop" 的改造版<br />
+flag：<code>CTF2{60f852b6-39d3-4cab-9e1e-f4db05fc80f3}</code></p>
+</blockquote>
+<hr />
+<h2 id="_1">一、信息收集</h2>
+<p><code>/charge</code> 页面是一个「独角兽商店」，列了 4 件商品，<code>price</code> 字段通过 POST 提交：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Item ID</th>
+<th>Price</th>
+<th>名称</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>2.0</td>
+<td>black and white unicorn</td>
+</tr>
+<tr>
+<td>2</td>
+<td>5.0</td>
+<td>unicorn family</td>
+</tr>
+<tr>
+<td>3</td>
+<td>8.0</td>
+<td>warrior unicorn</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>1337.0</strong></td>
+<td>ultra unicorn</td>
+</tr>
+</tbody>
+</table></div>
+<p>页面里埋了几条注释作为提示：</p>
+<div class="code-block" data-lang="html"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="cm">&lt;!--Ah,really important,seriously. --&gt;</span>
+<span class="cm">&lt;!-- Don't be frustrated by the same view,we've changed the challenge content.--&gt;</span>
+<span class="cm">&lt;!--We still have some surprise for admin.password--&gt;</span>
+</code></pre></div></div>
+
+<p><strong>目标</strong>：买下 id=4、售价 1337 的 <code>ultra unicorn</code>。</p>
+<hr />
+<h2 id="_2">二、发现核心限制</h2>
+<p>直接提交 <code>id=4&amp;price=1337</code>：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>Only one char(?) allowed!
+</code></pre></div></div>
+
+<p>而提交 <code>id=4&amp;price=1</code>：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>You don't have enough money!
+</code></pre></div></div>
+
+<p><strong>结论</strong>：服务端要求 <code>price</code> 只能是一个字符，同时要把这个字符解析成一个 ≥ 1337 的数值。这两条限制看似矛盾——单字符怎么表示 1337？这就是本题的题眼。</p>
+<hr />
+<h2 id="ascii">三、破题思路：数字不止 ASCII 一种写法</h2>
+<blockquote>
+<p>这是我们平时做 Web 题的<strong>思维盲区</strong>：写 <code>if(len(x) &gt; 1)</code> 做长度校验时，程序员脑子里想的是「一个字符=一个数字」，但 Unicode 里每个字符可以携带远超 9 的数值语义。</p>
+</blockquote>
+<p>逐个试 Unicode 里的数字字符（用 <code>id=1</code> 或 <code>id=4</code> 观察不同报错来区分「解析失败」和「数值不够」）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>字符</th>
+<th>码点</th>
+<th>数值语义</th>
+<th>结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>9</code></td>
+<td>U+0039</td>
+<td>9</td>
+<td>数值&lt;1337</td>
+</tr>
+<tr>
+<td><code>９</code> 全角</td>
+<td>U+FF19</td>
+<td>9</td>
+<td>数值&lt;1337</td>
+</tr>
+<tr>
+<td><code>٩</code> 阿拉伯-印度</td>
+<td>U+0669</td>
+<td>9</td>
+<td>数值&lt;1337</td>
+</tr>
+<tr>
+<td><code>⑨</code> 带圈</td>
+<td>U+2468</td>
+<td>9</td>
+<td>数值&lt;1337</td>
+</tr>
+<tr>
+<td><code>Ⅹ</code> 罗马数字 10</td>
+<td>U+2169</td>
+<td>10</td>
+<td>数值&lt;1337</td>
+</tr>
+<tr>
+<td><code>Ⅽ</code> 罗马数字 100</td>
+<td>U+216D</td>
+<td>100</td>
+<td>数值&lt;1337</td>
+</tr>
+<tr>
+<td><code>Ⅿ</code> 罗马数字 1000</td>
+<td>U+216F</td>
+<td>1000</td>
+<td>数值&lt;1337</td>
+</tr>
+<tr>
+<td><strong><code>万</code></strong> CJK</td>
+<td>U+4E07</td>
+<td><strong>10000</strong></td>
+<td>✅ <strong>PASS</strong></td>
+</tr>
+<tr>
+<td><code>亿</code> CJK</td>
+<td>U+4EBF</td>
+<td>1e8</td>
+<td>✅ PASS</td>
+</tr>
+<tr>
+<td><code>ↈ</code> 罗马数字</td>
+<td>U+2188</td>
+<td>100000</td>
+<td>✅ PASS</td>
+</tr>
+<tr>
+<td><code>ↁ</code> 罗马数字</td>
+<td>U+2181</td>
+<td>5000</td>
+<td>✅ PASS</td>
+</tr>
+<tr>
+<td><code>ↂ</code> 罗马数字</td>
+<td>U+2182</td>
+<td>10000</td>
+<td>✅ PASS</td>
+</tr>
+<tr>
+<td><code>ↇ</code> 罗马数字</td>
+<td>U+2187</td>
+<td>50000</td>
+<td>✅ PASS</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>关键洞察</strong>：服务端有一个<strong>支持 Unicode 的数字解析器</strong>（约等于 <code>intl</code> / <code>unicodedata.numeric</code> 那一类实现），它把 <code>万</code> 解析成 <code>10000</code>。而长度校验数的是<strong>字符个数</strong>（不是字节数）——<code>万</code> 是 1 个字符、3 个 UTF-8 字节，所以同时满足「只有 1 个字符」和「数值 10000 ≥ 1337」。</p>
+<p><strong>为什么 ASCII 的 <code>1337</code> 拼不出来</strong>：4 个字符，长度校验直接拦掉。</p>
+<hr />
+<h2 id="payload">四、最终 Payload</h2>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>POST /charge
+Content-Type: application/x-www-form-urlencoded
+
+id=4&amp;price=%E4%B8%87        # price=万
+</code></pre></div></div>
+
+<p>其它等价写法（都实测通过）：<code>亿</code>(1e8)、<code>萬</code>(U+842C)、<code>ↁ</code>、<code>ↂ</code>、<code>ↇ</code>、<code>ↈ</code>。</p>
+<p><strong>回显</strong>：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>操作成功。
+CTF2{60f852b6-39d3-4cab-9e1e-f4db05fc80f3}
+</code></pre></div></div>
+
+<p>浏览器里可以直接在 Price 输入框粘贴 <code>万</code>（或 <code>ↈ</code>）提交即可，不需要任何脚本。</p>
+<hr />
+<h2 id="_3">五、服务端逻辑还原（实测行为矩阵）</h2>
+<p>用不同 <code>id</code> 交叉验证，能反推出判定顺序：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>条件</th>
+<th>报错信息</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code> 不在 1~4 内</td>
+<td><code>No commodity found!</code></td>
+</tr>
+<tr>
+<td>id=1/2/3 但 price ≠ 对应价格</td>
+<td><code>Wrong commodity!</code></td>
+</tr>
+<tr>
+<td>price 不是单个字符</td>
+<td><code>Only one char(?) allowed!</code></td>
+</tr>
+<tr>
+<td>price 无法解析成数字</td>
+<td><code>Error parsing money!</code></td>
+</tr>
+<tr>
+<td>price 数值 &lt; 商品价格</td>
+<td><code>You don't have enough money!</code></td>
+</tr>
+<tr>
+<td>全部通过</td>
+<td><code>操作成功。</code> + flag</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>注意</strong>：id=1/2/3 即使给出正确价格（如 <code>id=1&amp;price=1</code>）也会报 <code>Wrong commodity!</code>——说明这三个是「陪跑商品」，真正的判定走的是「单字符 price 的数值 ≥ 商品价格」这条路径，只有 id=4 能拿到 flag。issue 点是<strong>类型混淆</strong>：长度校验按「字符串字符数」，数值比较按「Unicode 数值语义」，两个校验用了不同的取值方式。</p>
+<hr />
+<h2 id="_4">六、知识点沉淀</h2>
+<h3 id="1-3">1. 长度校验的 3 种口径（写代码时极其容易搞混）</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>len($s)           → 字符数（PHP 7 下按字节，strlen；mb_strlen 才是字符数）
+strlen($s)        → 字节数      （"万" = 3）
+mb_strlen($s)     → 字符数      （"万" = 1）
+str.length        → 字符数      （JS/Python3)
+</code></pre></div></div>
+
+<p>本题的 <code>Only one char</code> 明显是<strong>按字符数/码点</strong>判断的（<code>万</code> 3 字节通过，<code>万万</code> 6 字节 2 字符被拒）。<strong>判断长度前先确认口径</strong>是绕过这类校验的第一步。</p>
+<h3 id="2-unicode">2. Unicode 数字的「数值语义」</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>类别</th>
+<th>例子</th>
+<th>单字符数值上限</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ASCII 数字</td>
+<td><code>0-9</code></td>
+<td>9</td>
+</tr>
+<tr>
+<td>全角数字</td>
+<td><code>０-９</code></td>
+<td>9</td>
+</tr>
+<tr>
+<td>阿拉伯-印度数字</td>
+<td><code>٠-٩</code></td>
+<td>9</td>
+</tr>
+<tr>
+<td>罗马数字（前 12 个）</td>
+<td><code>Ⅰ</code>~<code>Ⅻ</code></td>
+<td>12</td>
+</tr>
+<tr>
+<td>罗马数字（后段）</td>
+<td><code>Ⅼ</code>(50) <code>Ⅽ</code>(100) <code>Ⅾ</code>(500) <code>Ⅿ</code>(1000) <code>ↀ</code>(1000)</td>
+<td>1000</td>
+</tr>
+<tr>
+<td><strong>罗马数字（扩展）</strong></td>
+<td><code>ↁ</code>(5000) <code>ↂ</code>(10000) <code>ↇ</code>(50000) <code>ↈ</code>(100000)</td>
+<td><strong>100000</strong></td>
+</tr>
+<tr>
+<td><strong>CJK 数字</strong></td>
+<td><code>万</code>(1e4) <code>亿</code>(1e8) <code>兆</code>(1e12)</td>
+<td><strong>极大</strong></td>
+</tr>
+<tr>
+<td>分数</td>
+<td><code>½</code>(0.5) <code>⅓</code></td>
+<td>&lt;1</td>
+</tr>
+</tbody>
+</table></div>
+<p>突破技巧：单字符数值上限不受 ASCII 限制，Roman Extended block（U+2180~U+2188）和 CJK 数量词 <code>万/亿/兆</code> 都能提供 4 位数以上的值。</p>
+<h3 id="3">3. 防御视角：这类漏洞怎么写出来</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="x">// 危险写法：长度限制用字符数，数值比较用类型转换，两者取值口径不一致</span>
+<span class="x">if (mb_strlen($price) &gt; 1) die("Only one char allowed");</span>
+<span class="x">$p = intval($price);           // intval("万") == 0，但若用了支持 Unicode 的解析器就会得到 10000</span>
+<span class="x">if ($p &lt; $commodity['price']) die("Not enough money");</span>
+</code></pre></div></div>
+
+<p><strong>正确做法</strong>：长度校验和数值解析必须用同一套「字节/字符」口径；数值字段先做严格白名单（如 <code>ctype_digit</code> 只允许 ASCII 数字），再做长度和大小范围校验。</p>
+<h3 id="4">4. 通用心法</h3>
+<blockquote>
+<p><strong>当一道题的校验规则互相矛盾时（比如「长度=1」和「数值=1337」），不要只会往「编码绕过」想——先问一句：服务端数长度和取数值，用的是同一个字符串表示吗？</strong> 一旦两者用了不同的解析路径（字符数 vs Unicode 语义、字节 vs 码点），就存在绕过空间。</p>
+</blockquote></div>
+      <div class="post-nav"><a class="pn-item prev" href="rabin-mi-ma.html"><span>← 上一篇</span><strong>Rabin密码</strong></a><a class="pn-item next" href="web-an-quan-yi-ju-hua-mu-ma-eval-webshell-writeup-bai-gei-de-shell.html"><span>下一篇 →</span><strong>Web安全 · 一句话木马（eval webshell）WriteUp —「白给的shell」</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">一、信息收集</a><a href="#_2" class="toc-lv2">二、发现核心限制</a><a href="#ascii" class="toc-lv2">三、破题思路：数字不止 ASCII 一种写法</a><a href="#payload" class="toc-lv2">四、最终 Payload</a><a href="#_3" class="toc-lv2">五、服务端逻辑还原（实测行为矩阵）</a><a href="#_4" class="toc-lv2">六、知识点沉淀</a><a href="#1-3" class="toc-lv3">1. 长度校验的 3 种口径（写代码时极其容易搞混）</a><a href="#2-unicode" class="toc-lv3">2. Unicode 数字的「数值语义」</a><a href="#3" class="toc-lv3">3. 防御视角：这类漏洞怎么写出来</a><a href="#4" class="toc-lv3">4. 通用心法</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

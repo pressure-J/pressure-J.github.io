@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Web基础 · 数字的不同写法 / 通配符 / 正则表达式 · pressure-J</title>
+<meta name="description" content="这是理解全文的关键。用户输入 fla 这一串字符，它在不同环节会被不同的解释器赋予不同含义：">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/web-ji-chu-shu-zi-de-bu-tong-xie-fa-tong-pei-fu-zheng-ze-biao-da-shi.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Web基础 · 数字的不同写法 / 通配符 / 正则表达式 · pressure-J">
+<meta property="og:description" content="这是理解全文的关键。用户输入 fla 这一串字符，它在不同环节会被不同的解释器赋予不同含义：">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/web.html">Web 安全</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>Web基础 · 数字的不同写法 / 通配符 / 正则表达式</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-web">Web 安全</span>
+          <time datetime="2026-10-05">2026-10-05</time>
+          <span>6831 字</span>
+          <span>约 18 分钟</span>
+        </div>
+        
+      </header>
+      <div class="content"><blockquote>
+<p>定位：三个看起来无关、实则同源的概念——<strong>同一串字符，在不同"解释器"里含义不同</strong><br />
+关联题目：Ping 命令注入（通配符被黑名单封死后改走 <code>grep -r</code>）、Unicorn Shop（Unicode 数字语义绕过长度校验）<br />
+环境：本机实测（Python 3.12.6 / git-bash）</p>
+</blockquote>
+<hr />
+<h2 id="_1">零、总纲：到底是谁在解释你的输入</h2>
+<p>这是理解全文的关键。用户输入 <code>fla*</code> 这一串字符，它在不同环节会被<strong>不同的解释器</strong>赋予不同含义：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>用户输入  "fla*"
+    │
+    ├─► shell 解释   → glob 展开成实际文件名 flag.php
+    ├─► Python glob  → 同样展开成文件名列表
+    ├─► Python fnmatch → 当成"模式"，去匹配别的字符串
+    └─► 正则引擎     → '*' 的含义完全不同（重复前一个元素）
+
+用户输入  "万"
+    │
+    ├─► int() / Number() / intval()  → 解析失败
+    └─► unicodedata.numeric() / intl → 10000
+</code></pre></div></div>
+
+<p><strong>安全漏洞的本质，就是"你以为输入是普通字符串，但某个环节把它当成了有特殊语义的东西"。</strong></p>
+<hr />
+<h2 id="_2">一、数字的不同写法</h2>
+<h3 id="1">1. 值 ≠ 写法</h3>
+<p>键盘上的 <code>9</code> 只是 Unicode 表里的码点 <strong>U+0039</strong>。Unicode 里有一整批字符，语义是数字，只是外观不是阿拉伯数字。</p>
+<p>本机实测（<code>unicodedata.numeric()</code>）：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>字符   类别            码点      int()        unicodedata.numeric()
+9      ASCII 数字      U+0039    9            9.0
+１     全角数字         U+FF19    1            1.0
+٩     阿拉伯-印度数字   U+0669    9            9.0
+९     天城文数字       U+096F    9            9.0
+⑨     带圈数字         U+2468    ValueError   9.0      ← int() 不认
+²     上标            U+00B2    ValueError   2.0
+½     分数            U+00BD    ValueError   0.5
+Ⅹ     罗马 10         U+2169    ValueError   10.0
+Ⅿ     罗马 1000       U+216F    ValueError   1000.0
+ↈ     罗马扩展 100000  U+2188    ValueError   100000.0
+一     汉字 1          U+4E00    ValueError   1.0
+十     汉字 10         U+5341    ValueError   10.0
+万     汉字 1e4        U+4E07    ValueError   10000.0
+亿     汉字 1e8        U+4EBF    ValueError   100000000.0
+</code></pre></div></div>
+
+<h3 id="2">2. 分水岭：解析器认不认</h3>
+<p>同一个 <code>万</code>，各语言标准解析函数的表现：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>解析器</th>
+<th><code>'万'</code></th>
+<th><code>'９'</code> 全角</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Python <code>int()</code></td>
+<td>ValueError</td>
+<td>ValueError</td>
+<td>只认 ASCII</td>
+</tr>
+<tr>
+<td>JS <code>Number()</code></td>
+<td>NaN</td>
+<td>NaN</td>
+<td>同上</td>
+</tr>
+<tr>
+<td>PHP <code>intval()</code></td>
+<td>0</td>
+<td>0</td>
+<td>同上</td>
+</tr>
+<tr>
+<td>Python <code>unicodedata.numeric()</code></td>
+<td>10000.0</td>
+<td>1.0</td>
+<td><strong>Unicode 感知</strong></td>
+</tr>
+<tr>
+<td>PHP <code>intl</code> / <code>NumberFormatter</code></td>
+<td>10000</td>
+<td>1</td>
+<td><strong>ICU 库，Unicode 感知</strong></td>
+</tr>
+<tr>
+<td>JS <code>Intl.NumberFormat</code></td>
+<td>10000</td>
+<td>1</td>
+<td>同上</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="3-unicorn-shop">3. 怎么变成绕过手法（Unicorn Shop 题眼）</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="x">if (mb_strlen($price) &gt; 1) die("too long");   // 按"字符个数"算 → '万' = 1 个字符</span>
+<span class="x">$p = &lt;unicode感知的解析&gt;($price);              // 按"数值语义"算 → '万' = 10000</span>
+<span class="x">if ($p &lt; 1337) die("not enough");</span>
+</code></pre></div></div>
+
+<p>两个校验用了<strong>两套取值口径</strong>：一个数字符个数，一个取数值语义。<code>万</code> 是 1 字符 / 3 字节，于是同时满足"长度=1"和"值=10000"。</p>
+<blockquote>
+<p><strong>绕过要点：不是编码技巧，而是口径不一致。</strong> 遇到"长度限制"和"数值要求"互相矛盾时，先问：服务端数长度和取数值，用的是同一个字符串表示吗？</p>
+</blockquote>
+<h3 id="4-homoglyph">4. 相关变体：同形异义字 (Homoglyph)</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="s1">'а'</span>  <span class="c1"># U+0430 西里尔小写 a —— 和英文 'a' U+0061 肉眼无法分辨</span>
+<span class="s1">'А'</span>  <span class="c1"># U+0410 西里尔大写 A</span>
+</code></pre></div></div>
+
+<p>用途：绕过字符串黑名单。<code>аdmin</code>（首字母是西里尔）在很多朴素比较里能骗过 WAF。同理还有 <code>０</code>(全角) vs <code>0</code>、<code>１</code> vs <code>1</code>。</p>
+<hr />
+<h2 id="glob-shell">二、通配符（glob）—— 不是 shell 专有</h2>
+<h3 id="1_1">1. 基本语法</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>符号</th>
+<th>含义</th>
+<th>例子</th>
+<th>结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>*</code></td>
+<td>任意长度（含 0）任意字符，<strong>不跨目录</strong></td>
+<td><code>fla*</code></td>
+<td><code>flag.php flag2.txt</code></td>
+</tr>
+<tr>
+<td><code>?</code></td>
+<td><strong>恰好一个</strong>字符</td>
+<td><code>fla?.php</code></td>
+<td><code>flag.php</code></td>
+</tr>
+<tr>
+<td><code>[abc]</code></td>
+<td>方括号内任选一个</td>
+<td><code>[fi]*</code></td>
+<td><code>flag.php flag2.txt index.php</code></td>
+</tr>
+<tr>
+<td><code>[a-z]</code></td>
+<td>区间内任选一个</td>
+<td><code>[a-i]*</code></td>
+<td>同上</td>
+</tr>
+<tr>
+<td><code>[!abc]</code></td>
+<td>取反（shell 里是 <code>[!..]</code>，不是 <code>[^..]</code>）</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>**</code></td>
+<td>跨目录递归（<strong>需显式开启</strong>）</td>
+<td><code>**/*.php</code></td>
+<td>含子目录</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="2-glob-shell">2. 谁在用 glob（重点回答"是不是 shell 专有"）</h3>
+<p><strong>不是 shell 专有。</strong> glob 是一个通用语法，多个环境都实现了它：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>环境</th>
+<th>实现</th>
+<th>是否碰文件系统</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>shell (bash)</strong></td>
+<td>内建 glob，命令交给程序<strong>前</strong>展开</td>
+<td>是</td>
+</tr>
+<tr>
+<td><strong>Python</strong></td>
+<td><code>glob.glob()</code> / <code>pathlib.Path.glob()</code></td>
+<td>是</td>
+</tr>
+<tr>
+<td><strong>Python</strong></td>
+<td><code>fnmatch.fnmatch()</code> —— 纯字符串匹配</td>
+<td><strong>否</strong></td>
+</tr>
+<tr>
+<td><strong>Node.js</strong></td>
+<td><code>glob</code> / <code>minimatch</code> 包</td>
+<td>视 API</td>
+</tr>
+<tr>
+<td><strong>Windows cmd</strong></td>
+<td><code>*</code> <code>?</code> 但<strong>由程序自己解释</strong>（cmd 不展开）</td>
+<td>否</td>
+</tr>
+<tr>
+<td><strong>PowerShell</strong></td>
+<td><code>Get-ChildItem -Path</code>、<code>-like</code></td>
+<td>视命令</td>
+</tr>
+<tr>
+<td><strong>各种构建工具</strong></td>
+<td><code>.gitignore</code>、Webpack glob、Makefile</td>
+<td>是</td>
+</tr>
+</tbody>
+</table></div>
+<p>实测对比：</p>
+<div class="code-block" data-lang="php"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">glob</span><span class="o">,</span><span class="w"> </span><span class="nn">fnmatch</span>
+<span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s1">'fla*'</span><span class="p">)</span>       <span class="c1"># ['flag.php', 'flag2.txt']       ← 语法和 shell 完全一致</span>
+<span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s1">'*.php'</span><span class="p">)</span>      <span class="c1"># ['flag.php', 'index.php']</span>
+<span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s1">'fla?.php'</span><span class="p">)</span>   <span class="c1"># ['flag.php']</span>
+<span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s1">'[fi]*'</span><span class="p">)</span>      <span class="c1"># ['flag.php', 'flag2.txt', 'index.php']</span>
+<span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s1">'**/*.php'</span><span class="p">,</span> <span class="n">recursive</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># 含 sub/deep.php ← '**' 才递归</span>
+</code></pre></div></div>
+
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">fnmatch</span><span class="o">.</span><span class="n">fnmatch</span><span class="p">(</span><span class="s1">'flag.php'</span><span class="p">,</span> <span class="s1">'fla?.php'</span><span class="p">)</span>      <span class="c1"># True   ← 纯字符串, 不读磁盘</span>
+<span class="n">fnmatch</span><span class="o">.</span><span class="n">fnmatch</span><span class="p">(</span><span class="s1">'flaX.php'</span><span class="p">,</span> <span class="s1">'fla?.php'</span><span class="p">)</span>      <span class="c1"># True</span>
+<span class="n">fnmatch</span><span class="o">.</span><span class="n">fnmatch</span><span class="p">(</span><span class="s1">'flag.txt'</span><span class="p">,</span> <span class="s1">'fla?.php'</span><span class="p">)</span>      <span class="c1"># False</span>
+<span class="n">fnmatch</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="s1">'fla?.php'</span><span class="p">)</span>                <span class="c1"># '(?s:fla.\\.php)\\Z'</span>
+</code></pre></div></div>
+
+<p><strong><code>fnmatch.translate()</code> 这一行揭示了一个重要事实：glob 在内部被翻译成了正则。</strong><br />
+所以 glob 和正则不是两套东西，而是<strong>同一套匹配引擎的两层外壳</strong>：glob 是简化的、面向文件名的子集，正则才是完整的表达力。</p>
+<h3 id="3-fnmatch-windows">3. 一个高频坑：fnmatch 在 Windows 下不区分大小写</h3>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">fnmatch</span><span class="o">.</span><span class="n">fnmatch</span><span class="p">(</span><span class="s1">'Flag.PHP'</span><span class="p">,</span> <span class="s1">'flag.php'</span><span class="p">)</span>      <span class="c1"># True   ← Windows 上大小写不敏感</span>
+<span class="n">fnmatch</span><span class="o">.</span><span class="n">fnmatchcase</span><span class="p">(</span><span class="s1">'Flag.PHP'</span><span class="p">,</span> <span class="s1">'flag.php'</span><span class="p">)</span>  <span class="c1"># False  ← 严格</span>
+</code></pre></div></div>
+
+<p>原因：<code>fnmatch</code> 会调用 <code>os.path.normcase</code>，Windows 把它转成小写。做安全校验时如果用了 <code>fnmatch</code> 且跑在 Windows，可能存在大小写绕过。</p>
+<h3 id="4-shell-shell">4. shell 独有的两个特性（这才是 shell 专有的部分）</h3>
+<p>① <strong>展开时机</strong>：shell 在<strong>把命令交给程序之前</strong>就展开了。用 Python 脚本证明：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">sys</span><span class="p">;</span> <span class="nb">print</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+</code></pre></div></div>
+
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>$<span class="w"> </span>py<span class="w"> </span>argv.py<span class="w"> </span>fla*<span class="w">        </span><span class="c1"># 不加引号 → 程序收到 ['flag.php', 'flag2.txt']</span>
+$<span class="w"> </span>py<span class="w"> </span>argv.py<span class="w"> </span><span class="s2">"fla*"</span><span class="w">      </span><span class="c1"># 加引号   → 程序收到 ['fla*']</span>
+</code></pre></div></div>
+
+<p><strong>这解释了命令注入题的经典 payload</strong>：<code>cat fla*</code> 之所以能读 <code>flag.php</code>，是因为<strong>shell 展开发生在 PHP 的黑名单检查之后</strong>。PHP 只看到字符串 <code>fla*</code>，而 shell 才把它变成真实文件名——代码层根本不知道最终会读到什么文件。</p>
+<p>② <strong>引号规则</strong>（shell 专有，务必记牢）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>引号</th>
+<th><code>*</code> 展开?</th>
+<th>变量 <code>$x</code> 展开?</th>
+<th>反引号 <code>`</code> 执行?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>不加引号</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>双引号 <code>"..."</code></td>
+<td>❌</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>单引号 <code>'...'</code></td>
+<td>❌</td>
+<td>❌</td>
+<td>❌（最强隔离）</td>
+</tr>
+</tbody>
+</table></div>
+<p>实测：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>$<span class="w"> </span><span class="nb">echo</span><span class="w"> </span>引号外:<span class="w"> </span>fla*<span class="w">              </span>→<span class="w"> </span>引号外:<span class="w"> </span>flag.php<span class="w"> </span>flag2.txt
+$<span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"引号内: fla*"</span><span class="w">            </span>→<span class="w"> </span>引号内:<span class="w"> </span>fla*
+$<span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"today is `echo 2026-10-05`"</span><span class="w">  </span>→<span class="w"> </span>today<span class="w"> </span>is<span class="w"> </span><span class="m">2026</span>-10-05<span class="w">     </span><span class="o">(</span>双引号内反引号仍展开<span class="o">)</span>
+$<span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s1">'today is `echo 2026-10-05`'</span><span class="w">  </span>→<span class="w"> </span>today<span class="w"> </span>is<span class="w"> </span><span class="sb">`</span><span class="nb">echo</span><span class="w"> </span>...<span class="sb">`</span><span class="w">     </span><span class="o">(</span>单引号内不展开<span class="o">)</span>
+</code></pre></div></div>
+
+<blockquote>
+<p>单引号是"最安全的兜底"：任何字符放进去都变成字面量。CTF 里 WAF 挡不住时，往往能从引号拼接或反引号执行找到缝。</p>
+</blockquote>
+<hr />
+<h2 id="regex-shell">三、正则表达式（regex）—— 也不是 shell 专有</h2>
+<h3 id="1_2">1. 最容易混的对比：<code>*</code> 含义完全相反</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th>通配符 glob</th>
+<th>正则 regex</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>*</code></td>
+<td>前面<strong>整个模式</strong> → 任意长度</td>
+<td>修饰<strong>前一个元素</strong> → 重复 0~n 次</td>
+</tr>
+<tr>
+<td>匹配对象</td>
+<td>文件名</td>
+<td>任意文本</td>
+</tr>
+<tr>
+<td>通用写法</td>
+<td><code>fla*</code></td>
+<td><code>fla.*</code></td>
+</tr>
+<tr>
+<td>谁实现</td>
+<td>shell / glob 库 / fnmatch</td>
+<td><strong>所有主流语言内建的独立引擎</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>正则本质上是一门<strong>独立的小型语言</strong>，它的"宿主"非常多：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>宿主</th>
+<th>用法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>shell</td>
+<td><code>grep -E</code>、<code>sed</code>、<code>awk</code>、bash <code>=~</code></td>
+</tr>
+<tr>
+<td>Python</td>
+<td><code>re</code> 模块</td>
+</tr>
+<tr>
+<td>PHP</td>
+<td><code>preg_match</code> / <code>preg_replace</code></td>
+</tr>
+<tr>
+<td>JS</td>
+<td><code>RegExp</code>、<code>/pattern/</code></td>
+</tr>
+<tr>
+<td>Java</td>
+<td><code>java.util.regex</code></td>
+</tr>
+<tr>
+<td>数据库</td>
+<td>MySQL <code>REGEXP</code>、PostgreSQL <code>~</code></td>
+</tr>
+<tr>
+<td>编辑器</td>
+<td>VSCode 查找、vim <code>/</code></td>
+</tr>
+<tr>
+<td>工具</td>
+<td><code>rg</code>(ripgrep)、<code>nginx location ~</code>、<code>ModSecurity</code>、各种 WAF</td>
+</tr>
+</tbody>
+</table></div>
+<p>所以：<strong>glob 是用来"找文件"的，正则才是"匹配文本"的通用工具。</strong> 它们不是同一个层级的东西。</p>
+<h3 id="2_1">2. 元字符速查</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>符号</th>
+<th>含义</th>
+<th>例子</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>.</code></td>
+<td>任意一个字符（默认不含换行）</td>
+<td><code>a.c</code> → <code>abc</code> <code>axc</code></td>
+</tr>
+<tr>
+<td><code>*</code></td>
+<td>前一元素重复 <strong>0~n</strong> 次</td>
+<td><code>ab*</code> → <code>a</code> <code>ab</code> <code>abbb</code></td>
+</tr>
+<tr>
+<td><code>+</code></td>
+<td>前一元素重复 <strong>1~n</strong> 次</td>
+<td><code>ab+</code> → <code>ab</code> <code>abbb</code>（不含 <code>a</code>）</td>
+</tr>
+<tr>
+<td><code>?</code></td>
+<td>前一元素 <strong>0 或 1</strong> 次</td>
+<td><code>colou?r</code> → <code>color</code> <code>colour</code></td>
+</tr>
+<tr>
+<td><code>{n,m}</code></td>
+<td>重复 n~m 次</td>
+<td><code>a{2,3}</code> → <code>aa</code> <code>aaa</code></td>
+</tr>
+<tr>
+<td><code>^</code> <code>$</code></td>
+<td>行/串 首、尾锚定</td>
+<td><code>^abc</code> <code>xyz$</code></td>
+</tr>
+<tr>
+<td><code>[...]</code> / <code>[^...]</code></td>
+<td>字符类 / 取反字符类</td>
+<td><code>[0-9]</code> <code>[^0-9]</code></td>
+</tr>
+<tr>
+<td><code>\d</code> <code>\w</code> <code>\s</code></td>
+<td>数字 / 单词字符 / 空白</td>
+<td><code>\d+</code></td>
+</tr>
+<tr>
+<td><code>\b</code></td>
+<td>单词边界</td>
+<td><code>\bcat\b</code></td>
+</tr>
+<tr>
+<td><code>\|</code></td>
+<td>或</td>
+<td><code>cat\|dog</code></td>
+</tr>
+<tr>
+<td><code>(...)</code></td>
+<td>分组/捕获</td>
+<td><code>(ab)+</code></td>
+</tr>
+<tr>
+<td><code>\</code></td>
+<td>转义为字面量</td>
+<td><code>\.</code> 匹配真正的点</td>
+</tr>
+</tbody>
+</table></div>
+<p>实测：</p>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>$<span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">'^h'</span><span class="w"> </span>t.txt<span class="w">        </span>→<span class="w"> </span>hello123<span class="w">            </span><span class="o">(</span>行首锚定<span class="o">)</span>
+$<span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">'[0-9]+'</span><span class="w"> </span>t.txt<span class="w">    </span>→<span class="w"> </span>hello123<span class="w"> </span>/<span class="w"> </span>abc-456<span class="w">  </span><span class="o">(</span>连续数字<span class="o">)</span>
+$<span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">'^[A-Z]+$'</span><span class="w"> </span>t.txt<span class="w">  </span>→<span class="w"> </span>HELLO<span class="w">               </span><span class="o">(</span>整行全大写<span class="o">)</span>
+</code></pre></div></div>
+
+<p>注意 glob→regex 的语义映射（易错点）：<br />
+- glob <code>*</code> ↔ regex <code>.*</code><br />
+- glob <code>?</code> ↔ regex <code>.</code><br />
+- glob <code>[ab]</code> ↔ regex <code>[ab]</code>（<strong>这个恰好一致</strong>）</p>
+<h3 id="3">3. 三个高频陷阱</h3>
+<p><strong>① 贪婪 vs 懒惰</strong></p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>文本: &lt;a&gt;1&lt;/a&gt;&lt;b&gt;2&lt;/b&gt;
+&lt;.*&gt;   → 匹配整串 &lt;a&gt;1&lt;/a&gt;&lt;b&gt;2&lt;/b&gt;   （贪婪，吃到底）
+&lt;.*?&gt;  → 只匹配 &lt;a&gt;                  （加 ? 变懒惰）
+</code></pre></div></div>
+
+<p><strong>② <code>.</code> 默认不匹配换行</strong>，除非加 <code>s</code> 修饰符（Python 用 <code>re.DOTALL</code>）。<br />
+→ PHP <code>preg_match('/.*f.*l.*a.*g.*/', $ip)</code> 里 <code>.</code> 不含 <code>\n</code>，<strong>理论上</strong>可用 <code>%0a</code> 拆开关键字绕过；但 Ping 题里黑名单同时禁了 <code>\x00-\x1f</code>（含换行），这条路被封死。<strong>这就是"正则写漏 + 但另有补丁"的典型双重保险。</strong></p>
+<p><strong>③ <code>match</code> 与 <code>search</code> 的区别（Python）</strong></p>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="sa">r</span><span class="s1">'la'</span><span class="p">,</span> <span class="s1">'flag'</span><span class="p">)</span>    <span class="c1"># None     ← match 只从串首开始</span>
+<span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s1">'la'</span><span class="p">,</span> <span class="s1">'flag'</span><span class="p">)</span>   <span class="c1"># &lt;Match&gt;  ← search 任意位置</span>
+</code></pre></div></div>
+
+<p>PHP 的 <code>preg_match</code> 等价于 <code>search</code>（部分匹配）。所以 <code>preg_match('/flag/', $input)</code> 只要输入<strong>包含</strong> <code>flag</code> 就拦——这也是为什么绕过思路是"打散重拼"（<code>fla$1g</code>、<code>fla*</code>、变量拼接）。</p>
+<h3 id="4">4. 黑名单为什么总被绕过</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>通病</th>
+<th>绕过手法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>只禁字面量（小写）</td>
+<td><code>FLAG</code> / <code>Flag</code> / 全角</td>
+</tr>
+<tr>
+<td>只禁单字符</td>
+<td>拼接：<code>fla""g</code> <code>fla$1g</code> <code>$a$b</code></td>
+</tr>
+<tr>
+<td>正则写太窄</td>
+<td>DVWA Medium 只禁 <code>&amp;&amp;</code> 却没禁 <code>&amp;</code></td>
+</tr>
+<tr>
+<td>没加 <code>s</code> / <code>i</code></td>
+<td><code>%0a</code> 拆行、大小写</td>
+</tr>
+<tr>
+<td>散点顺序正则</td>
+<td><code>/.*f.*l.*a.*g.*/</code> 拦不住 <code>grep -r . .</code></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>核心结论：黑名单是"枚举禁止项"，一定有遗漏；白名单（只允许符合格式的输入）才是安全的。</strong></p>
+<hr />
+<h2 id="_3">四、一张表串起三者</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th>数字写法</th>
+<th>通配符 glob</th>
+<th>正则 regex</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>匹配/表达对象</td>
+<td>单个字符的"值"</td>
+<td>文件名</td>
+<td>任意文本</td>
+</tr>
+<tr>
+<td>典型符号</td>
+<td><code>①٩９万Ⅹↈ</code></td>
+<td><code>* ? [abc]</code></td>
+<td><code>.* + ? ^$ \d ()</code></td>
+</tr>
+<tr>
+<td><code>*</code> 含义</td>
+<td>—</td>
+<td>任意长度字符串</td>
+<td>前一元素重复 0~n</td>
+</tr>
+<tr>
+<td>谁解释</td>
+<td>Unicode 感知的数字解析器</td>
+<td>shell / <code>glob</code> / <code>fnmatch</code></td>
+<td>各语言的独立正则引擎</td>
+</tr>
+<tr>
+<td>是否 shell 专有</td>
+<td>否（是 Unicode 标准）</td>
+<td><strong>否</strong></td>
+<td><strong>否</strong></td>
+</tr>
+<tr>
+<td>CTF 用途</td>
+<td>绕过长度校验、同形字绕过黑名单</td>
+<td>绕过关键字黑名单读文件</td>
+<td>既是防御工具、也是被绕对象</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="_4">五、知识点沉淀</h2>
+<ol>
+<li><strong>数字的"值"和"写法"要分开看</strong>。<code>int()</code>/<code>Number()</code>/<code>intval()</code> 只认 ASCII，而 <code>unicodedata.numeric()</code>/<code>intl</code>/<code>Intl</code> 是 Unicode 感知的。两者行为不同 → 漏洞空间。</li>
+<li><strong>glob 不是 shell 专有</strong>。Python 有 <code>glob</code>（读磁盘）和 <code>fnmatch</code>（纯字符串）两个模块；语法与 shell 一致。<code>fnmatch.translate()</code> 暴露了 <strong>glob 本质是正则的简化外壳</strong>。</li>
+<li><strong>正则不是 shell 专有</strong>，它是几乎所有语言/工具内置的独立引擎；shell 只是众多宿主之一（<code>grep -E</code> 等）。</li>
+<li><strong>shell 真正专有的是"展开时机"和"引号规则"</strong>：glob 展开发生在程序收到参数<strong>之前</strong>，这正是命令注入题里 <code>cat fla*</code> 能绕过 PHP 黑名单的根本原因——<strong>代码层检查的是字符串，shell 层执行的是展开后的真实文件名，两者之间存在认知差</strong>。</li>
+<li><strong>单引号是最强隔离</strong>（连反引号都不展开），双引号次之（仍允许变量和反引号），不加引号最危险。</li>
+<li><strong>遇到"规则互相矛盾"的题</strong>，先问："服务端数长度和取数值，用的是同一个字符串表示吗？"</li>
+</ol></div>
+      <div class="post-nav"><a class="pn-item prev" href="web-an-quan-wen-jian-shang-chuan-rao-guo-hei-ming-dan-fan-zhuan-scri.html"><span>← 上一篇</span><strong>Web安全 · 文件上传绕过（黑名单反转 + `&lt;script&gt;` 标签）WriteUp —「上传头像」</strong></a><a class="pn-item next" href="web-an-quan-wen-jian-bao-han-php-filter-wei-xie-yi-writeup-jiang-lu.html"><span>下一篇 →</span><strong>Web安全 · 文件包含 + php://filter 伪协议 WriteUp —「蒋璐源的秘密」</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">零、总纲：到底是谁在解释你的输入</a><a href="#_2" class="toc-lv2">一、数字的不同写法</a><a href="#1" class="toc-lv3">1. 值 ≠ 写法</a><a href="#2" class="toc-lv3">2. 分水岭：解析器认不认</a><a href="#3-unicorn-shop" class="toc-lv3">3. 怎么变成绕过手法（Unicorn Shop 题眼）</a><a href="#4-homoglyph" class="toc-lv3">4. 相关变体：同形异义字 (Homoglyph)</a><a href="#glob-shell" class="toc-lv2">二、通配符（glob）—— 不是 shell 专有</a><a href="#1_1" class="toc-lv3">1. 基本语法</a><a href="#2-glob-shell" class="toc-lv3">2. 谁在用 glob（重点回答&quot;是不是 shell 专有&quot;）</a><a href="#3-fnmatch-windows" class="toc-lv3">3. 一个高频坑：fnmatch 在 Windows 下不区分大小写</a><a href="#4-shell-shell" class="toc-lv3">4. shell 独有的两个特性（这才是 shell 专有的部分）</a><a href="#regex-shell" class="toc-lv2">三、正则表达式（regex）—— 也不是 shell 专有</a><a href="#1_2" class="toc-lv3">1. 最容易混的对比：* 含义完全相反</a><a href="#2_1" class="toc-lv3">2. 元字符速查</a><a href="#3" class="toc-lv3">3. 三个高频陷阱</a><a href="#4" class="toc-lv3">4. 黑名单为什么总被绕过</a><a href="#_3" class="toc-lv2">四、一张表串起三者</a><a href="#_4" class="toc-lv2">五、知识点沉淀</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

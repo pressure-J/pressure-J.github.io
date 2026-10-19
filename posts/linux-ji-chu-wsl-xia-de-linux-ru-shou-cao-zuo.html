@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Linux 基础：WSL 下的 Linux 入手操作 · pressure-J</title>
+<meta name="description" content="一句话：WSL2 是微软官方提供的轻量虚拟机，跑的是真实 Linux 内核，但由 Windows 深度托管——没有 BIOS、没有虚拟网卡配置界面、不用装系统、不用等开机。">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/linux-ji-chu-wsl-xia-de-linux-ru-shou-cao-zuo.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Linux 基础：WSL 下的 Linux 入手操作 · pressure-J">
+<meta property="og:description" content="一句话：WSL2 是微软官方提供的轻量虚拟机，跑的是真实 Linux 内核，但由 Windows 深度托管——没有 BIOS、没有虚拟网卡配置界面、不用装系统、不用等开机。">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/linux.html">Linux</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>Linux 基础：WSL 下的 Linux 入手操作</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-linux">Linux</span>
+          <time datetime="2026-10-19">2026-10-19</time>
+          <span>9651 字</span>
+          <span>约 25 分钟</span>
+        </div>
+        
+      </header>
+      <div class="content"><blockquote>
+<p>来源：本人实战记录（Win11 家庭版 26200 安装 WSL2 + Kali Linux 2026.2，2026-10）<br />
+定位：WSL 是 Windows 上最轻的 Linux 环境，秒级启停、不吃内存，适合当"命令行走廊"——跑 nmap、写脚本、编译 payload。但它不是 VMware 的替代品（没有独立网段、做不了内网横向），两者按任务分工，详见第六节。</p>
+</blockquote>
+<hr />
+<h2 id="wsl-vmware">一、WSL 是什么，和 VMware 差在哪</h2>
+<p><strong>一句话</strong>：WSL2 是微软官方提供的轻量虚拟机，跑的是真实 Linux 内核，但由 Windows 深度托管——没有 BIOS、没有虚拟网卡配置界面、不用装系统、不用等开机。</p>
+<p>和传统虚拟机最本质的三点差别：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>VMware / VirtualBox</th>
+<th>WSL2</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>系统安装</td>
+<td>挂 ISO 走完整安装流程（分区、用户、GRUB）</td>
+<td>一条命令下载 rootfs 解包，1 分钟完成</td>
+</tr>
+<tr>
+<td>资源占用</td>
+<td>固定分配 2–4 GB 内存</td>
+<td>按需增长，空闲时自动释放（~200 MB 起）</td>
+</tr>
+<tr>
+<td>网络</td>
+<td>可加多块网卡、桥接/仅主机/NAT 随意组网</td>
+<td><strong>固定一张网卡，固定 NAT</strong>，不能改拓扑</td>
+</tr>
+<tr>
+<td>文件互通</td>
+<td>靠共享文件夹 / SMB</td>
+<td><code>/mnt/c</code>、<code>/mnt/d</code> 原生挂载，双向直读</td>
+</tr>
+<tr>
+<td>图形界面</td>
+<td>完整桌面</td>
+<td>无桌面（可用 WSLg 跑单个 GUI 程序）</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>判断用哪个</strong>：</p>
+<ul>
+<li>要"两个网段互通""桥接拿真实 IP""ARP 扫描二层发现" → <strong>VMware</strong></li>
+<li>要"快速敲命令""轻量编译""不占内存常驻" → <strong>WSL</strong></li>
+</ul>
+<hr />
+<h2 id="_1">二、安装：一条命令 + 一次重启</h2>
+<h3 id="21-msi">2.1 先认清那个 msi 文件</h3>
+<p>网上教程常让人下载 <code>wsl_update_x64.msi</code>（16 MB）双击安装。<strong>这个文件在 Win11 上已经没用了。</strong></p>
+<p>它是早期 Win10 的 WSL2 内核更新包，那时内核和系统组件分离分发。Win11 起 WSL 改成 Store 应用，内核随 WSL 包一起走，这个 MSI 装上也不会被任何组件引用。看到它可以直接删。</p>
+<h3 id="22">2.2 正确流程</h3>
+<p><strong>管理员</strong> PowerShell 执行：</p>
+<div class="code-block" data-lang="powershell"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">wsl</span> <span class="p">-</span><span class="n">-install</span>
+</code></pre></div></div>
+
+<p>它会自动做三件事：启用 <code>Microsoft-Windows-Subsystem-Linux</code> 和 <code>VirtualMachinePlatform</code> 两个可选功能、安装 Store 版 WSL2 主体、安装默认发行版 Ubuntu。</p>
+<h3 id="23">2.3 必须重启一次（关键）</h3>
+<p><code>虚拟机平台</code>(VirtualMachinePlatform) 是内核级组件，对应的 <code>VmCompute</code> 驱动必须在系统启动时加载，<strong>运行中启用不生效</strong>。命令跑完会输出：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>请求的操作成功。直到重新启动系统前更改将不会生效。
+</code></pre></div></div>
+
+<p>此时状态是这样的，容易误判成"装好了"：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">wsl</span> <span class="p">-</span><span class="n">-version</span>        <span class="c"># ✅ 能打印版本 —— 但这只说明命令行框架在</span>
+<span class="n">wsl</span> <span class="p">-</span><span class="n">-status</span>         <span class="c"># ❌ 报 "WSL2 无法启动，因为此计算机上未启用虚拟化"</span>
+<span class="n">wsl</span> <span class="p">-</span><span class="n">-list</span> <span class="p">-</span><span class="n">-online</span>  <span class="c"># ✅ 能列出可装发行版</span>
+</code></pre></div></div>
+
+<p><code>wsl --version</code> 有输出 ≠ 能用。真正判断标准是 <code>wsl --status</code> 里有没有那句"无法启动，因为此计算机上未启用虚拟化"。<strong>有 → 重启</strong>。</p>
+<p>重启后 <code>wsl --status</code> 应该只剩：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>默认版本: 2
+当前计算机配置不支持 WSL1。
+</code></pre></div></div>
+
+<p>"当前计算机配置不支持 WSL1" 是正常提示（家庭版没启用 WSL1 旧组件），不影响 WSL2。</p>
+<h3 id="24">2.4 装发行版</h3>
+<div class="code-block" data-lang="powershell"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">wsl</span> <span class="p">-</span><span class="n">-list</span> <span class="p">-</span><span class="n">-online</span>              <span class="c"># 看有哪些（Ubuntu-24.04 / kali-linux / Debian / archlinux ...）</span>
+<span class="n">wsl</span> <span class="p">-</span><span class="n">-install</span> <span class="n">-d</span> <span class="n">kali-linux</span>      <span class="c"># 装 Kali</span>
+</code></pre></div></div>
+
+<p><strong>坑 1：<code>--no-launch</code> 的副作用</strong></p>
+<p>加 <code>--no-launch</code> 只下载不启动，装完 <code>wsl -l -v</code> 显示 <code>Stopped</code> 但进不去，还得手动跑 <code>wsl</code> 完成初始化。不加则装完自动进入并让你建用户名密码。<strong>想省事就别加</strong>。</p>
+<p><strong>坑 2：<code>WININET_E_TIMEOUT</code></strong></p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>正在下载 https://raw.githubusercontent.com/microsoft/WSL/master/distributions/DistributionInfo.json
+错误代码: Wsl/InstallDistro/WININET_E_TIMEOUT
+</code></pre></div></div>
+
+<p>这是去 GitHub 拉分发列表时代理/网络不通。<strong>直接重试</strong>即可（微软有时也会同步到国内可达的 CDN）。注意 <code>wsl --install</code> 报这个错时退出码仍可能是 0，别被 <code>EXIT=0</code> 骗了，一定要用 <code>wsl -l -v</code> 验证。</p>
+<p><strong>坑 3：重装/续装</strong></p>
+<p>如果第一次只装上了 WSL 主体（<code>--no-distribution</code> 的效果），补装发行版直接再执行一次 <code>wsl --install -d &lt;名字&gt;</code>，不需要重装 WSL。</p>
+<h3 id="25">2.5 验证装好了没</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">wsl</span> <span class="n">-l</span> <span class="n">-v</span>
+</code></pre></div></div>
+
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>  NAME          STATE           VERSION
+* kali-linux    Stopped         2
+</code></pre></div></div>
+
+<p><code>VERSION=2</code> 才对（WSL1 网络行为完全不同）。再看内核：</p>
+<div class="code-block" data-lang="powershell"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>wsl<span class="w"> </span>-d<span class="w"> </span>kali-linux<span class="w"> </span>-u<span class="w"> </span>root<span class="w"> </span>--<span class="w"> </span>uname<span class="w"> </span>-r
+<span class="c1"># 6.18.54.1-microsoft-standard-WSL2</span>
+</code></pre></div></div>
+
+<hr />
+<h2 id="_2">三、怎么用：三种进入方式</h2>
+<h3 id="31">3.1 直接敲命令（最常用）</h3>
+<p>安装后 WSL 不是一个"应用"，而是 Windows 里的一个命令前缀：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">wsl</span>                           <span class="c"># 进默认发行版，落在默认用户家目录</span>
+<span class="n">wsl</span> <span class="nb">ls </span><span class="n">-la</span>                    <span class="c"># 不进交互，跑一条命令立刻返回</span>
+<span class="n">wsl</span> <span class="n">nmap</span> <span class="n">-sV</span> <span class="n">1</span><span class="p">.</span><span class="n">2</span><span class="p">.</span><span class="n">3</span><span class="p">.</span><span class="n">4</span>          <span class="c"># 直接把 Linux 工具当 Windows 命令用</span>
+<span class="n">wsl</span> <span class="n">-d</span> <span class="n">kali-linux</span>             <span class="c"># 指定发行版（多发行版时用）</span>
+<span class="n">wsl</span> <span class="n">-u</span> <span class="n">root</span>                   <span class="c"># 以 root 身份进入（绕过默认用户）</span>
+<span class="n">wsl</span> <span class="p">--</span> <span class="nb">ls </span><span class="n">-la</span>                 <span class="c"># 参数有歧义时用 -- 分隔</span>
+</code></pre></div></div>
+
+<p>最后这条很实用：<code>wsl ls -la</code> 里的 <code>-la</code> 可能被 <code>wsl.exe</code> 自己吃掉，加 <code>--</code> 就明确"后面全给 Linux"。</p>
+<h3 id="32-windows-terminal">3.2 开始菜单 / Windows Terminal</h3>
+<p>开始菜单里有 "Kali Linux" 图标，点开等同第一种方式。装了 Windows Terminal 后可以在下拉菜单里新建 Kali 标签页（<code>winget install Microsoft.WindowsTerminal</code>），比老 conhost 好用得多：多标签、UTF-8 正常、复制粘贴顺畅。</p>
+<h3 id="33-wsl-windows">3.3 从 WSL 里调 Windows 程序</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>notepad.exe<span class="w"> </span>file.txt<span class="w">          </span><span class="c1"># 用记事本打开（路径自动转换）</span>
+explorer.exe<span class="w"> </span>.<span class="w">                </span><span class="c1"># 在资源管理器打开当前 Linux 目录</span>
+cmd.exe<span class="w"> </span>/c<span class="w"> </span>dir<span class="w">                </span><span class="c1"># 调 cmd</span>
+</code></pre></div></div>
+
+<p>反过来，WSL 里的路径可以直接被 Windows 访问：<code>\\wsl$\kali-linux\home\xj</code>（资源管理器地址栏）。</p>
+<hr />
+<h2 id="_3">四、文件系统：两套盘怎么互通</h2>
+<h3 id="41-windows-mnt">4.1 Windows 盘挂到 <code>/mnt</code></h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>ls<span class="w"> </span>/mnt<span class="w">            </span><span class="c1"># c  d  wsl  wslg</span>
+ls<span class="w"> </span>/mnt/d/mdstudyfile
+ls<span class="w"> </span>/mnt/c/Users/pressure-J/Downloads
+</code></pre></div></div>
+
+<p>自动挂载，双向可读写。点目录名 <code>.</code> 开头的不会自动隐藏（Linux 没有隐藏属性）。</p>
+<h3 id="42-linux">4.2 Linux 根文件系统在哪</h3>
+<p>真身是一个虚拟磁盘文件：</p>
+<div class="code-block" data-lang="powershell"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>C:\Users\&lt;用户&gt;\AppData\Local\wsl\{GUID}\ext4.vhdx
+</code></pre></div></div>
+
+<p><strong>不要用 Windows 工具往这个目录里塞文件、不要用第三方分区软件去动它</strong>，容易把 vhdx 搞坏导致整个发行版报废。要传文件走 <code>/mnt</code>，或者 <code>\\wsl$\</code> 路径。</p>
+<h3 id="43-510">4.3 性能坑：跨盘操作慢 5–10 倍</h3>
+<p><code>/mnt/c</code>、<code>/mnt/d</code> 走的是 9P 协议（Windows 内核代理），每次文件操作都有跨 VM 边界的开销。</p>
+<ul>
+<li>在 <code>/mnt/c</code> 里 <code>npm install</code>、<code>git clone</code>、编译 C 项目 → 慢到怀疑人生</li>
+<li><strong>正确做法</strong>：代码放 Linux 家目录（<code>~/</code>），做完需要的产物再拷到 <code>/mnt</code> </li>
+</ul>
+<h3 id="44">4.4 编码与换行</h3>
+<p>Windows 写的中文文件（GBK）在 WSL 里 <code>cat</code> 会乱码；<code>.sh</code> 脚本从 Windows 编辑过来带 CRLF 会让 bash 报 <code>$'\r': command not found</code>。</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># 转 LF</span>
+sed<span class="w"> </span>-i<span class="w"> </span><span class="s1">'s/\r$//'</span><span class="w"> </span>script.sh
+<span class="c1"># 或</span>
+dos2unix<span class="w"> </span>script.sh
+</code></pre></div></div>
+
+<p>反过来，给 Windows 程序读的脚本要转回 CRLF。<strong>用 shell 跑脚本时，优先直接在 Linux 里用 vim/nano 写</strong>，省掉这层麻烦。</p>
+<hr />
+<h2 id="_4">五、初始化配置（装完必做）</h2>
+<p>刚装好的 Kali WSL 默认<strong>只有 root，没有普通用户</strong>。直接拿 root 跑实验容易一个 <code>rm -rf</code> 玩坏自己（没任何拦截），建议先建普通用户。</p>
+<h3 id="51-sudo">5.1 建普通用户 + 配 sudo</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># 以 root 进入</span>
+wsl<span class="w"> </span>-u<span class="w"> </span>root
+
+useradd<span class="w"> </span>-m<span class="w"> </span>-s<span class="w"> </span>/bin/bash<span class="w"> </span>-G<span class="w"> </span>sudo<span class="w"> </span>xj
+passwd<span class="w"> </span>xj<span class="w">                       </span><span class="c1"># 输入密码（不回显，看不到星号是正常的）</span>
+id<span class="w"> </span>xj<span class="w">                           </span><span class="c1"># 确认在 sudo 组</span>
+</code></pre></div></div>
+
+<p>验证 sudo 权限：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>-l<span class="w"> </span>-U<span class="w"> </span>xj
+<span class="c1"># 应看到 (ALL : ALL) ALL</span>
+</code></pre></div></div>
+
+<h3 id="52-u-root">5.2 改默认用户（省掉每次 <code>-u root</code>）</h3>
+<p>编辑 <code>/etc/wsl.conf</code>：</p>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="k">[boot]</span>
+<span class="na">systemd</span><span class="o">=</span><span class="s">true</span>
+
+<span class="k">[user]</span>
+<span class="na">default</span><span class="o">=</span><span class="s">xj</span>
+</code></pre></div></div>
+
+<p>改完<strong>必须重启 WSL 才生效</strong>：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">wsl</span> <span class="p">-</span><span class="n">-shutdown</span>      <span class="c"># 等价于"关掉整台 Linux 虚拟机"</span>
+</code></pre></div></div>
+
+<blockquote>
+<p><code>wsl --shutdown</code> 是高频命令：改 <code>wsl.conf</code>、改网络模式、改 <code>.wslconfig</code>、内存异常飙高，都靠它。它会把<strong>所有</strong>发行版一起关掉，未保存的进程全被杀。</p>
+</blockquote>
+<p>重启后 <code>wsl</code> 进去就是 <code>xj</code>，<code>echo $HOME</code> → <code>/home/xj</code>。需要 root 时显式 <code>wsl -u root</code>。</p>
+<h3 id="53-apt">5.3 换 apt 源（国内必做）</h3>
+<p>Kali 的源配置在 <code>/etc/apt/sources.list.d/kali.sources</code>（新版 deb822 格式，不是老的 <code>sources.list</code>）：</p>
+<div class="code-block" data-lang="powershell"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>cat<span class="w"> </span>/etc/apt/sources.list.d/kali.sources
+</code></pre></div></div>
+
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>Types: deb
+URIs: http://http.kali.org/kali/
+Suites: kali-last-snapshot
+Components: main contrib non-free non-free-firmware
+Signed-By: /usr/share/keyrings/kali-archive-keyring.gpg
+</code></pre></div></div>
+
+<p>换成阿里云前<strong>先备份</strong>，再写入：</p>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>cp<span class="w"> </span>/etc/apt/sources.list.d/kali.sources<span class="w"> </span>/etc/apt/sources.list.d/kali.sources.bak
+
+cat<span class="w"> </span>&gt;<span class="w"> </span>/etc/apt/sources.list.d/kali.sources<span class="w"> </span><span class="s">&lt;&lt;'EOF'</span>
+<span class="s">Types: deb</span>
+<span class="s">URIs: http://mirrors.aliyun.com/kali/</span>
+<span class="s">Suites: kali-rolling</span>
+<span class="s">Components: main contrib non-free non-free-firmware</span>
+<span class="s">Signed-By: /usr/share/keyrings/kali-archive-keyring.gpg</span>
+<span class="s">EOF</span>
+
+apt<span class="w"> </span>update
+</code></pre></div></div>
+
+<p><strong>两个要注意的点</strong>：</p>
+<ol>
+<li><strong><code>Suites</code> 从 <code>kali-last-snapshot</code> 改成了 <code>kali-rolling</code></strong>。last-snapshot 是固定快照（保守、可复现），rolling 跟随最新滚动版本。日常实验用 rolling；要做可复现实验就还原 backup 文件。</li>
+<li>阿里云 Kali 镜像只有 <code>kali-rolling</code>、<code>kali-bleeding-edge</code>、<code>kali-dev</code> 等几个 suite，<strong>没有</strong> <code>kali-last-snapshot</code>——所以换源时必须同步改 suite，否则 <code>apt update</code> 直接 404。</li>
+</ol>
+<p>Ubuntu/Debian 的源文件是另一个格式（一行式 <code>deb http://... noble main restricted</code>），位置在 <code>/etc/apt/sources.list</code>，别搞混。</p>
+<h3 id="54">5.4 装常用工具</h3>
+<p>WSL 的 rootfs 是精简版，连 nmap、gcc 都没有。一次装齐（<code>--no-install-recommends</code> 避免拉一堆无用依赖，能省一半体积）：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>apt<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>--no-install-recommends<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>nmap<span class="w"> </span>ncat<span class="w"> </span>socat<span class="w"> </span>tcpdump<span class="w"> </span>whois<span class="w"> </span>dnsutils<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>gcc<span class="w"> </span>g++<span class="w"> </span>make<span class="w"> </span>python3-pip<span class="w"> </span>python3-venv<span class="w"> </span>pipx<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>gobuster<span class="w"> </span>dirb<span class="w"> </span>sqlmap<span class="w"> </span>jq<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>net-tools<span class="w"> </span>iputils-ping
+</code></pre></div></div>
+
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>工具</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>nmap</td>
+<td>端口/服务扫描</td>
+</tr>
+<tr>
+<td>ncat / socat</td>
+<td>网络连接、端口转发、反弹 shell（Kali 自带 <code>nc</code> 是 openbsd 版）</td>
+</tr>
+<tr>
+<td>tcpdump</td>
+<td>命令行抓包</td>
+</tr>
+<tr>
+<td>whois / dig</td>
+<td>域名与 DNS 查询</td>
+</tr>
+<tr>
+<td>gcc / g++ / make</td>
+<td>编译 C 程序、写 pwn 题 exp</td>
+</tr>
+<tr>
+<td>pip3 / pipx</td>
+<td>Python 包</td>
+</tr>
+<tr>
+<td>gobuster / dirb</td>
+<td>目录爆破</td>
+</tr>
+<tr>
+<td>sqlmap</td>
+<td>SQL 注入自动化</td>
+</tr>
+<tr>
+<td>jq</td>
+<td>JSON 处理（调 API 必备）</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="55-pip-pep-668">5.5 pip 的 PEP 668 坑</h3>
+<p>直接 <code>pip3 install requests</code> 会报：</p>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>error: externally-managed-environment
+</code></pre></div></div>
+
+<p>这是 Debian 13 系起的保护机制（禁止 pip 污染系统 Python）。两种解法：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>pip3<span class="w"> </span>install<span class="w"> </span>requests<span class="w"> </span>--break-system-packages<span class="w">   </span><span class="c1"># 简单粗暴，装进系统 Python</span>
+pipx<span class="w"> </span>install<span class="w"> </span>&lt;工具名&gt;<span class="w">                            </span><span class="c1"># 推荐：自动建隔离 venv 并加进 PATH</span>
+</code></pre></div></div>
+
+<p>做项目时更规范的是 <code>python3 -m venv ~/venv &amp;&amp; source ~/venv/bin/activate</code>。</p>
+<hr />
+<h2 id="wsl-vmware_1">六、网络：WSL 和 VMware 的根本差异</h2>
+<p>这是两者差距最大、也最容易踩坑的地方。</p>
+<h3 id="61-wsl2-nat">6.1 WSL2 默认是 NAT，只有一张网卡</h3>
+<p>实测数据（同一台机器）：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>WSL:     eth0 = 172.22.80.234/20   网关 172.22.80.1   DNS 10.255.255.254
+Windows: vEthernet (WSL (Hyper-V firewall)) = 172.22.80.1   ← 这就是 WSL 的网关
+         WLAN (Intel Wi-Fi 6 AX203) = 10.47.10.28           ← 真实外网出口
+VMware:  VMnet8 = 192.168.198.1 (NAT)   VMnet1 = 192.168.242.1 (仅主机)
+</code></pre></div></div>
+
+<p>链路是：<code>eth0 → vEthernet(WSL) → Windows NAT 转换 → WLAN → 路由器</code>。</p>
+<p>那个 <code>172.22.80.0/20</code> 网段里<strong>只有 WSL 自己和网关（Windows）两个成员</strong>，不像 VMnet8 是个真的虚拟交换机，能挂多台机器。</p>
+<h3 id="62">6.2 能力对照</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>能力</th>
+<th>WSL2（默认 NAT）</th>
+<th>VMware</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>网卡数量</td>
+<td>固定 1 张</td>
+<td>可加多张</td>
+</tr>
+<tr>
+<td>多网段隔离实验</td>
+<td>❌</td>
+<td>✅（VMnet1 + VMnet8 两个网段）</td>
+</tr>
+<tr>
+<td>桥接拿局域网真实 IP</td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>被局域网其他机器访问</td>
+<td>❌</td>
+<td>✅（桥接）</td>
+</tr>
+<tr>
+<td>从 Windows 访问服务</td>
+<td>✅ <code>localhost:端口</code> 自动转发</td>
+<td>要确认网段和防火墙</td>
+</tr>
+<tr>
+<td><strong>ARP 扫描 / netdiscover</strong></td>
+<td>❌ 基本无效</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>模拟断网 / 换网段</td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>抓包（干净流量）</td>
+<td>抓 vEthernet，源地址已被 NAT 改写</td>
+<td>抓 VMnet，原始流量</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="63">6.3 三条实际影响</h3>
+<p><strong>① <code>arp-scan</code> / <code>netdiscover</code> 在 WSL 里没有意义</strong></p>
+<p>ARP 不跨 NAT 边界。在 WSL 里扫 <code>172.22.80.0/20</code>，只能发现网关一台。要扫真实局域网 → 用 VMware Kali。扫远程公网/CTF 目标 → nmap TCP 扫描照样好使。</p>
+<p><strong>② DNS 的坑不同</strong></p>
+<p>WSL 的 <code>/etc/resolv.conf</code> 由 Windows 自动生成，内容是 <code>nameserver 10.255.255.254</code>（一个指向 Windows 解析器的代理）。没有 dhclient、没有 NetworkManager，所以不会出现"装个软件把 resolv.conf 覆盖掉导致 DNS 挂掉"的事故。</p>
+<p>要自己接管 DNS，在 <code>/etc/wsl.conf</code> 加：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="k">[network]</span>
+<span class="na">generateResolvConf</span><span class="o">=</span><span class="s">false</span>
+</code></pre></div></div>
+
+<p>然后手动写 <code>/etc/resolv.conf</code>。</p>
+<p><strong>③ 端口转发自动做</strong></p>
+<p>WSL 里起的服务（如 <code>python3 -m http.server 8000</code>），Windows 上 <code>localhost:8000</code> 直接能访问，不用配转发。这是 NAT 模式的便利；反过来 Windows 的 <code>10.47.10.28:8000</code> 局域网访问不到它。</p>
+<h3 id="64-mirrored">6.4 想要"桥接效果"：mirrored 模式</h3>
+<p>Win11 22H2+ 支持 <code>mirrored</code> 网络模式，WSL <strong>直接共享 Windows 的网卡</strong>，拿到和 Windows 一样的 IP（<code>10.47.10.28</code>），能看到真实局域网，<code>arp-scan</code> 也能用了。</p>
+<p>在 <code>C:\Users\&lt;用户&gt;\.wslconfig</code> 写：</p>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="k">[wsl2]</span>
+<span class="na">networkingMode</span><span class="o">=</span><span class="s">mirrored</span>
+</code></pre></div></div>
+
+<p>然后 <code>wsl --shutdown</code> 再生效。</p>
+<p>代价：失去独立网络环境，WSL 和 Windows 共用 IP 和端口，某些"两个 IP 互相通信"的实验效果消失。需要独立 IP 时改回 NAT。</p>
+<h3 id="65-wslconfig-vs-etcwslconf">6.5 <code>.wslconfig</code> vs <code>/etc/wsl.conf</code></h3>
+<p>两个文件容易搞混：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>文件</th>
+<th>位置</th>
+<th>管什么</th>
+<th>生效</th>
+<th>作用域</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>.wslconfig</code></td>
+<td><code>C:\Users\&lt;用户&gt;\</code></td>
+<td>虚拟机资源（内存/CPU/交换分区/内核/网络模式）</td>
+<td><code>wsl --shutdown</code></td>
+<td>所有发行版</td>
+</tr>
+<tr>
+<td><code>wsl.conf</code></td>
+<td>Linux 内 <code>/etc/wsl.conf</code></td>
+<td>该发行版的 boot/systemd、默认用户、挂载、DNS 行为</td>
+<td><code>wsl --shutdown</code></td>
+<td>单个发行版</td>
+</tr>
+</tbody>
+</table></div>
+<p>限制内存的写法（16 GB 机器建议给 WSL 上限 4–6 GB）：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># ~/\.wslconfig</span>
+<span class="k">[wsl2]</span>
+<span class="na">memory</span><span class="o">=</span><span class="s">6GB</span>
+<span class="na">processors</span><span class="o">=</span><span class="s">4</span>
+<span class="na">swap</span><span class="o">=</span><span class="s">2GB</span>
+</code></pre></div></div>
+
+<hr />
+<h2 id="_5">七、常用命令速查</h2>
+<h3 id="windows">Windows 侧</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>命令</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>wsl</code></td>
+<td>进入默认发行版</td>
+</tr>
+<tr>
+<td><code>wsl -l -v</code></td>
+<td>列出所有发行版 + 状态 + 版本</td>
+</tr>
+<tr>
+<td><code>wsl --list --online</code></td>
+<td>列出可安装的发行版</td>
+</tr>
+<tr>
+<td><code>wsl --install -d &lt;名字&gt;</code></td>
+<td>安装指定发行版</td>
+</tr>
+<tr>
+<td><code>wsl -d &lt;名字&gt;</code></td>
+<td>进入指定发行版</td>
+</tr>
+<tr>
+<td><code>wsl -u root</code></td>
+<td>以 root 进入</td>
+</tr>
+<tr>
+<td><code>wsl --shutdown</code></td>
+<td><strong>关掉所有 WSL 虚拟机</strong>（改配置后必用）</td>
+</tr>
+<tr>
+<td><code>wsl --terminate &lt;名字&gt;</code></td>
+<td>只关某一个发行版</td>
+</tr>
+<tr>
+<td><code>wsl --set-default-version 2</code></td>
+<td>新装发行版默认用 WSL2</td>
+</tr>
+<tr>
+<td>`wsl --export &lt;名字&gt; ~/</td>
+<td>备份整个发行版</td>
+</tr>
+<tr>
+<td><code>wsl --import &lt;名字&gt; ~/ backup.tar</code></td>
+<td>从备份恢复</td>
+</tr>
+<tr>
+<td><code>wsl --unregister &lt;名字&gt;</code></td>
+<td><strong>彻底删除</strong>（数据全没，慎用）</td>
+</tr>
+<tr>
+<td><code>wsl --update</code></td>
+<td>更新 WSL 本体</td>
+</tr>
+<tr>
+<td><code>wsl --version</code></td>
+<td>看 WSL/内核/WSLg 版本</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="linux-linux">Linux 侧（和普通 Linux 完全一致）</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>命令</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>whoami</code> / <code>id</code></td>
+<td>当前用户 / 完整身份</td>
+</tr>
+<tr>
+<td><code>ip -4 a</code></td>
+<td>查看 IP（WSL 里 <code>ifconfig</code> 需装 net-tools）</td>
+</tr>
+<tr>
+<td><code>ip route</code></td>
+<td>看网关</td>
+</tr>
+<tr>
+<td><code>df -h /</code></td>
+<td>磁盘用量</td>
+</tr>
+<tr>
+<td><code>sudo -l</code></td>
+<td>当前用户能 sudo 哪些命令</td>
+</tr>
+<tr>
+<td><code>cat /etc/wsl.conf</code></td>
+<td>看发行版配置</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="_6">八、踩坑清单</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>现象</th>
+<th>原因</th>
+<th>解决</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>wsl --version</code> 有输出但进不去</td>
+<td>虚拟机平台组件未生效</td>
+<td><strong>重启电脑</strong>，再看 <code>wsl --status</code></td>
+</tr>
+<tr>
+<td><code>WSL2 无法启动，因为此计算机上未启用虚拟化</code></td>
+<td>同上 / BIOS 虚拟化没开</td>
+<td>重启；或 <code>dism /online /enable-feature /featurename:VirtualMachinePlatform /all</code> 后重启</td>
+</tr>
+<tr>
+<td><code>wsl --install</code> 报 <code>WININET_E_TIMEOUT</code>，退出码却是 0</td>
+<td>拉 GitHub 分发列表超时</td>
+<td>重试；别信退出码，用 <code>wsl -l -v</code> 验证</td>
+</tr>
+<tr>
+<td>装完 <code>wsl -l -v</code> 为空</td>
+<td>用了 <code>--no-launch</code>，或只装了主体</td>
+<td>再跑一次 <code>wsl --install -d &lt;名字&gt;</code></td>
+</tr>
+<tr>
+<td>改 <code>wsl.conf</code> 不生效</td>
+<td>没重启 WSL</td>
+<td><code>wsl --shutdown</code></td>
+</tr>
+<tr>
+<td><code>pip3 install</code> 报 <code>externally-managed-environment</code></td>
+<td>PEP 668 保护</td>
+<td>加 <code>--break-system-packages</code> 或用 pipx</td>
+</tr>
+<tr>
+<td><code>.sh</code> 报 <code>$'\r': command not found</code></td>
+<td>Windows 编辑产生 CRLF</td>
+<td><code>sed -i 's/\r$//' file.sh</code></td>
+</tr>
+<tr>
+<td><code>/mnt/c</code> 里跑 npm/git 极慢</td>
+<td>9P 协议跨 VM 开销</td>
+<td>代码放 <code>~/</code>，产物再拷出去</td>
+</tr>
+<tr>
+<td>换源后 <code>apt update</code> 404</td>
+<td>阿里云没有 <code>kali-last-snapshot</code></td>
+<td>suite 改成 <code>kali-rolling</code></td>
+</tr>
+<tr>
+<td>内存占用飙高不释放</td>
+<td>WSL 虚拟机常驻</td>
+<td><code>wsl --shutdown</code>；或 <code>.wslconfig</code> 限 <code>memory=6GB</code></td>
+</tr>
+<tr>
+<td><code>arp-scan</code> 扫不到任何设备</td>
+<td>NAT 边界挡住 ARP</td>
+<td>换 VMware，或启用 mirrored 模式</td>
+</tr>
+<tr>
+<td>默认用户还是 root</td>
+<td><code>[user] default=</code> 未生效</td>
+<td>检查 <code>wsl.conf</code> 语法，<code>wsl --shutdown</code> 后重进</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="_7">九、和现有环境的定位</h2>
+<p>本机同时有 <strong>VMware Kali</strong> 和 <strong>WSL Kali</strong>，两者互补而非替代：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>场景</th>
+<th>用哪个</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>跑 nmap 扫公网 / CTF 目标</td>
+<td>WSL（秒启、不占内存）</td>
+</tr>
+<tr>
+<td>写 exploit、编译 payload、跑 Python 脚本</td>
+<td>WSL</td>
+</tr>
+<tr>
+<td>内网横向、两个网段通信</td>
+<td>VMware（VMnet1/8 组网）</td>
+</tr>
+<tr>
+<td>当服务器被局域网访问、做钓鱼/中间人实验</td>
+<td>VMware 桥接</td>
+</tr>
+<tr>
+<td>ARP 扫描、二层发现</td>
+<td>VMware</td>
+</tr>
+<tr>
+<td>抓包分析（干净原始流量）</td>
+<td>VMware 抓 VMnet</td>
+</tr>
+</tbody>
+</table></div>
+<p>补充：WSL2 和 VMware 的兼容性——VMware 15.5 之前版本与 Hyper-V/WSL2 不能共存（开 WSL2 后 VMware 报"不支持嵌套虚拟化"），15.5+ 已支持共存，可同时运行。</p>
+<p>参考：WSL 网络排查思路与 VMware 类似，都走"宿主机 → 虚拟网络层 → VM 内部"三层排除，详见 <code>Linux基础-虚拟机网络排查.md</code>。</p></div>
+      <div class="post-nav"><a class="pn-item prev" href="kai-yuan-lan-dui-xiang-mu-qing-dan-github.html"><span>← 上一篇</span><strong>开源蓝队项目清单（GitHub）</strong></a><span class="pn-empty"></span></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#wsl-vmware" class="toc-lv2">一、WSL 是什么，和 VMware 差在哪</a><a href="#_1" class="toc-lv2">二、安装：一条命令 + 一次重启</a><a href="#21-msi" class="toc-lv3">2.1 先认清那个 msi 文件</a><a href="#22" class="toc-lv3">2.2 正确流程</a><a href="#23" class="toc-lv3">2.3 必须重启一次（关键）</a><a href="#24" class="toc-lv3">2.4 装发行版</a><a href="#25" class="toc-lv3">2.5 验证装好了没</a><a href="#_2" class="toc-lv2">三、怎么用：三种进入方式</a><a href="#31" class="toc-lv3">3.1 直接敲命令（最常用）</a><a href="#32-windows-terminal" class="toc-lv3">3.2 开始菜单 / Windows Terminal</a><a href="#33-wsl-windows" class="toc-lv3">3.3 从 WSL 里调 Windows 程序</a><a href="#_3" class="toc-lv2">四、文件系统：两套盘怎么互通</a><a href="#41-windows-mnt" class="toc-lv3">4.1 Windows 盘挂到 /mnt</a><a href="#42-linux" class="toc-lv3">4.2 Linux 根文件系统在哪</a><a href="#43-510" class="toc-lv3">4.3 性能坑：跨盘操作慢 5–10 倍</a><a href="#44" class="toc-lv3">4.4 编码与换行</a><a href="#_4" class="toc-lv2">五、初始化配置（装完必做）</a><a href="#51-sudo" class="toc-lv3">5.1 建普通用户 + 配 sudo</a><a href="#52-u-root" class="toc-lv3">5.2 改默认用户（省掉每次 -u root）</a><a href="#53-apt" class="toc-lv3">5.3 换 apt 源（国内必做）</a><a href="#54" class="toc-lv3">5.4 装常用工具</a><a href="#55-pip-pep-668" class="toc-lv3">5.5 pip 的 PEP 668 坑</a><a href="#wsl-vmware_1" class="toc-lv2">六、网络：WSL 和 VMware 的根本差异</a><a href="#61-wsl2-nat" class="toc-lv3">6.1 WSL2 默认是 NAT，只有一张网卡</a><a href="#62" class="toc-lv3">6.2 能力对照</a><a href="#63" class="toc-lv3">6.3 三条实际影响</a><a href="#64-mirrored" class="toc-lv3">6.4 想要&quot;桥接效果&quot;：mirrored 模式</a><a href="#65-wslconfig-vs-etcwslconf" class="toc-lv3">6.5 .wslconfig vs /etc/wsl.conf</a><a href="#_5" class="toc-lv2">七、常用命令速查</a><a href="#windows" class="toc-lv3">Windows 侧</a><a href="#linux-linux" class="toc-lv3">Linux 侧（和普通 Linux 完全一致）</a><a href="#_6" class="toc-lv2">八、踩坑清单</a><a href="#_7" class="toc-lv2">九、和现有环境的定位</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>基本数据类型 · pressure-J</title>
+<meta name="description" content="在python中除int,float,char三中类型之外，还有字节(bytes)，元组(tuple)，列表(list),集合(set)和字典(dict)等类型">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/ji-ben-shu-ju-lei-xing.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="基本数据类型 · pressure-J">
+<meta property="og:description" content="在python中除int,float,char三中类型之外，还有字节(bytes)，元组(tuple)，列表(list),集合(set)和字典(dict)等类型">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/python.html">Python</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>基本数据类型</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-python">Python</span>
+          <time datetime="2025-10-16">2025-10-16</time>
+          <span>6415 字</span>
+          <span>约 17 分钟</span>
+        </div>
+        <div class="chips post-tags"><span class="chip">python</span></div>
+      </header>
+      <div class="content"><p>在python中除int,float,char三中类型之外，还有字节(bytes)，元组(tuple)，列表(list),集合(set)和字典(dict)等类型</p>
+<h2 id="_1">元组(不可变，有序)</h2>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">t1</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>          <span class="c1"># 标准创建</span>
+<span class="n">t2</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span>            <span class="c1"># 括号可省略</span>
+<span class="n">single</span> <span class="o">=</span> <span class="p">(</span><span class="mi">7</span><span class="p">,)</span>           <span class="c1"># 单元素元组（必须加逗号）</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">t1</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>            <span class="c1"># 1 → 索引访问</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">t1</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>           <span class="c1"># (2, 3) → 切片</span>
+<span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="n">t1</span>            <span class="c1"># 解包赋值</span>
+<span class="n">new_t</span> <span class="o">=</span> <span class="n">t1</span> <span class="o">+</span> <span class="p">(</span><span class="mi">4</span><span class="p">,)</span>       <span class="c1"># (1, 2, 3, 4) → 连接</span>
+<span class="n">rep_t</span> <span class="o">=</span> <span class="n">t1</span> <span class="o">*</span> <span class="mi">2</span>          <span class="c1"># (1, 2, 3, 1, 2, 3) → 重复</span>
+<span class="n">t1</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>             <span class="c1"># 1 → 元素索引，输入元素，返回第一个索引</span>
+<span class="n">t1</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>             <span class="c1"># 1 → 元素计数，输入元素，返回元组中该元素个数</span>
+<span class="nb">len</span><span class="p">(</span><span class="n">t1</span><span class="p">)</span>                 <span class="c1"># 3 → 长度</span>
+</code></pre></div></div>
+
+<h2 id="_2">列表(可变，有序)</h2>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">lst</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="s2">"a"</span><span class="p">,</span> <span class="kc">True</span><span class="p">]</span>    <span class="c1"># 混合类型</span>
+<span class="n">empty</span> <span class="o">=</span> <span class="p">[]</span>              <span class="c1"># 空列表</span>
+<span class="n">nested</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">]]</span> <span class="c1"># 嵌套列表</span>
+<span class="n">lst</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>           <span class="c1"># [1, "a", True, 4]</span>
+<span class="n">lst</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s2">"b"</span><span class="p">)</span>      <span class="c1"># [1, "b", "a", True, 4]</span>
+<span class="n">lst</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">100</span>            <span class="c1"># 修改元素</span>
+<span class="k">del</span> <span class="n">lst</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>              <span class="c1"># 删除索引2元素</span>
+<span class="n">lst</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>               <span class="c1"># 移除并返回末尾元素</span>
+<span class="n">lst</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s2">"a"</span><span class="p">)</span>         <span class="c1"># 移除首个匹配元素</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">lst</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>           <span class="c1"># "b" → 索引访问</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">lst</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>          <span class="c1"># 4 → 负索引</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"b"</span> <span class="ow">in</span> <span class="n">lst</span><span class="p">)</span>       <span class="c1"># True → 成员检查</span>
+<span class="n">lst</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>              <span class="c1"># 排序（同类型元素才能排序，否则报错）</span>
+<span class="n">sorted_lst</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">lst</span><span class="p">)</span> <span class="c1"># 返回新排序列表</span>
+<span class="n">lst</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">]</span>     <span class="c1"># 切片赋值</span>
+<span class="n">lst</span><span class="o">.</span><span class="n">reverse</span><span class="p">()</span>           <span class="c1"># 反转列表</span>
+<span class="n">lst</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>              <span class="c1"># 浅拷贝</span>
+</code></pre></div></div>
+
+<h2 id="_3">集合(可变，无序，不可重复)</h2>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">s1</span> <span class="o">=</span> <span class="p">{</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">}</span>          <span class="c1"># 字面量创建</span>
+<span class="n">s2</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>  <span class="c1"># {1, 2, 3} → 从列表转换（自动去重）</span>
+<span class="n">empty_set</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>       <span class="c1"># 空集合（不能用{}，这是字典）</span>
+<span class="n">s1</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>               <span class="c1"># {1, 2, 3, 4}</span>
+<span class="n">s1</span><span class="o">.</span><span class="n">update</span><span class="p">([</span><span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">])</span>       <span class="c1"># {1, 2, 3, 4, 5, 6}</span>
+<span class="n">s1</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>            <span class="c1"># 移除元素（不存在报错）</span>
+<span class="n">s1</span><span class="o">.</span><span class="n">discard</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>          <span class="c1"># 安全移除（不存在不报错）</span>
+<span class="n">s1</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>                <span class="c1"># 随机移除一个元素</span>
+<span class="n">A</span> <span class="o">=</span> <span class="p">{</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">};</span> <span class="n">B</span> <span class="o">=</span> <span class="p">{</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">}</span>
+<span class="n">A</span> <span class="o">|</span> <span class="n">B</span>   <span class="c1"># {1,2,3,4,5} → 并集</span>
+<span class="n">A</span> <span class="o">&amp;</span> <span class="n">B</span>   <span class="c1"># {3} → 交集</span>
+<span class="n">A</span> <span class="o">-</span> <span class="n">B</span>   <span class="c1"># {1,2} → 差集</span>
+<span class="n">A</span> <span class="o">^</span> <span class="n">B</span>   <span class="c1"># {1,2,4,5} → 对称差集</span>
+<span class="n">A</span> <span class="o">&lt;=</span> <span class="n">B</span>  <span class="c1"># False → 子集检查</span>
+<span class="n">A</span><span class="o">.</span><span class="n">isdisjoint</span><span class="p">(</span><span class="n">B</span><span class="p">)</span> <span class="c1"># False → 无交集检查</span>
+</code></pre></div></div>
+
+<h2 id="37">字典(可变，键唯一，3.7+ 保持插入顺序)</h2>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">d</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"name"</span><span class="p">:</span> <span class="s2">"Tom"</span><span class="p">,</span> <span class="s2">"age"</span><span class="p">:</span> <span class="mi">18</span><span class="p">}</span>   <span class="c1"># 字面量创建</span>
+<span class="n">d2</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">a</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>              <span class="c1"># 关键字创建</span>
+<span class="n">empty</span> <span class="o">=</span> <span class="p">{}</span>                       <span class="c1"># 空字典（注意 {} 是字典不是集合）</span>
+<span class="n">d</span><span class="p">[</span><span class="s2">"city"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"BJ"</span>                 <span class="c1"># 新增/修改（键存在则覆盖）</span>
+<span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"age"</span><span class="p">)</span>                     <span class="c1"># 18 → 取值（键不存在返回 None）</span>
+<span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"x"</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>                    <span class="c1"># 0 → 键不存在时返回默认值</span>
+<span class="k">del</span> <span class="n">d</span><span class="p">[</span><span class="s2">"age"</span><span class="p">]</span>                     <span class="c1"># 删除键</span>
+<span class="n">d</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"city"</span><span class="p">)</span>                    <span class="c1"># 删除并返回对应值</span>
+<span class="n">d</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>                         <span class="c1"># 所有键 dict_keys(['name'])</span>
+<span class="n">d</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>                       <span class="c1"># 所有值</span>
+<span class="n">d</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>                        <span class="c1"># 键值对 dict_items([('name', 'Tom')])</span>
+<span class="s2">"name"</span> <span class="ow">in</span> <span class="n">d</span>                      <span class="c1"># True → 成员检查（查的是键）</span>
+<span class="n">d</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">"age"</span><span class="p">:</span> <span class="mi">20</span><span class="p">})</span>            <span class="c1"># 批量更新/合并另一个字典</span>
+<span class="n">d</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">"score"</span><span class="p">,</span> <span class="mi">60</span><span class="p">)</span>        <span class="c1"># 键存在返回其值；不存在则插入默认值并返回</span>
+<span class="nb">len</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>                           <span class="c1"># 键值对个数</span>
+<span class="n">d</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>                        <span class="c1"># 清空</span>
+<span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">d</span><span class="p">:</span> <span class="o">...</span>                  <span class="c1"># 遍历键</span>
+<span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">items</span><span class="p">():</span> <span class="o">...</span>       <span class="c1"># 遍历键值对（最常用）</span>
+</code></pre></div></div>
+
+<h2 id="_4">字符串(不可变，有序)</h2>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">s</span> <span class="o">=</span> <span class="s2">"Hello Python"</span>
+<span class="n">s</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>                        <span class="c1"># 转大写</span>
+<span class="n">s</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>                        <span class="c1"># 转小写</span>
+<span class="n">s</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>                        <span class="c1"># 去两端空白（lstrip 左 / rstrip 右）</span>
+<span class="n">s</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">","</span><span class="p">)</span>                     <span class="c1"># 按分隔符切成列表</span>
+<span class="s2">"-"</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s2">"a"</span><span class="p">,</span> <span class="s2">"b"</span><span class="p">])</span>             <span class="c1"># 列表拼成字符串 → "a-b"</span>
+<span class="n">s</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">"a"</span><span class="p">,</span> <span class="s2">"b"</span><span class="p">)</span>              <span class="c1"># 替换（返回新串）</span>
+<span class="n">s</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">"Py"</span><span class="p">)</span>                     <span class="c1"># 子串索引，找不到返回 -1</span>
+<span class="n">s</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s2">"Py"</span><span class="p">)</span>                    <span class="c1"># 同 find，找不到报错</span>
+<span class="n">s</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"He"</span><span class="p">)</span>               <span class="c1"># 前缀判断（endswith 后缀）</span>
+<span class="n">s</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()</span>                      <span class="c1"># 是否全为数字（isalpha 全字母）</span>
+<span class="n">s</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>                       <span class="c1"># 左补 0 到指定长度</span>
+<span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>                           <span class="c1"># 长度</span>
+<span class="n">s</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>                          <span class="c1"># 反转</span>
+<span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">s</span><span class="si">}</span><span class="s2">!"</span>                          <span class="c1"># f-string 格式化</span>
+</code></pre></div></div>
+
+<h2 id="bytes-bytearray">字节 bytes(不可变) / bytearray(可变)</h2>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">b</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">"abc"</span>                       <span class="c1"># bytes 字面量</span>
+<span class="n">ba</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">(</span><span class="sa">b</span><span class="s2">"abc"</span><span class="p">)</span>           <span class="c1"># bytearray，元素可改</span>
+<span class="n">b</span> <span class="o">=</span> <span class="s2">"中文"</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">)</span>        <span class="c1"># str → bytes</span>
+<span class="n">s</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">)</span>            <span class="c1"># bytes → str</span>
+<span class="n">b</span><span class="o">.</span><span class="n">hex</span><span class="p">()</span>                          <span class="c1"># 转十六进制字符串</span>
+<span class="nb">bytes</span><span class="o">.</span><span class="n">fromhex</span><span class="p">(</span><span class="s2">"6162"</span><span class="p">)</span>            <span class="c1"># 十六进制 → b'ab'</span>
+<span class="nb">list</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>                          <span class="c1"># [97, 98, 99]</span>
+<span class="n">b</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>                             <span class="c1"># 97（取到的是 int，不是字符）</span>
+</code></pre></div></div>
+
+<blockquote>
+<p>str/bytes 编码细节见 <code>Python3-str与bytes编码.md</code>。</p>
+</blockquote>
+<h2 id="_5">数据转换（类型之间 + 进制之间）</h2>
+<blockquote>
+<p>场景：解题时数据在 int / str / bytes / list / hex 串之间来回倒；以及"十进制转 8 位二进制"这类格式需求。<br />
+下面每条的输出都在本机 <code>py</code> 实际跑过。</p>
+</blockquote>
+<h3 id="1">1. 数值类型之间</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="nb">int</span><span class="p">(</span><span class="mf">3.9</span><span class="p">)</span>        <span class="c1"># 3      浮点→整数：直接丢掉小数，不是四舍五入</span>
+<span class="nb">int</span><span class="p">(</span><span class="o">-</span><span class="mf">3.9</span><span class="p">)</span>       <span class="c1"># -3     向零截断</span>
+<span class="nb">round</span><span class="p">(</span><span class="mf">3.5</span><span class="p">)</span>      <span class="c1"># 4      四舍五入？不完全是</span>
+<span class="nb">round</span><span class="p">(</span><span class="mf">2.5</span><span class="p">)</span>      <span class="c1"># 2      因为 round 是"银行家舍入"（.5 取偶）：2.5→2、3.5→4</span>
+<span class="nb">round</span><span class="p">(</span><span class="mf">3.14159</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>  <span class="c1"># 3.14  保留两位</span>
+<span class="nb">float</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>        <span class="c1"># 3.0    整数→浮点</span>
+<span class="nb">abs</span><span class="p">(</span><span class="o">-</span><span class="mi">5</span><span class="p">)</span>         <span class="c1"># 5      取绝对值</span>
+<span class="nb">bool</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>         <span class="c1"># False  0/0.0/""/[]/{}/None → False，其余 True</span>
+<span class="nb">bool</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>         <span class="c1"># True</span>
+</code></pre></div></div>
+
+<blockquote>
+<p>坑：<strong>想四舍五入别用 <code>int()</code></strong>。真要四舍五入用 <code>int(x + 0.5)</code>（正数）或 <code>round()</code>（但它按 .5 取偶）。</p>
+</blockquote>
+<h3 id="2">2. 数值 ↔ 字符串</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="nb">str</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>          <span class="c1"># '42'</span>
+<span class="nb">int</span><span class="p">(</span><span class="s2">"42"</span><span class="p">)</span>        <span class="c1"># 42     字符串→整数</span>
+<span class="nb">int</span><span class="p">(</span><span class="s2">"  42  "</span><span class="p">)</span>    <span class="c1"># 42     两端空白会被自动忽略</span>
+<span class="nb">float</span><span class="p">(</span><span class="s2">"3.14"</span><span class="p">)</span>    <span class="c1"># 3.14</span>
+<span class="nb">int</span><span class="p">(</span><span class="s2">"3.14"</span><span class="p">)</span>      <span class="c1"># ❌ ValueError：int() 不吃小数点和指数</span>
+<span class="nb">int</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="s2">"3.14"</span><span class="p">))</span>  <span class="c1"># 3    想转小数串就先 float 再 int</span>
+<span class="nb">str</span><span class="p">(</span><span class="mf">3.14000</span><span class="p">)</span>     <span class="c1"># '3.14' 转成字符串后多余 0 就没了</span>
+</code></pre></div></div>
+
+<h3 id="3-ascii">3. 字符串 ↔ 列表（字符 / ASCII 码）</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="nb">list</span><span class="p">(</span><span class="s2">"abc"</span><span class="p">)</span>                        <span class="c1"># ['a', 'b', 'c']</span>
+<span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s1">'a'</span><span class="p">,</span> <span class="s1">'b'</span><span class="p">,</span> <span class="s1">'c'</span><span class="p">])</span>           <span class="c1"># 'abc'     列表拼回字符串</span>
+<span class="s2">"1 2 3"</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>                    <span class="c1"># ['1', '2', '3']  按空白拆（空格/换行/制表符都行）</span>
+<span class="s2">"a,b,c"</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">","</span><span class="p">)</span>                 <span class="c1"># ['a', 'b', 'c']  按指定分隔符拆</span>
+<span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="s2">"1 2 3"</span><span class="o">.</span><span class="n">split</span><span class="p">()))</span>    <span class="c1"># [1, 2, 3]        拆完顺手转 int</span>
+
+<span class="s1">''</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">chr</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">102</span><span class="p">,</span> <span class="mi">108</span><span class="p">,</span> <span class="mi">97</span><span class="p">,</span> <span class="mi">103</span><span class="p">])</span>   <span class="c1"># 'flag'  数字列表 → 字符串</span>
+<span class="p">[</span><span class="nb">ord</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="s2">"flag"</span><span class="p">]</span>                       <span class="c1"># [102, 108, 97, 103] 字符串 → 数字列表</span>
+</code></pre></div></div>
+
+<blockquote>
+<p>CTF 高频：题目给 <code>83 89 78 84</code> 这种串 → <code>list(map(int, s.split()))</code> → <code>chr</code> 变字符。</p>
+</blockquote>
+<h3 id="4">4. 容器之间互转</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="nb">list</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>          <span class="c1"># [1, 2, 3]          元组→列表</span>
+<span class="nb">tuple</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>         <span class="c1"># (1, 2, 3)          列表→元组</span>
+<span class="nb">set</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>        <span class="c1"># {1, 2, 3}          转集合顺手去重</span>
+<span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">([</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]))</span>   <span class="c1"># [1, 2, 3]          集合无序，要顺序就 sorted</span>
+<span class="nb">list</span><span class="p">({</span><span class="s2">"a"</span><span class="p">:</span> <span class="mi">1</span><span class="p">}</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>    <span class="c1"># ['a']              字典键→列表</span>
+<span class="nb">list</span><span class="p">({</span><span class="s2">"a"</span><span class="p">:</span> <span class="mi">1</span><span class="p">}</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>   <span class="c1"># [('a', 1)]         键值对→列表</span>
+<span class="nb">dict</span><span class="p">([(</span><span class="s2">"a"</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="s2">"b"</span><span class="p">,</span> <span class="mi">2</span><span class="p">)])</span>   <span class="c1"># {'a': 1, 'b': 2}  键值对列表→字典</span>
+<span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="s2">"ab"</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]))</span>      <span class="c1"># {'a': 1, 'b': 2}  zip 成对再转字典</span>
+</code></pre></div></div>
+
+<h3 id="5-bytes">5. 字符串 ↔ bytes（编码）</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="s2">"flag"</span><span class="o">.</span><span class="n">encode</span><span class="p">()</span>          <span class="c1"># b'flag'    str → bytes</span>
+<span class="sa">b</span><span class="s2">"flag"</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>         <span class="c1"># 'flag'     bytes → str</span>
+<span class="s2">"中文"</span><span class="o">.</span><span class="n">encode</span><span class="p">()</span>          <span class="c1"># b'\xe4\xb8\xad\xe6\x96\x87'  UTF-8 下一个汉字 3 字节</span>
+<span class="nb">len</span><span class="p">(</span><span class="s2">"中文"</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>     <span class="c1"># 6</span>
+
+<span class="sa">b</span><span class="s2">"flag"</span><span class="o">.</span><span class="n">hex</span><span class="p">()</span>            <span class="c1"># '666c6167' bytes → 十六进制串</span>
+<span class="nb">bytes</span><span class="o">.</span><span class="n">fromhex</span><span class="p">(</span><span class="s2">"666c6167"</span><span class="p">)</span>     <span class="c1"># b'flag'  十六进制串 → bytes</span>
+<span class="nb">list</span><span class="p">(</span><span class="sa">b</span><span class="s2">"abc"</span><span class="p">)</span>             <span class="c1"># [97, 98, 99]   bytes→整数列表（每个元素本来就是 0-255 的 int）</span>
+<span class="nb">bytes</span><span class="p">([</span><span class="mi">97</span><span class="p">,</span> <span class="mi">98</span><span class="p">,</span> <span class="mi">99</span><span class="p">])</span>      <span class="c1"># b'abc'        整数列表→bytes</span>
+<span class="sa">b</span><span class="s2">"abc"</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>                <span class="c1"># 97            取出来是 int，不是字符</span>
+</code></pre></div></div>
+
+<p><strong>整数 ↔ bytes</strong>（RSA 解出大整数要变明文就靠它）：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">n</span> <span class="o">=</span> <span class="mi">123456789</span>
+<span class="n">n</span><span class="o">.</span><span class="n">to_bytes</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="s2">"big"</span><span class="p">)</span>           <span class="c1"># b'\x07[\xcd\x15'  整数→bytes，指定字节数</span>
+<span class="n">n</span><span class="o">.</span><span class="n">to_bytes</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="s2">"big"</span><span class="p">)</span><span class="o">.</span><span class="n">hex</span><span class="p">()</span>     <span class="c1"># '075bcd15'</span>
+<span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="sa">b</span><span class="s2">"</span><span class="se">\x07</span><span class="s2">[</span><span class="se">\xcd\x15</span><span class="s2">"</span><span class="p">,</span> <span class="s2">"big"</span><span class="p">)</span>   <span class="c1"># 123456789  bytes→整数</span>
+</code></pre></div></div>
+
+<blockquote>
+<p>大整数不知道长度时：<code>(n.bit_length() + 7) // 8</code> 算字节数。<code>"big"</code> 是大端（高位在前），CTF 里几乎都用它。</p>
+</blockquote>
+<h3 id="6">6. 进制转换（重点）</h3>
+<h4 id="61">6.1 十进制 → 二/八/十六进制</h4>
+<p>三种写法，看你要不要前缀：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="nb">bin</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>      <span class="c1"># '0b1010'   带前缀</span>
+<span class="nb">oct</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>      <span class="c1"># '0o12'</span>
+<span class="nb">hex</span><span class="p">(</span><span class="mi">255</span><span class="p">)</span>     <span class="c1"># '0xff'</span>
+
+<span class="nb">format</span><span class="p">(</span><span class="mi">255</span><span class="p">,</span> <span class="s2">"b"</span><span class="p">)</span>   <span class="c1"># '11111111'  不带前缀</span>
+<span class="nb">format</span><span class="p">(</span><span class="mi">255</span><span class="p">,</span> <span class="s2">"x"</span><span class="p">)</span>   <span class="c1"># 'ff'</span>
+<span class="nb">format</span><span class="p">(</span><span class="mi">255</span><span class="p">,</span> <span class="s2">"#x"</span><span class="p">)</span>  <span class="c1"># '0xff'      想要前缀就加 #</span>
+<span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="mi">255</span><span class="si">:</span><span class="s2">x</span><span class="si">}</span><span class="s2">"</span>         <span class="c1"># 'ff'        f-string 里同样可用</span>
+</code></pre></div></div>
+
+<h4 id="62-8">6.2 按固定宽度输出（为什么要 8 位二进制）</h4>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="nb">format</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="s2">"08b"</span><span class="p">)</span>     <span class="c1"># '00000101'   8 位二进制，左侧补 0</span>
+<span class="nb">format</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="s2">"02x"</span><span class="p">)</span>     <span class="c1"># '05'         2 位十六进制</span>
+<span class="nb">bin</span><span class="p">(</span><span class="mi">5</span><span class="p">)[</span><span class="mi">2</span><span class="p">:]</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>  <span class="c1"># '00000101'   不用 format 的等价写法</span>
+<span class="nb">format</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span> <span class="o">&amp;</span> <span class="mh">0xFF</span><span class="p">,</span> <span class="s2">"08b"</span><span class="p">)</span>   <span class="c1"># '11111111'   负数要按补码就与 0xFF 掩一下</span>
+</code></pre></div></div>
+
+<blockquote>
+<p>格式说明符 <code>08b</code> 拆开看：<code>0</code> = 补 0，<code>8</code> = 总宽度（不足补齐、超了原样输出），<code>b</code>/<code>x</code>/<code>o</code> = 二/十六/八进制。<br />
+注意<strong>不做截断</strong>：<code>format(256, "08b")</code> 得到 9 位 <code>'100000000'</code>，要严格 8 位先 <code>n &amp; 0xFF</code>。</p>
+</blockquote>
+<h4 id="63">6.3 任意进制 ↔ 十进制</h4>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="nb">int</span><span class="p">(</span><span class="s2">"1010"</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>    <span class="c1"># 10     二进制串 → 十进制</span>
+<span class="nb">int</span><span class="p">(</span><span class="s2">"777"</span><span class="p">,</span> <span class="mi">8</span><span class="p">)</span>     <span class="c1"># 511    八进制串 → 十进制</span>
+<span class="nb">int</span><span class="p">(</span><span class="s2">"ff"</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>     <span class="c1"># 255    十六进制串 → 十进制</span>
+<span class="nb">int</span><span class="p">(</span><span class="s2">"0x1f"</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>   <span class="c1"># 31     带前缀也能认（base 写 16 时 0x 可留可去）</span>
+<span class="nb">int</span><span class="p">(</span><span class="s2">"10"</span><span class="p">,</span> <span class="mi">36</span><span class="p">)</span>     <span class="c1"># 36     base 最大 36，用 0-9 a-z 表示，能当"字符串哈希"用</span>
+</code></pre></div></div>
+
+<p><strong>反过来（十进制 → 任意进制）没有内置函数</strong>，手写五行：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">to_base</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">base</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">n</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">"0"</span>
+    <span class="n">digits</span> <span class="o">=</span> <span class="s2">"0123456789abcdefghijklmnopqrstuvwxyz"</span>
+    <span class="n">sign</span> <span class="o">=</span> <span class="s2">"-"</span> <span class="k">if</span> <span class="n">n</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="s2">""</span>
+    <span class="n">n</span><span class="p">,</span> <span class="n">out</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">n</span><span class="p">),</span> <span class="s2">""</span>
+    <span class="k">while</span> <span class="n">n</span><span class="p">:</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">digits</span><span class="p">[</span><span class="n">n</span> <span class="o">%</span> <span class="n">base</span><span class="p">]</span> <span class="o">+</span> <span class="n">out</span>   <span class="c1"># 取余得当前位，除基继续</span>
+        <span class="n">n</span> <span class="o">//=</span> <span class="n">base</span>
+    <span class="k">return</span> <span class="n">sign</span> <span class="o">+</span> <span class="n">out</span>
+
+<span class="n">to_base</span><span class="p">(</span><span class="mi">255</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>   <span class="c1"># 'ff'</span>
+<span class="n">to_base</span><span class="p">(</span><span class="mi">255</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>    <span class="c1"># '11111111'</span>
+<span class="n">to_base</span><span class="p">(</span><span class="mi">1000</span><span class="p">,</span> <span class="mi">7</span><span class="p">)</span>   <span class="c1"># '2626'      验证：int('2626', 7) == 1000</span>
+</code></pre></div></div>
+
+<h4 id="64-0-16">6.4 常用对照表（记住 0-16）</h4>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>十进制</th>
+<th>二进制</th>
+<th>八进制</th>
+<th>十六进制</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td><code>0b0</code></td>
+<td><code>0o0</code></td>
+<td><code>0x0</code></td>
+</tr>
+<tr>
+<td>1</td>
+<td><code>0b1</code></td>
+<td><code>0o1</code></td>
+<td><code>0x1</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>0b10</code></td>
+<td><code>0o2</code></td>
+<td><code>0x2</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>0b11</code></td>
+<td><code>0o3</code></td>
+<td><code>0x3</code></td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>0b100</code></td>
+<td><code>0o4</code></td>
+<td><code>0x4</code></td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>0b101</code></td>
+<td><code>0o5</code></td>
+<td><code>0x5</code></td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>0b110</code></td>
+<td><code>0o6</code></td>
+<td><code>0x6</code></td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>0b111</code></td>
+<td><code>0o7</code></td>
+<td><code>0x7</code></td>
+</tr>
+<tr>
+<td>8</td>
+<td><code>0b1000</code></td>
+<td><code>0o10</code></td>
+<td><code>0x8</code></td>
+</tr>
+<tr>
+<td>9</td>
+<td><code>0b1001</code></td>
+<td><code>0o11</code></td>
+<td><code>0x9</code></td>
+</tr>
+<tr>
+<td>10</td>
+<td><code>0b1010</code></td>
+<td><code>0o12</code></td>
+<td><code>0xa</code></td>
+</tr>
+<tr>
+<td>11</td>
+<td><code>0b1011</code></td>
+<td><code>0o13</code></td>
+<td><code>0xb</code></td>
+</tr>
+<tr>
+<td>12</td>
+<td><code>0b1100</code></td>
+<td><code>0o14</code></td>
+<td><code>0xc</code></td>
+</tr>
+<tr>
+<td>13</td>
+<td><code>0b1101</code></td>
+<td><code>0o15</code></td>
+<td><code>0xd</code></td>
+</tr>
+<tr>
+<td>14</td>
+<td><code>0b1110</code></td>
+<td><code>0o16</code></td>
+<td><code>0xe</code></td>
+</tr>
+<tr>
+<td>15</td>
+<td><code>0b1111</code></td>
+<td><code>0o17</code></td>
+<td><code>0xf</code></td>
+</tr>
+<tr>
+<td>16</td>
+<td><code>0b10000</code></td>
+<td><code>0o20</code></td>
+<td><code>0x10</code></td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>二进制 ↔ 十六进制的关系：<strong>1 位十六进制 = 4 位二进制</strong>。<code>0xf</code> = <code>1111</code>，所以 <code>0xff</code> = <code>1111 1111</code>。<br />
+反过来换算：<code>hex(int("1010", 2))</code> → <code>'0xa'</code>（先转十进制再转十六进制）。</p>
+</blockquote>
+<h3 id="7">7. 容易踩的坑</h3>
+<ol>
+<li><strong>转换函数只认整数，不认浮点</strong>：<code>bin(3.0)</code>、<code>hex(3.0)</code> 都报 <code>TypeError</code>，得先 <code>int()</code>。</li>
+<li><strong>负数不会被当补码</strong>：<code>bin(-5)</code> → <code>'-0b101'</code>（带负号），要 8 位补码用 <code>format(-5 &amp; 0xFF, "08b")</code>。</li>
+<li><strong>bytes 和 str 之间没有隐式转换</strong>：<code>str(b"abc")</code> 得到 <code>"b'abc'"</code>（连 b 和引号一起），要 <code>b"abc".decode()</code>。<code>int(b"42")</code> 倒是能工作。</li>
+<li><strong><code>format(n, "08b")</code> 不是"截断到 8 位"</strong>，是"至少 8 位"。想截断用 <code>n &amp; 0xFF</code>。</li>
+<li><strong>集合转列表顺序不固定</strong>，要稳定顺序一律 <code>sorted(set(...))</code>。</li>
+</ol>
+<h3 id="8">8. 一图串起常见解题链路</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># hex 串 → 整数 → 字节 → 明文（RSA 结尾常用）</span>
+<span class="n">h</span> <span class="o">=</span> <span class="s2">"68656c6c6f"</span>
+<span class="n">m</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>                    <span class="c1"># 十进制整数</span>
+<span class="n">m</span><span class="o">.</span><span class="n">to_bytes</span><span class="p">((</span><span class="n">m</span><span class="o">.</span><span class="n">bit_length</span><span class="p">()</span> <span class="o">+</span> <span class="mi">7</span><span class="p">)</span> <span class="o">//</span> <span class="mi">8</span><span class="p">,</span> <span class="s2">"big"</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>   <span class="c1"># 'hello'</span>
+
+<span class="c1"># 数字串 → 字符（凯撒/ASCII 题）</span>
+<span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="s2">"102 108 97 103"</span><span class="o">.</span><span class="n">split</span><span class="p">()))</span>   <span class="c1"># [102, 108, 97, 103]</span>
+<span class="s1">''</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">chr</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">102</span><span class="p">,</span> <span class="mi">108</span><span class="p">,</span> <span class="mi">97</span><span class="p">,</span> <span class="mi">103</span><span class="p">])</span>   <span class="c1"># 'flag'</span>
+
+<span class="c1"># 十进制 → 8 位二进制（掩码/位运算题）</span>
+<span class="nb">format</span><span class="p">(</span><span class="mh">0x5A</span><span class="p">,</span> <span class="s2">"08b"</span><span class="p">)</span>   <span class="c1"># '01011010'</span>
+</code></pre></div></div>
+
+<p><em>最后更新：2026年10月4日</em></p></div>
+      <div class="post-nav"><a class="pn-item prev" href="ji-chu-mi-ma-xue.html"><span>← 上一篇</span><strong>基础密码学</strong></a><a class="pn-item next" href="shu-ju-cao-zuo.html"><span>下一篇 →</span><strong>数据操作</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">元组(不可变，有序)</a><a href="#_2" class="toc-lv2">列表(可变，有序)</a><a href="#_3" class="toc-lv2">集合(可变，无序，不可重复)</a><a href="#37" class="toc-lv2">字典(可变，键唯一，3.7+ 保持插入顺序)</a><a href="#_4" class="toc-lv2">字符串(不可变，有序)</a><a href="#bytes-bytearray" class="toc-lv2">字节 bytes(不可变) / bytearray(可变)</a><a href="#_5" class="toc-lv2">数据转换（类型之间 + 进制之间）</a><a href="#1" class="toc-lv3">1. 数值类型之间</a><a href="#2" class="toc-lv3">2. 数值 ↔ 字符串</a><a href="#3-ascii" class="toc-lv3">3. 字符串 ↔ 列表（字符 / ASCII 码）</a><a href="#4" class="toc-lv3">4. 容器之间互转</a><a href="#5-bytes" class="toc-lv3">5. 字符串 ↔ bytes（编码）</a><a href="#6" class="toc-lv3">6. 进制转换（重点）</a><a href="#7" class="toc-lv3">7. 容易踩的坑</a><a href="#8" class="toc-lv3">8. 一图串起常见解题链路</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

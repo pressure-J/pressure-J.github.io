@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>密码学 · pressure-J</title>
+<meta name="description" content="RSA 攻击家族、流密码、国密算法与格密码入门">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/category/crypto.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="密码学 · pressure-J">
+<meta property="og:description" content="RSA 攻击家族、流密码、国密算法与格密码入门">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html">文章</a><a href="../category/index.html" class="on">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap section">
+  <nav class="breadcrumb"><a href="../index.html">首页</a><span>/</span>分类</nav>
+  <header class="page-head page-head-cat">
+    <h1><span class="cat-badge cat-crypto">密码学</span> 32 篇</h1>
+    <p>RSA 攻击家族、流密码、国密算法与格密码入门</p>
+  </header>
+  <div class="post-list"><article class="post-card" data-cat="crypto"
+     data-hay="离散对数问题（dlp） 已知 $g$ 和 $h$，求指数 $x$ 使 $g^x \equiv h$。 正向算幂很快（快速幂，$o(\log x)$ 次乘法），反向求指数很慢，这就是单向性的来源。 ">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="../category/crypto.html">密码学</a>
+    <time datetime="2026-10-17">2026-10-17</time>
+  </div>
+  <h3><a href="../posts/li-san-dui-shu-wen-ti-dlp.html">离散对数问题（DLP）</a></h3>
+  <p class="card-desc">已知 $g$ 和 $h$，求指数 $x$ 使 $g^x \equiv h$。 正向算幂很快（快速幂，$O(\log x)$ 次乘法），反向求指数很慢，这就是单向性的来源。</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">8 min · 2860 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="密码学常用函数速查 为什么一定要用它：(3100) % 7 是先把 3^100 这个天文数字完整算出来再取模。实测： crypto python 工具">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="../category/crypto.html">密码学</a>
+    <time datetime="2026-10-15">2026-10-15</time>
+  </div>
+  <h3><a href="../posts/mi-ma-xue-chang-yong-han-shu-su-cha.html">密码学常用函数速查</a></h3>
+  <p class="card-desc">为什么一定要用它：(3100) % 7 是先把 3^100 这个天文数字完整算出来再取模。实测：</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span><span class="chip">python</span><span class="chip">工具</span></div>
+    <span class="reading">38 min · 14613 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="古典密码 拿到一串东西，先判断它属于哪一层，再谈破法： ">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="../category/crypto.html">密码学</a>
+    <time datetime="2026-10-14">2026-10-14</time>
+  </div>
+  <h3><a href="../posts/gu-dian-mi-ma.html">古典密码</a></h3>
+  <p class="card-desc">拿到一串东西，先判断它属于哪一层，再谈破法：</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">23 min · 8774 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="sm2-椭圆曲线公钥算法原理与攻击 国密椭圆曲线公钥密码算法，标准号 gm/t 0003。曲线固定为 256 位素域曲线，支持签名、密钥交换、公钥加密三种功能。对标 ecdsa/ecdh/ecies，但三处关键设计不同（见第 3 节）。 crypto ecc sm2">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="../category/crypto.html">密码学</a>
+    <time datetime="2026-10-14">2026-10-14</time>
+  </div>
+  <h3><a href="../posts/sm2-tuo-yuan-qu-xian-gong-yao-suan-fa-yuan-li-yu-gong-ji.html">SM2-椭圆曲线公钥算法原理与攻击</a></h3>
+  <p class="card-desc">国密椭圆曲线公钥密码算法，标准号 GM/T 0003。曲线固定为 256 位素域曲线，支持签名、密钥交换、公钥加密三种功能。对标 ECDSA/ECDH/ECIES，但三处关键设计不同（见第 3 节）。</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span><span class="chip">ecc</span><span class="chip">sm2</span></div>
+    <span class="reading">19 min · 7121 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="sm4-分组密码原理与攻击 国密分组对称密码，标准号 gm/t 0002（旧称 sms4，gb/t 32907）。分组 128 bit、密钥 128 bit，32 轮。设计目标是替代 aes，抗差分/线性分析强度与 aes 同级。 crypto symmetric sm4">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="../category/crypto.html">密码学</a>
+    <time datetime="2026-10-14">2026-10-14</time>
+  </div>
+  <h3><a href="../posts/sm4-fen-zu-mi-ma-yuan-li-yu-gong-ji.html">SM4-分组密码原理与攻击</a></h3>
+  <p class="card-desc">国密分组对称密码，标准号 GM/T 0002（旧称 SMS4，GB/T 32907）。分组 128 bit、密钥 128 bit，32 轮。设计目标是替代 AES，抗差分/线性分析强度与 AES 同级。</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span><span class="chip">symmetric</span><span class="chip">sm4</span></div>
+    <span class="reading">15 min · 5739 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="sm3-杂凑算法原理与攻击 国密密码杂凑算法，标准号 gm/t 0004（gb/t 32905）。输入任意长度，输出固定 256 bit 摘要（8 个 32 位字）。设计对标 sha-256，同为 merkle–damgård 结构。 crypto hash sm3">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="../category/crypto.html">密码学</a>
+    <time datetime="2026-10-14">2026-10-14</time>
+  </div>
+  <h3><a href="../posts/sm3-za-cou-suan-fa-yuan-li-yu-gong-ji.html">SM3-杂凑算法原理与攻击</a></h3>
+  <p class="card-desc">国密密码杂凑算法，标准号 GM/T 0004（GB/T 32905）。输入任意长度，输出固定 256 bit 摘要（8 个 32 位字）。设计对标 SHA-256，同为 Merkle–Damgård 结构。</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span><span class="chip">hash</span><span class="chip">sm3</span></div>
+    <span class="reading">15 min · 5587 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="国密算法总览 国产商用密码算法族。算法原理与攻击面已拆成三篇独立笔记，本篇只留体系总表、选型导航与公共工具链。 crypto sm2 sm3 sm4">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="../category/crypto.html">密码学</a>
+    <time datetime="2026-10-14">2026-10-14</time>
+  </div>
+  <h3><a href="../posts/guo-mi-suan-fa-zong-lan.html">国密算法总览</a></h3>
+  <p class="card-desc">国产商用密码算法族。算法原理与攻击面已拆成三篇独立笔记，本篇只留体系总表、选型导航与公共工具链。</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span><span class="chip">sm2</span><span class="chip">sm3</span></div>
+    <span class="reading">8 min · 3011 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="国密速通卡 为什么不用懂内部：这些算法本身都是安全的。出题人破不了算法，只能利用： crypto sm2 sm3 sm4 cheatsheet">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="../category/crypto.html">密码学</a>
+    <time datetime="2026-10-14">2026-10-14</time>
+  </div>
+  <h3><a href="../posts/guo-mi-su-tong-ka.html">国密速通卡</a></h3>
+  <p class="card-desc">为什么不用懂内部：这些算法本身都是安全的。出题人破不了算法，只能利用：</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span><span class="chip">sm2</span><span class="chip">sm3</span></div>
+    <span class="reading">5 min · 1951 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="fcsr线性化攻击-f-fcsr状态恢复 &gt; 考点：滤波式 fcsr 的线性化攻击（hell–johansson），把非线性进位寄存器&quot;冻住&quot;后整个密码退化成线性系统。 crypto stream-cipher fcsr state-recovery">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="../category/crypto.html">密码学</a>
+    <time datetime="2026-10-12">2026-10-12</time>
+  </div>
+  <h3><a href="../posts/fcsr-xian-xing-hua-gong-ji-f-fcsr-zhuang-tai-hui-fu.html">FCSR线性化攻击-F-FCSR状态恢复</a></h3>
+  <p class="card-desc">&gt; 考点：滤波式 FCSR 的线性化攻击（Hell–Johansson），把非线性进位寄存器&quot;冻住&quot;后整个密码退化成线性系统。</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span><span class="chip">stream-cipher</span><span class="chip">fcsr</span></div>
+    <span class="reading">14 min · 5346 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="循环异或 · 已知明文前缀推密钥周期（dasctf 深空信号站 ks-3） 三条线索拼起来就是标准解法：明文[i] = 混合字节[i] ^ key[i % n]，其中 n &lt; 8。 ">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="../category/crypto.html">密码学</a>
+    <time datetime="2026-10-08">2026-10-08</time>
+  </div>
+  <h3><a href="../posts/xun-huan-yi-huo-yi-zhi-ming-wen-qian-zhui-tui-mi-yao-zhou-qi-dasctf.html">循环异或 · 已知明文前缀推密钥周期（DASCTF 深空信号站 KS-3）</a></h3>
+  <p class="card-desc">三条线索拼起来就是标准解法：明文[i] = 混合字节[i] ^ key[i % n]，其中 n &lt; 8。</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">3 min · 955 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="rabin密码 公钥加密算法（michael rabin, 1979），可以理解成&quot;rsa 的平方版&quot;：把 rsa 里的 $e$ 固定成 2，加密就是求平方。 crypto">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="../category/crypto.html">密码学</a>
+    <time datetime="2026-10-04">2026-10-04</time>
+  </div>
+  <h3><a href="../posts/rabin-mi-ma.html">Rabin密码</a></h3>
+  <p class="card-desc">公钥加密算法（Michael Rabin, 1979），可以理解成&quot;RSA 的平方版&quot;：把 RSA 里的 $e$ 固定成 2，加密就是求平方。</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span></div>
+    <span class="reading">7 min · 2507 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="schnorr协议 交互式零知识证明协议（zp 原始形式，课件版本），用于&quot;证明我知道私钥&quot;而不泄露私钥。是 ed25519、比特币 taproot 签名的原型。 crypto">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="../category/crypto.html">密码学</a>
+    <time datetime="2026-09-26">2026-09-26</time>
+  </div>
+  <h3><a href="../posts/schnorr-xie-yi.html">Schnorr协议</a></h3>
+  <p class="card-desc">交互式零知识证明协议（Zp 原始形式，课件版本），用于&quot;证明我知道私钥&quot;而不泄露私钥。是 Ed25519、比特币 Taproot 签名的原型。</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span></div>
+    <span class="reading">4 min · 1439 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="rsa-p减1光滑-pollard p-1 素数不是随机生成的，而是「小素数连乘 + 1」 → p−1 / q−1 的所有素因子都很小（光滑 / smooth） crypto">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="../category/crypto.html">密码学</a>
+    <time datetime="2026-09-17">2026-09-17</time>
+  </div>
+  <h3><a href="../posts/rsa-p-jian-1-guang-hua-pollard-p-1.html">RSA-p减1光滑-Pollard p-1</a></h3>
+  <p class="card-desc">素数不是随机生成的，而是「小素数连乘 + 1」 → p−1 / q−1 的所有素因子都很小（光滑 / smooth）</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span></div>
+    <span class="reading">4 min · 1368 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="rsa-coppersmith高位攻击 题目只给 n、e、c，外加 p 或 q 的部分二进制位（hint）。构造脚本特征： crypto">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="../category/crypto.html">密码学</a>
+    <time datetime="2026-09-16">2026-09-16</time>
+  </div>
+  <h3><a href="../posts/rsa-coppersmith-gao-wei-gong-ji.html">RSA-Coppersmith高位攻击</a></h3>
+  <p class="card-desc">题目只给 n、e、c，外加 p 或 q 的部分二进制位（hint）。构造脚本特征：</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span></div>
+    <span class="reading">10 min · 3675 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="模2的幂-离散对数 ⟨5⟩ 是阶为 2 的幂的循环群 → 指数部分可用 pohlig–hellman 按位求离散对数 crypto">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="../category/crypto.html">密码学</a>
+    <time datetime="2026-09-13">2026-09-13</time>
+  </div>
+  <h3><a href="../posts/mo-2-de-mi-li-san-dui-shu.html">模2的幂-离散对数</a></h3>
+  <p class="card-desc">⟨5⟩ 是阶为 2 的幂的循环群 → 指数部分可用 Pohlig–Hellman 按位求离散对数</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span></div>
+    <span class="reading">4 min · 1438 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="流密码密钥重用 ks = os.urandom(n) # 一段随机密钥流 c1 = xor(knownplain, ks) # 已知明文的密文（题目会给你） c2 = xor(flag, ks) # flag 密文（题目会给你） crypto">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="../category/crypto.html">密码学</a>
+    <time datetime="2026-09-09">2026-09-09</time>
+  </div>
+  <h3><a href="../posts/liu-mi-ma-mi-yao-zhong-yong.html">流密码密钥重用</a></h3>
+  <p class="card-desc">ks = os.urandom(N) # 一段随机密钥流 c1 = xor(knownplain, ks) # 已知明文的密文（题目会给你） c2 = xor(flag, ks) # flag 密文（题目会给你）</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span></div>
+    <span class="reading">3 min · 1279 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="lfsr线性反馈移位寄存器-状态恢复 lfsr（线性反馈移位寄存器）是最简单的密钥流生成器： crypto">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="../category/crypto.html">密码学</a>
+    <time datetime="2026-09-08">2026-09-08</time>
+  </div>
+  <h3><a href="../posts/lfsr-xian-xing-fan-kui-yi-wei-ji-cun-qi-zhuang-tai-hui-fu.html">LFSR线性反馈移位寄存器-状态恢复</a></h3>
+  <p class="card-desc">LFSR（线性反馈移位寄存器）是最简单的密钥流生成器：</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span></div>
+    <span class="reading">9 min · 3233 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="哈希明文爆破（md5/sha 穷举） range(32, 127) # 空格(32) ~ ~ (126)，95 个可打印 ascii；127 取不到（右开区间） python ctf">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="../category/crypto.html">密码学</a>
+    <time datetime="2026-09-08">2026-09-08</time>
+  </div>
+  <h3><a href="../posts/ha-xi-ming-wen-bao-po-md5-sha-qiong-ju.html">哈希明文爆破（MD5/SHA 穷举）</a></h3>
+  <p class="card-desc">range(32, 127) # 空格(32) ~ ~ (126)，95 个可打印 ASCII；127 取不到（右开区间）</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">python</span><span class="chip">ctf</span></div>
+    <span class="reading">5 min · 1782 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="rsa低指数广播攻击 题目给 多对 (n, c)（常见三对），且都是同一明文、同一个小的公钥指数 e 加密： crypto">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="../category/crypto.html">密码学</a>
+    <time datetime="2026-09-08">2026-09-08</time>
+  </div>
+  <h3><a href="../posts/rsa-di-zhi-shu-guang-bo-gong-ji.html">RSA低指数广播攻击</a></h3>
+  <p class="card-desc">题目给 多对 (N, c)（常见三对），且都是同一明文、同一个小的公钥指数 e 加密：</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span></div>
+    <span class="reading">4 min · 1688 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="rsa-构造a反推参数 题目给一个大整数公式 a（含 x/y/z 的幂运算）+ n + c，形如： crypto">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="../category/crypto.html">密码学</a>
+    <time datetime="2026-09-08">2026-09-08</time>
+  </div>
+  <h3><a href="../posts/rsa-gou-zao-a-fan-tui-can-shu.html">RSA-构造A反推参数</a></h3>
+  <p class="card-desc">题目给一个大整数公式 A（含 x/y/z 的幂运算）+ n + c，形如：</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span></div>
+    <span class="reading">4 min · 1437 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="rsa共素数-gcd分解 本质：复用同一个素数 p 生成多个模数 → 任意两个 n 的 gcd 就是 p。 crypto">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="../category/crypto.html">密码学</a>
+    <time datetime="2026-09-08">2026-09-08</time>
+  </div>
+  <h3><a href="../posts/rsa-gong-su-shu-gcd-fen-jie.html">RSA共素数-gcd分解</a></h3>
+  <p class="card-desc">本质：复用同一个素数 p 生成多个模数 → 任意两个 n 的 gcd 就是 p。</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span></div>
+    <span class="reading">3 min · 991 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="rsa-dp泄露家族 本质：dp = d mod (p-1)（dq = d mod (q-1)）泄露。出题人用 crt 优化 rsa 时拆出的&quot;影子密钥&quot;送人了 → 解密能力白给。 crypto rsa">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="../category/crypto.html">密码学</a>
+    <time datetime="2026-09-06">2026-09-06</time>
+  </div>
+  <h3><a href="../posts/rsa-dp-xie-lou-jia-zu.html">RSA-dp泄露家族</a></h3>
+  <p class="card-desc">本质：dp = d mod (p-1)（dq = d mod (q-1)）泄露。出题人用 CRT 优化 RSA 时拆出的&quot;影子密钥&quot;送人了 → 解密能力白给。</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span><span class="chip">rsa</span></div>
+    <span class="reading">4 min · 1646 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="windows哈希破解-ntlm 题目给一段形如以下格式的账户数据（来自内存取证/mimikatz dump / sam 导出）： crypto windows hash">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="../category/crypto.html">密码学</a>
+    <time datetime="2026-09-05">2026-09-05</time>
+  </div>
+  <h3><a href="../posts/windows-ha-xi-po-jie-ntlm.html">Windows哈希破解-NTLM</a></h3>
+  <p class="card-desc">题目给一段形如以下格式的账户数据（来自内存取证/mimikatz dump / SAM 导出）：</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span><span class="chip">windows</span><span class="chip">hash</span></div>
+    <span class="reading">4 min · 1704 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="rsa共素数-pollardrho变体 实测：1024 位 n 约 6~21 秒出 p、q（耗时看随机起点，最快 1.5s，串行重试在最坏起点可能更久；真实题目规模偶发 30s+，属正常）。 crypto">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="../category/crypto.html">密码学</a>
+    <time datetime="2026-09-03">2026-09-03</time>
+  </div>
+  <h3><a href="../posts/rsa-gong-su-shu-pollardrho-bian-ti.html">RSA共素数-PollardRho变体</a></h3>
+  <p class="card-desc">实测：1024 位 n 约 6~21 秒出 p、q（耗时看随机起点，最快 1.5s，串行重试在最坏起点可能更久；真实题目规模偶发 30s+，属正常）。</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span></div>
+    <span class="reading">4 min · 1498 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="rsa-wiener攻击 看到的特征二选一即可怀疑： crypto">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="../category/crypto.html">密码学</a>
+    <time datetime="2026-09-03">2026-09-03</time>
+  </div>
+  <h3><a href="../posts/rsa-wiener-gong-ji.html">RSA-Wiener攻击</a></h3>
+  <p class="card-desc">看到的特征二选一即可怀疑：</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span></div>
+    <span class="reading">3 min · 1270 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="rsa共模攻击 题目给两对加密结果，特征三选一即可怀疑共模攻击： crypto">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="../category/crypto.html">密码学</a>
+    <time datetime="2026-09-02">2026-09-02</time>
+  </div>
+  <h3><a href="../posts/rsa-gong-mo-gong-ji.html">RSA共模攻击</a></h3>
+  <p class="card-desc">题目给两对加密结果，特征三选一即可怀疑共模攻击：</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span></div>
+    <span class="reading">6 min · 2278 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="格密码  crypto">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="../category/crypto.html">密码学</a>
+    <time datetime="2026-04-26">2026-04-26</time>
+  </div>
+  <h3><a href="../posts/ge-mi-ma.html">格密码</a></h3>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span></div>
+    <span class="reading">2 min · 841 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="素数分解 如果给定素数小于 256 位，通常可以通过 sympy、gmpy2 等库直接分解： crypto">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="../category/crypto.html">密码学</a>
+    <time datetime="2025-10-26">2025-10-26</time>
+  </div>
+  <h3><a href="../posts/su-shu-fen-jie.html">素数分解</a></h3>
+  <p class="card-desc">如果给定素数小于 256 位，通常可以通过 sympy、gmpy2 等库直接分解：</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span></div>
+    <span class="reading">3 min · 1300 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="基础密码学 ascii 是一种 7 位编码标准，允许使用整数 0-127 表示文本。 crypto">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="../category/crypto.html">密码学</a>
+    <time datetime="2025-10-16">2025-10-16</time>
+  </div>
+  <h3><a href="../posts/ji-chu-mi-ma-xue.html">基础密码学</a></h3>
+  <p class="card-desc">ASCII 是一种 7 位编码标准，允许使用整数 0-127 表示文本。</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span></div>
+    <span class="reading">7 min · 2648 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="数论 用于计算两个整数的​​最大公约数​​。基于原理： crypto">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="../category/crypto.html">密码学</a>
+    <time datetime="2025-10-16">2025-10-16</time>
+  </div>
+  <h3><a href="../posts/shu-lun.html">数论</a></h3>
+  <p class="card-desc">用于计算两个整数的​​最大公约数​​。基于原理：</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span></div>
+    <span class="reading">7 min · 2610 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="rsa rsa 是首个实用的公钥加密算法（1977，rivest-shamir-adleman）：公钥加密、私钥解密，安全性建立在大整数分解的困难性上。 crypto">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="../category/crypto.html">密码学</a>
+    <time datetime="2025-10-16">2025-10-16</time>
+  </div>
+  <h3><a href="../posts/rsa.html">RSA</a></h3>
+  <p class="card-desc">RSA 是首个实用的公钥加密算法（1977，Rivest-Shamir-Adleman）：公钥加密、私钥解密，安全性建立在大整数分解的困难性上。</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span></div>
+    <span class="reading">7 min · 2583 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="cyperhack基础题目详解  ">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="../category/crypto.html">密码学</a>
+    <time datetime="2025-09-15">2025-09-15</time>
+  </div>
+  <h3><a href="../posts/cyperhack-ji-chu-ti-mu-xiang-jie.html">cyperhack基础题目详解</a></h3>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">3 min · 1127 字</span>
+  </div>
+</article></div>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

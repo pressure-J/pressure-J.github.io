@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Linux 基础：用户权限与软件管理 · pressure-J</title>
+<meta name="description" content="Linux 是多用户多任务系统，一切权限控制围绕三个身份展开：用户（user）、用户组（group）、其他人（others）。">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/linux-ji-chu-yong-hu-quan-xian-yu-ruan-jian-guan-li.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Linux 基础：用户权限与软件管理 · pressure-J">
+<meta property="og:description" content="Linux 是多用户多任务系统，一切权限控制围绕三个身份展开：用户（user）、用户组（group）、其他人（others）。">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/linux.html">Linux</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>Linux 基础：用户权限与软件管理</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-linux">Linux</span>
+          <time datetime="2026-08-28">2026-08-28</time>
+          <span>5171 字</span>
+          <span>约 14 分钟</span>
+        </div>
+        
+      </header>
+      <div class="content"><blockquote>
+<p>来源：Linux操作系统课程实验《Linux用户管理与软件管理》（本人实验报告 docx，2025-2026 第一学期，指导老师陶小结）<br />
+定位：Linux 安全的基础就是"谁能做什么、谁装了啥"。用户/组/权限模型是 CTF 提权、应急响应的底层知识；apt/yum 包管理是日常部署软件的第一道关。面试常问 SUID、UID/GID、dpkg 与 aptitude 的区别等</p>
+</blockquote>
+<hr />
+<h2 id="_1">一、概述：用户模型与包管理两大流派</h2>
+<h3 id="1-linux">1. 用户与权限模型（Linux 安全的地基）</h3>
+<p>Linux 是多用户多任务系统，一切权限控制围绕三个身份展开：<strong>用户（user）、用户组（group）、其他人（others）</strong>。</p>
+<ul>
+<li>每个用户有唯一 <strong>UID</strong>（用户 ID），root 的 UID 永远是 <strong>0</strong>，普通用户从 1000 开始。判断"是不是管理员"看的是 UID，不是名字。</li>
+<li>用户归属某个<strong>主组（primary group）</strong>，还可以加入多个<strong>附加组</strong>。</li>
+<li>账号数据存三个核心文件：</li>
+<li><code>/etc/passwd</code>：用户名、UID、GID、家目录、登录 shell（密码字段现在是 <code>x</code>，真正的密码挪走了）</li>
+<li><code>/etc/shadow</code>：加密后的密码哈希及有效期策略（<strong>只有 root 能读</strong>，这就是防破解的关键）</li>
+<li><code>/etc/group</code>：组名、GID、组成员</li>
+</ul>
+<blockquote>
+<p>面试点：为什么密文在 shadow 而不在 passwd？因为 passwd 需要被所有程序读取（比如 ls -l 显示属主），把哈希放进去等于公开给暴力破解，所以拆出来单独用 600 权限保护。</p>
+</blockquote>
+<h3 id="2">2. 软件包管理两大流派</h3>
+<p>Linux 发行版分两大系，包格式和工具都不同：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>体系</th>
+<th>底层包格式</th>
+<th>底层工具</th>
+<th>前端工具</th>
+<th>代表发行版</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Debian 系</td>
+<td><code>.deb</code></td>
+<td><code>dpkg</code></td>
+<td><code>apt</code>（Ubuntu/Kali 用）</td>
+<td>Ubuntu、Kali、Debian</td>
+</tr>
+<tr>
+<td>Red Hat 系</td>
+<td><code>.rpm</code></td>
+<td><code>rpm</code></td>
+<td><code>yum</code> / <code>dnf</code></td>
+<td>CentOS、Rocky、Fedora</td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li><strong>底层工具（dpkg/rpm）</strong>：安装卸载单个包，<strong>不会自动解决依赖</strong>。</li>
+<li><strong>前端工具（apt/yum）</strong>：从软件源仓库自动下载包并<strong>解决依赖关系</strong>，日常几乎都用前端。</li>
+</ul>
+<p><strong>网安学生注意</strong>：Kali 是 Debian 系，装工具用 <code>apt</code>；而很多安全工具的安装说明用的 CentOS 命令是 <code>yum</code>，别混。</p>
+<hr />
+<h2 id="_2">二、核心命令速查</h2>
+<h3 id="1">1. 用户管理</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>命令</th>
+<th>作用</th>
+<th>常用形式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>useradd</code></td>
+<td>创建用户</td>
+<td><code>useradd myth</code>、<code>useradd -m -s /bin/bash myth</code>（-m 建家目录，-s 指定 shell，<strong>强烈建议加</strong>）</td>
+</tr>
+<tr>
+<td><code>passwd</code></td>
+<td>设置/修改密码</td>
+<td><code>passwd myth</code>（root 可以给任何人设密码）</td>
+</tr>
+<tr>
+<td><code>usermod</code></td>
+<td>修改用户属性</td>
+<td><code>usermod -aG docker myth</code>（-aG 追加到附加组，<strong>不加 -a 会覆盖组列表</strong>）</td>
+</tr>
+<tr>
+<td><code>userdel</code></td>
+<td>删除用户</td>
+<td><code>userdel -r myth</code>（-r 连家目录一起删）</td>
+</tr>
+<tr>
+<td><code>chage</code></td>
+<td>管理密码有效期</td>
+<td><code>chage -l myth</code>（查看）、<code>chage -E 2026-12-31 myth</code>（设过期）</td>
+</tr>
+<tr>
+<td><code>id</code></td>
+<td>查看用户 UID/GID/所属组</td>
+<td><code>id myth</code></td>
+</tr>
+<tr>
+<td><code>who</code> / <code>w</code></td>
+<td>查看当前登录用户</td>
+<td><code>who</code></td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="2_1">2. 用户组管理</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>命令</th>
+<th>作用</th>
+<th>常用形式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>groupadd</code></td>
+<td>创建组</td>
+<td><code>groupadd devteam</code></td>
+</tr>
+<tr>
+<td><code>groupmod</code></td>
+<td>修改组（<strong>改编号/名称</strong>——实验内容）</td>
+<td><code>groupmod -g 2001 devteam</code>（改 GID）、<code>groupmod -n newname devteam</code>（改名）</td>
+</tr>
+<tr>
+<td><code>groupdel</code></td>
+<td>删除组</td>
+<td><code>groupdel devteam</code></td>
+</tr>
+<tr>
+<td><code>gpasswd</code></td>
+<td>管理组成员</td>
+<td><code>gpasswd -a myth devteam</code>（加入）、<code>gpasswd -d myth devteam</code>（移出）</td>
+</tr>
+<tr>
+<td><code>groups</code></td>
+<td>查看用户所属组</td>
+<td><code>groups myth</code></td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="3-quota">3. 磁盘配额（quota）</h3>
+<p>配额=限制用户/组能占用的磁盘空间，防止一人占满全盘（多用户服务器必备）。</p>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># 流程：改内核参数 → 重挂载 → 生成配额数据库 → 设限额 → 开启配额</span>
+vim<span class="w"> </span>/etc/fstab<span class="w">          </span><span class="c1"># 在目标分区的挂载选项加 usrquota,grpquota</span>
+mount<span class="w"> </span>-o<span class="w"> </span>remount<span class="w"> </span>/home<span class="w">  </span><span class="c1"># 按新参数重挂载</span>
+quotacheck<span class="w"> </span>-cug<span class="w"> </span>/home<span class="w">   </span><span class="c1"># 生成 aquota.user / aquota.group 数据库</span>
+edquota<span class="w"> </span>-u<span class="w"> </span>myth<span class="w">         </span><span class="c1"># 交互式设置 myth 的软/硬限额（soft 超限警告、hard 硬顶）</span>
+quotaon<span class="w"> </span>/home<span class="w">           </span><span class="c1"># 开启配额</span>
+quota<span class="w"> </span>-u<span class="w"> </span>myth<span class="w">           </span><span class="c1"># 查看该用户配额使用情况</span>
+</code></pre></div></div>
+
+<blockquote>
+<p>概念区分：**软限制（soft）**允许超限但警告、宽限期后仍超就拒绝；**硬限制（hard）**是绝对上限，到了直接拒绝写入。</p>
+</blockquote>
+<h3 id="4-suidsgid">4. 权限深入：SUID/SGID/粘滞位（面试加分项）</h3>
+<p>普通 <code>rwx</code> 之外还有三种特殊权限位：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>特殊位</th>
+<th>符号</th>
+<th>作用</th>
+<th>典型例子</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SUID</td>
+<td><code>s</code>（所有者位）</td>
+<td>执行该程序时<strong>临时获得文件属主的权限</strong></td>
+<td><code>/usr/bin/passwd</code>（普通用户借此写 shadow）</td>
+</tr>
+<tr>
+<td>SGID</td>
+<td><code>s</code>（组位）</td>
+<td>执行时获得属组权限；目录上设置后新建文件自动继承属组</td>
+<td><code>/usr/bin/write</code></td>
+</tr>
+<tr>
+<td>粘滞位</td>
+<td><code>t</code></td>
+<td>目录里的文件<strong>只能被属主/root 删除</strong></td>
+<td><code>/tmp</code>（人人都能写，但不能删别人的）</td>
+</tr>
+</tbody>
+</table></div>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>chmod<span class="w"> </span>u+s<span class="w"> </span>file<span class="w">   </span><span class="c1"># 加 SUID；ls -l 显示 -rwsr-xr-x</span>
+chmod<span class="w"> </span>g+s<span class="w"> </span>dir<span class="w">    </span><span class="c1"># 加 SGID</span>
+chmod<span class="w"> </span>+t<span class="w"> </span>dir<span class="w">     </span><span class="c1"># 加粘滞位；/tmp 显示 drwxrwxrwt</span>
+</code></pre></div></div>
+
+<blockquote>
+<p><strong>网安重点</strong>：SUID 提权是经典攻击面——找全盘 <code>find / -perm -4000</code> 列出 SUID 程序，找到配置错误的（如可写的 SUID 脚本）就是提权路径。面试深挖"R 用户如何提权"必答这条。</p>
+</blockquote>
+<h3 id="5">5. 软件包管理命令</h3>
+<p><strong>Debian 系（dpkg + apt）</strong>：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>命令</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dpkg -i 包.deb</code></td>
+<td>安装本地 deb 包（不解决依赖）</td>
+</tr>
+<tr>
+<td><code>dpkg -r 包名</code> / <code>dpkg -P 包名</code></td>
+<td>卸载（-P 连配置文件一起删）</td>
+</tr>
+<tr>
+<td><code>dpkg -l</code> / <code>dpkg -L 包名</code></td>
+<td>列出已装包 / 查看包装了哪些文件</td>
+</tr>
+<tr>
+<td><code>apt update</code></td>
+<td>更新软件源索引（换源后必做第一步）</td>
+</tr>
+<tr>
+<td><code>apt upgrade</code></td>
+<td>升级所有可升级软件</td>
+</tr>
+<tr>
+<td><code>apt install 包名</code> / <code>apt remove 包名</code></td>
+<td>装/卸载（自动解依赖）</td>
+</tr>
+<tr>
+<td><code>apt search 关键字</code></td>
+<td>搜索软件</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Red Hat 系（rpm + yum）</strong>：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>命令</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>rpm -ivh 包.rpm</code></td>
+<td>安装本地 rpm 包</td>
+</tr>
+<tr>
+<td><code>rpm -qa</code> / <code>rpm -ql 包名</code></td>
+<td>列出全部已装包 / 查看包文件列表</td>
+</tr>
+<tr>
+<td><code>rpm -e 包名</code></td>
+<td>卸载</td>
+</tr>
+<tr>
+<td><code>yum install 包名</code> / <code>yum remove 包名</code></td>
+<td>装/卸载（自动解依赖）</td>
+</tr>
+<tr>
+<td><code>yum repolist</code></td>
+<td>查看当前软件源</td>
+</tr>
+<tr>
+<td><code>yum clean all &amp;&amp; yum makecache</code></td>
+<td>清缓存并重建索引（换源后必做）</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>apt 换源</strong>（Ubuntu，国内加速）：</p>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>cp<span class="w"> </span>/etc/apt/sources.list<span class="w"> </span>/etc/apt/sources.list.bak<span class="w">   </span><span class="c1"># 备份</span>
+sudo<span class="w"> </span>sed<span class="w"> </span>-i<span class="w"> </span><span class="s1">'s/archive.ubuntu.com/mirrors.aliyun.com/g'</span><span class="w"> </span>/etc/apt/sources.list
+<span class="c1"># 或直接编辑文件，把源地址换成清华/阿里镜像</span>
+sudo<span class="w"> </span>apt<span class="w"> </span>update
+</code></pre></div></div>
+
+<blockquote>
+<p>换源原理：distro 默认源的域名（archive.ubuntu.com / mirrors.aliyun.com…）在国外或已 EOL 失效，替换成国内镜像站的域名，下载速度立刻起飞。</p>
+</blockquote>
+<hr />
+<h2 id="_3">三、实操流程（实验主线走一遍）</h2>
+<h3 id="1_1">任务 1：创建用户与配置密码</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>useradd<span class="w"> </span>-m<span class="w"> </span>-s<span class="w"> </span>/bin/bash<span class="w"> </span>myth<span class="w">     </span><span class="c1"># 创建用户 myth，带家目录和 bash shell</span>
+passwd<span class="w"> </span>myth<span class="w">                      </span><span class="c1"># root 为用户设密码（输入两次）</span>
+id<span class="w"> </span>myth<span class="w">                          </span><span class="c1"># 验证 UID/GID</span>
+su<span class="w"> </span>-<span class="w"> </span>myth<span class="w">                        </span><span class="c1"># 切换到新用户验证能登录</span>
+whoami
+</code></pre></div></div>
+
+<h3 id="2_2">任务 2：用户组管理（改编号、改名）</h3>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>groupadd<span class="w"> </span>devteam<span class="w">                  </span><span class="c1"># 创建组</span>
+groupmod<span class="w"> </span>-g<span class="w"> </span><span class="m">2001</span><span class="w"> </span>devteam<span class="w">          </span><span class="c1"># 把 GID 改为 2001</span>
+groupmod<span class="w"> </span>-n<span class="w"> </span>securl<span class="w"> </span>devteam<span class="w">        </span><span class="c1"># 组改名为 securl</span>
+usermod<span class="w"> </span>-aG<span class="w"> </span>securl<span class="w"> </span>myth<span class="w">           </span><span class="c1"># 把 myth 加入该组（注意 -a 保留原有组）</span>
+groups<span class="w"> </span>myth<span class="w">                       </span><span class="c1"># 验证</span>
+gpasswd<span class="w"> </span>-d<span class="w"> </span>myth<span class="w"> </span>securl<span class="w">            </span><span class="c1"># 移出组</span>
+</code></pre></div></div>
+
+<h3 id="3">任务 3：磁盘配额</h3>
+<p>按上文 quota 流程：改 fstab → remount → quotacheck → edquota 设置 myth 软/硬限额 → quotaon → <code>dd if=/dev/zero of=/home/myth/bigfile bs=1M count=300</code> 超限验证。</p>
+<h3 id="4dpkg-rpm">任务 4：dpkg / rpm 本地包管理</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># Debian 系：下载一个 .deb（如 vim 离线包）演示</span>
+dpkg<span class="w"> </span>-i<span class="w"> </span>vim_xxx.deb
+dpkg<span class="w"> </span>-l<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>vim
+dpkg<span class="w"> </span>-r<span class="w"> </span>vim
+
+<span class="c1"># Red Hat 系</span>
+rpm<span class="w"> </span>-ivh<span class="w"> </span>package.rpm
+rpm<span class="w"> </span>-qa<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>关键词
+rpm<span class="w"> </span>-e<span class="w"> </span>包名
+</code></pre></div></div>
+
+<h3 id="5yum-centos-8">任务 5：yum 换源（CentOS 8，已在安装篇详述）</h3>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>/etc/yum.repos.d/<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>mkdir<span class="w"> </span>backup<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>mv<span class="w"> </span>*repo<span class="w"> </span>backup
+wget<span class="w"> </span>-O<span class="w"> </span>CentOS-Linux-BaseOS.repo<span class="w"> </span>https://mirrors.aliyun.com/repo/Centos-8.repo
+yum<span class="w"> </span>clean<span class="w"> </span>all<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>yum<span class="w"> </span>makecache
+yum<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>vim<span class="w">      </span><span class="c1"># 安装测试</span>
+</code></pre></div></div>
+
+<hr />
+<h2 id="_4">四、常见问题与排查</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>现象</th>
+<th>原因</th>
+<th>解决</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>useradd</code> 后用户没有家目录</td>
+<td>忘了 <code>-m</code> 参数</td>
+<td><code>usermod -m -d /home/myth myth</code> 补建</td>
+</tr>
+<tr>
+<td>用户能登录但 shell 不对/不能执行命令</td>
+<td>没指定 shell，默认 /bin/sh 或 nologin</td>
+<td><code>usermod -s /bin/bash myth</code></td>
+</tr>
+<tr>
+<td><code>usermod -G</code> 后用户原本的组全没了</td>
+<td><strong>-G 是覆盖不是追加</strong>，用 <code>-aG</code></td>
+<td>用 <code>usermod -aG 组名 用户</code> 追加</td>
+</tr>
+<tr>
+<td>删不掉的用户：<code>userdel</code> 报进程占用</td>
+<td>该用户进程还在跑</td>
+<td><code>pkill -u myth</code> 后删除</td>
+</tr>
+<tr>
+<td>改完组成员不生效</td>
+<td>组关系在登录时加载</td>
+<td>重新登录（<code>su - myth</code>）或 <code>newgrp 组名</code></td>
+</tr>
+<tr>
+<td>apt/yum 报"源连不上 / EOL 源失效"</td>
+<td>默认源在国外或被停维护</td>
+<td>换国内镜像源 + <code>clean all &amp;&amp; makecache</code></td>
+</tr>
+<tr>
+<td><code>dpkg -i</code> 报依赖缺失</td>
+<td>dpkg 不自动解决依赖</td>
+<td>用 <code>apt install -f</code> 修复，日常直接 <code>apt install</code></td>
+</tr>
+<tr>
+<td>提权失败：普通用户执行需要 root 的程序失败</td>
+<td>权限不够</td>
+<td>管理员分配 sudo 权限（加入 sudo 组）或配置 /etc/sudoers</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="_5">五、面试速答卡</h2>
+<ul>
+<li><strong>root 的 UID 是多少</strong>：0；普通用户一般 1000+；判断管理员看 UID 而非用户名</li>
+<li><strong>passwd 和 shadow 的分工</strong>：passwd 存公开信息（UID/GID/家目录），shadow 存加密密码（仅 root 可读），避免哈希泄露被破解</li>
+<li><strong>useradd 与 adduser 区别</strong>：useradd 是底层命令不建家目录，adduser 是交互式脚本自动建家目录配置完善（Debian 系）</li>
+<li><strong>apt 与 dpkg 区别</strong>：dpkg 只管单个 .deb、不查依赖；apt 基于软件源自动拉取并解决依赖，日常用 apt</li>
+<li><strong>yum 与 rpm 区别</strong>：对应 Red Hat 系，rpm 管本地包不解决依赖，yum 从软件源安装自动解依赖</li>
+<li><strong>SUID 是什么、有什么风险</strong>：执行时以属主身份运行；若 SUID 程序可被利用（如存在漏洞或可写脚本），普通用户可借此提权——<code>find / -perm -4000</code> 排查</li>
+<li><strong>粘滞位的作用</strong>：共享目录（如 /tmp）内文件只能属主或 root 删除，防止互删</li>
+<li><strong>磁盘配额软硬限制区别</strong>：soft 超限警告可宽限，hard 是绝对上限直接拒绝</li>
+</ul></div>
+      <div class="post-nav"><a class="pn-item prev" href="linux-ji-chu-chang-yong-ming-ling-yu-wen-jian-xi-tong.html"><span>← 上一篇</span><strong>Linux 基础：常用命令与文件系统</strong></a><a class="pn-item next" href="linux-fu-wu-dns-yu-ming-jie-xi.html"><span>下一篇 →</span><strong>Linux 服务：DNS 域名解析</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">一、概述：用户模型与包管理两大流派</a><a href="#1-linux" class="toc-lv3">1. 用户与权限模型（Linux 安全的地基）</a><a href="#2" class="toc-lv3">2. 软件包管理两大流派</a><a href="#_2" class="toc-lv2">二、核心命令速查</a><a href="#1" class="toc-lv3">1. 用户管理</a><a href="#2_1" class="toc-lv3">2. 用户组管理</a><a href="#3-quota" class="toc-lv3">3. 磁盘配额（quota）</a><a href="#4-suidsgid" class="toc-lv3">4. 权限深入：SUID/SGID/粘滞位（面试加分项）</a><a href="#5" class="toc-lv3">5. 软件包管理命令</a><a href="#_3" class="toc-lv2">三、实操流程（实验主线走一遍）</a><a href="#1_1" class="toc-lv3">任务 1：创建用户与配置密码</a><a href="#2_2" class="toc-lv3">任务 2：用户组管理（改编号、改名）</a><a href="#3" class="toc-lv3">任务 3：磁盘配额</a><a href="#4dpkg-rpm" class="toc-lv3">任务 4：dpkg / rpm 本地包管理</a><a href="#5yum-centos-8" class="toc-lv3">任务 5：yum 换源（CentOS 8，已在安装篇详述）</a><a href="#_4" class="toc-lv2">四、常见问题与排查</a><a href="#_5" class="toc-lv2">五、面试速答卡</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

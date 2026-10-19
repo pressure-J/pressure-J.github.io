@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Misc-秘密文件-FTP流量提取加密RAR · pressure-J</title>
+<meta name="description" content="某公司内网被入侵，抓到了入侵流量，问偷走了什么机密文件。">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/misc-mi-mi-wen-jian-ftp-liu-liang-ti-qu-jia-mi-rar.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Misc-秘密文件-FTP流量提取加密RAR · pressure-J">
+<meta property="og:description" content="某公司内网被入侵，抓到了入侵流量，问偷走了什么机密文件。">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/misc.html">Misc</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>Misc-秘密文件-FTP流量提取加密RAR</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-misc">Misc</span>
+          <time datetime="2026-10-09">2026-10-09</time>
+          <span>2500 字</span>
+          <span>约 7 分钟</span>
+        </div>
+        <div class="chips post-tags"><span class="chip">misc</span><span class="chip">流量分析</span><span class="chip">ftp</span><span class="chip">rar</span><span class="chip">writeup</span></div>
+      </header>
+      <div class="content"><blockquote>
+<p>题型：<strong>FTP 明文传输 + 加密压缩包爆破</strong>。属于「文件传输类」流量题的标准套路。<br />
+难度：入门。考点只有两个：① 会不会从 FTP-DATA 里抠出文件 ② 会不会爆 4 位数字密码。</p>
+</blockquote>
+<h2 id="_1">一、题目</h2>
+<p>某公司内网被入侵，抓到了入侵流量，问偷走了什么机密文件。</p>
+<p>附件：<code>305df1f78bef4ccfd2a3bd0fe4a6c0d7.pcapng</code>（33 KB，200 帧）</p>
+<h2 id="10">二、10 秒定方向</h2>
+<div class="code-block" data-lang="sh"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>~/tools<span class="se">\W</span>ireshark<span class="se">\t</span>shark.exe<span class="w"> </span>-r<span class="w"> </span>305df1f78bef4ccfd2a3bd0fe4a6c0d7.pcapng<span class="w"> </span>-q<span class="w"> </span>-z<span class="w"> </span>io,phs
+</code></pre></div></div>
+
+<p>协议分级里 <strong><code>ftp</code> 有 17 帧</strong>——方向立刻确定。这是一台真机被抓的包，混着大量噪音（SSDP / LLMNR / NBNS / DNS / ESET 遥测 / 猎豹遥测 / 若干半开 TCP），<strong>只有 FTP 这条线是真的</strong>。</p>
+<h2 id="ftp">三、FTP 会话全过程</h2>
+<p>过滤 <code>ftp</code>：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>帧</th>
+<th>方向</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>15</td>
+<td>S→C</td>
+<td><strong><code>220 HI, i know you are a hacker who is trying to hack me ,but can u find where is the flag?</code></strong></td>
+</tr>
+<tr>
+<td>19/22</td>
+<td>C→S</td>
+<td><code>USER ctf</code> / <code>PASS ctf</code></td>
+</tr>
+<tr>
+<td>39</td>
+<td>C→S</td>
+<td><code>PORT 172,16,66,100,30,158</code> → 数据端口 <strong>7838</strong></td>
+</tr>
+<tr>
+<td>45</td>
+<td>C→S</td>
+<td><code>LIST</code></td>
+</tr>
+<tr>
+<td>95</td>
+<td>C→S</td>
+<td><strong><code>RETR 6b0341642a8ddcbeb7eca927dae6d541.rar</code></strong></td>
+</tr>
+<tr>
+<td>89</td>
+<td>C→S</td>
+<td><code>PORT 172,16,66,100,30,162</code> → 数据端口 <strong>7842</strong></td>
+</tr>
+<tr>
+<td>133</td>
+<td>C→S</td>
+<td><code>QUIT</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>出题人那句横幅就是<strong>题目明示</strong>：flag 在文件里。</p>
+<p><strong>被动端口换算</strong>（<code>PORT a,b,c,d,p1,p2</code> → <code>IP: p1*256+p2</code>）：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>30*256 + 158 = 7838   ← LIST 的数据连接
+30*256 + 162 = 7842   ← RETR 的数据连接
+</code></pre></div></div>
+
+<h2 id="rar">四、把 RAR 抠出来</h2>
+<p>FTP 的文件内容走<strong>独立的数据连接</strong>（这里是对端的 7838 / 7842 端口），不在 21 端口上，所以要认准数据流。</p>
+<p><strong>图形界面做法</strong>：<code>File → Export Objects → FTP-DATA</code>，一键导出。</p>
+<p><strong>命令行做法</strong>（本次采用）：先看 <code>LIST</code> 内容，确认文件名和大小——</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># 流 1 就是 LIST 的数据连接，服务器→客户端方向</span>
+tshark.exe<span class="w"> </span>-r<span class="w"> </span>文件.pcapng<span class="w"> </span>-Y<span class="w"> </span><span class="s2">"tcp.stream==1 &amp;&amp; ip.src==172.16.80.153"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-T<span class="w"> </span>fields<span class="w"> </span>-e<span class="w"> </span>tcp.payload<span class="w"> </span><span class="p">|</span><span class="w"> </span>tr<span class="w"> </span>-d<span class="w"> </span><span class="s1">'\r\n'</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>xxd<span class="w"> </span>-r<span class="w"> </span>-p
+
+<span class="c1"># 输出：</span>
+<span class="c1"># 01-12-16 10:42AM    196 6b0341642a8ddcbeb7eca927dae6d541.rar</span>
+</code></pre></div></div>
+
+<p>再抠 RAR 本体（走数据连接的那条流）：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>tshark.exe<span class="w"> </span>-r<span class="w"> </span>文件.pcapng<span class="w"> </span>-Y<span class="w"> </span><span class="s2">"tcp.stream==6 &amp;&amp; ip.src==172.16.80.153"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-T<span class="w"> </span>fields<span class="w"> </span>-e<span class="w"> </span>tcp.payload<span class="w"> </span><span class="p">|</span><span class="w"> </span>tr<span class="w"> </span>-d<span class="w"> </span><span class="s1">'\r\n'</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>xxd<span class="w"> </span>-r<span class="w"> </span>-p<span class="w"> </span>&gt;<span class="w"> </span>flag.rar
+</code></pre></div></div>
+
+<p>得到 <strong>196 字节</strong>，文件头 <code>52 61 72 21 1A 07 00</code>（=<code>Rar!\x1a\x07\x00</code>，RAR5 格式）。</p>
+<h2 id="_2">五、破密码</h2>
+<p>直接解压提示要密码：</p>
+<div class="code-block" data-lang="sh"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>7z l flag.rar  →  Enter password:  ❌
+</code></pre></div></div>
+
+<p><strong>没有任何密码提示 → 先试常见弱密码</strong>。这是 2016 年的题，出题意图就是 <strong>4 位纯数字</strong>：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">subprocess</span><span class="o">,</span><span class="w"> </span><span class="nn">os</span><span class="o">,</span><span class="w"> </span><span class="nn">shutil</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10000</span><span class="p">):</span>
+    <span class="n">pw</span> <span class="o">=</span> <span class="s1">'</span><span class="si">%04d</span><span class="s1">'</span> <span class="o">%</span> <span class="n">i</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="s1">'tmpout'</span><span class="p">):</span> <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="s1">'tmpout'</span><span class="p">)</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="s1">'7z'</span><span class="p">,</span><span class="s1">'x'</span><span class="p">,</span><span class="s1">'-y'</span><span class="p">,</span><span class="s1">'-p'</span><span class="o">+</span><span class="n">pw</span><span class="p">,</span><span class="s1">'-otmpout'</span><span class="p">,</span><span class="s1">'flag.rar'</span><span class="p">],</span> <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">returncode</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">'密码:'</span><span class="p">,</span> <span class="n">pw</span><span class="p">);</span> <span class="k">break</span>
+</code></pre></div></div>
+
+<p>跑到 <strong>1903</strong> 命中。</p>
+<blockquote>
+<p><strong>效率提示</strong>：123 秒能跑完 10000 个，说明用 <code>7z</code> 命令行子进程爆破在这个规模完全够用。上更大字典（8 位、字母数字）才需要 <code>ARCHPR</code> / <code>hashcat</code>（RAR5 的 KDF 很慢，hashcat 要配 <code>-m 13000</code>）。</p>
+</blockquote>
+<h2 id="_3">六、结果</h2>
+<div class="code-block" data-lang="sh"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>密码: 1903
+</code></pre></div></div>
+
+<p>解出 <code>6b0341642a8ddcbeb7eca927dae6d541.txt</code>（38 字节）：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>flag{d72e5a671aa50fa5f400e5d10eedeaa5}
+</code></pre></div></div>
+
+<h2 id="_4">七、这题学到什么</h2>
+<ol>
+<li><strong>FTP 是明文的</strong>：账号密码（<code>ctf/ctf</code>）、命令、文件内容全在包里。<code>ftp</code> 过滤器一开，攻击过程一览无余。</li>
+<li><strong>FTP 传文件走独立的数据连接</strong>，别在 21 端口找文件内容。认准 <code>PORT</code> 命令算出来的端口，或直接 <code>Export Objects → FTP-DATA</code>。</li>
+<li><strong><code>PORT</code> 命令的端口是三段式</strong>：<code>p1*256+p2</code>，别当成十进制直接读。</li>
+<li><strong>加密压缩包先猜强度</strong>：题目年份久 + 无提示 → 4 位数字起步，别一上来就上大字典。</li>
+<li><strong>真机抓的包噪音极多</strong>：本题 200 帧里，真正有用的只有 FTP 那 17 帧。协议分级 + 会话列表先筛一遍，能省掉大量无效阅读。</li>
+</ol>
+<h2 id="_5">八、同类题</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>题目</th>
+<th>套路</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>BUUCTF 秘密文件</td>
+<td>本题：FTP + 加密 RAR 爆破</td>
+</tr>
+<tr>
+<td>BUUCTF 被偷走的文件</td>
+<td>同上，FTP-DATA 提取，密码字典不同</td>
+</tr>
+<tr>
+<td>各类 FTP 题变体</td>
+<td>密码可能藏在横幅、文件名、<code>LIST</code> 结果或同包的 DNS/HTTP 里</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>通用口诀</strong>：明文协议（FTP/Telnet/HTTP/SMTP）→ 先看会话内容 → 找文件传输 → 导出 → 是一张加密压缩包就爆破。</p>
+</blockquote>
+<p><em>最后更新：2026年10月9日</em></p></div>
+      <div class="post-nav"><a class="pn-item prev" href="xun-huan-yi-huo-yi-zhi-ming-wen-qian-zhui-tui-mi-yao-zhou-qi-dasctf.html"><span>← 上一篇</span><strong>循环异或 · 已知明文前缀推密钥周期（DASCTF 深空信号站 KS-3）</strong></a><a class="pn-item next" href="liu-liang-fen-xi-an-zhong-lei-su-cha.html"><span>下一篇 →</span><strong>流量分析-按种类速查</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">一、题目</a><a href="#10" class="toc-lv2">二、10 秒定方向</a><a href="#ftp" class="toc-lv2">三、FTP 会话全过程</a><a href="#rar" class="toc-lv2">四、把 RAR 抠出来</a><a href="#_2" class="toc-lv2">五、破密码</a><a href="#_3" class="toc-lv2">六、结果</a><a href="#_4" class="toc-lv2">七、这题学到什么</a><a href="#_5" class="toc-lv2">八、同类题</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

@@ -1,44 +1,84 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Linux 日志分析基础</title>
-<meta name="description" content="应急响应中 Linux 侧的核心日志位置与判读方法：auth.log / secure 的认证记录、Web 访问日志的异常特征、以及快速筛出可疑行为的方法。">
-<link rel="stylesheet" href="../style.css">
+<title>Linux日志分析基础 · pressure-J</title>
+<meta name="description" content="/var/log/syslog：记录系统的各种信息和错误。 /var/log/auth.log：记录身份验证相关的信息，如登录和认证失败。 /var/log/kern.log：记录内核生成的日志信息。 /var/log/dmesg…">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/linux-log-analysis-basics.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Linux日志分析基础 · pressure-J">
+<meta property="og:description" content="/var/log/syslog：记录系统的各种信息和错误。 /var/log/auth.log：记录身份验证相关的信息，如登录和认证失败。 /var/log/kern.log：记录内核生成的日志信息。 /var/log/dmesg…">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
 </head>
-<body>
-<header>
-  <div class="wrap">
-    <a class="logo" href="../index.html">pressure-J<span>.</span></a>
-    <nav>
-      <a href="../index.html">首页</a>
-      <a href="../posts.html">文章</a>
-      <a href="https://github.com/pressure-J">GitHub</a>
-    </nav>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
   </div>
 </header>
-
-<div class="wrap">
-  <div class="post-head">
-    <h1>Linux 日志分析基础</h1>
-    <div class="meta"><span class="cat">应急响应</span>2026-07-08</div>
-  </div>
-  <div class="content">
-<h1 id="linux">linux 日志分析</h1>
-<h2 id="linux_1">Linux常见目录</h2>
-<p>/var/log/syslog：记录系统的各种信息和错误。
-/var/log/auth.log：记录身份验证相关的信息，如登录和认证失败。
-/var/log/kern.log：记录内核生成的日志信息。
-/var/log/dmesg：记录系统启动时内核产生的消息。
-/var/log/boot.log：记录系统启动过程中的消息。
-/var/log/messages：记录系统的广泛消息，包括启动和应用程序信息。
-/var/log/secure：记录安全相关的消息。
-/var/log/httpd/：记录Apache HTTP服务器的访问和错误日志（若安装了Apache）。
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/ir.html">应急响应</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>Linux日志分析基础</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-ir">应急响应</span>
+          <time datetime="2026-07-08">2026-07-08</time>
+          <span>1615 字</span>
+          <span>约 4 分钟</span>
+        </div>
+        <div class="chips post-tags"><span class="chip">应急响应</span><span class="chip">日志分析</span><span class="chip">Linux</span></div>
+      </header>
+      <div class="content"><h2 id="linux">Linux常见目录</h2>
+<p>/var/log/syslog：记录系统的各种信息和错误。<br />
+/var/log/auth.log：记录身份验证相关的信息，如登录和认证失败。<br />
+/var/log/kern.log：记录内核生成的日志信息。<br />
+/var/log/dmesg：记录系统启动时内核产生的消息。<br />
+/var/log/boot.log：记录系统启动过程中的消息。<br />
+/var/log/messages：记录系统的广泛消息，包括启动和应用程序信息。<br />
+/var/log/secure：记录安全相关的消息。<br />
+/var/log/httpd/：记录Apache HTTP服务器的访问和错误日志（若安装了Apache）。<br />
 /var/log/nginx/：记录Nginx服务器的访问和错误日志（若安装了Nginx）。</p>
 <hr />
 <h2 id="_1">一、全局通用（所有发行版几乎一致）</h2>
-<table>
+<div class="table-wrap"><table>
 <thead>
 <tr>
 <th>目录</th>
@@ -93,9 +133,9 @@
 <td>rootkit / 启动项</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <h2 id="_2">二、日志文件速查（重点）</h2>
-<table>
+<div class="table-wrap"><table>
 <thead>
 <tr>
 <th>日志</th>
@@ -140,20 +180,20 @@
 <td>SQL 注入、暴力破解</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <h2 id="_3">三、日志查询命令</h2>
 <p>核心思想：cat 日志 | grep 关键字 | 处理命令</p>
 <h3 id="grep">grep的使用</h3>
-<div class="highlight"><pre><span></span><code>grep<span class="w"> </span><span class="s2">"Failed password"</span><span class="w"> </span>/var/log/secure<span class="w">     </span><span class="c1"># 包含关键字</span>
+<div class="code-block" data-lang="shell"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>grep<span class="w"> </span><span class="s2">"Failed password"</span><span class="w"> </span>/var/log/secure<span class="w">     </span><span class="c1"># 包含关键字</span>
 grep<span class="w"> </span>-i<span class="w"> </span><span class="s2">"accepted"</span><span class="w"> </span>/var/log/secure<span class="w">         </span><span class="c1"># 忽略大小写</span>
 grep<span class="w"> </span>-v<span class="w"> </span><span class="s2">"normal"</span><span class="w"> </span>file<span class="w">                      </span><span class="c1"># 排除某关键字</span>
 grep<span class="w"> </span>-E<span class="w"> </span><span class="s2">"Failed|Invalid"</span><span class="w"> </span>file<span class="w">              </span><span class="c1"># 扩展正则（或）</span>
 grep<span class="w"> </span><span class="s2">"from 192.168.1.1"</span><span class="w"> </span>file<span class="w">               </span><span class="c1"># 指定 IP</span>
 grep<span class="w"> </span>-c<span class="w"> </span><span class="s2">"Failed"</span><span class="w"> </span>file<span class="w">                      </span><span class="c1"># 只显示匹配行数</span>
-</code></pre></div>
+</code></pre></div></div>
 
 <h3 id="_4">常用管道搭配参数</h3>
-<table>
+<div class="table-wrap"><table>
 <thead>
 <tr>
 <th style="text-align: left;"><strong>命令</strong></th>
@@ -193,22 +233,54 @@ grep<span class="w"> </span>-c<span class="w"> </span><span class="s2">"Failed"<
 <td style="text-align: left;">··、</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <h3 id="_5">常用命令</h3>
 <p>查ip</p>
 <p>awk '{print $1}' access.log | sort | uniq -c | sort -rn | head</p>
 <p>查某小时访问最多ip</p>
 <p>grep "06/Jul/2026:10:" access.log | awk '{print $1}' | sort | uniq -c | sort -rn | head</p>
 <p>提出黑客ip的user-agent</p>
-<p>grep "192.168.200.2" access.log.1 | awk -F'"' '{print $6}' | sort | uniq -c | sort -rn</p>
+<p>grep "192.168.200.2" access.log.1 | awk -F'"' '{print $6}' | sort | uniq -c | sort -rn</p></div>
+      <div class="post-nav"><a class="pn-item prev" href="php-fan-xu-lie-hua-lou-dong.html"><span>← 上一篇</span><strong>PHP反序列化漏洞</strong></a><a class="pn-item next" href="dns-wai-dai-sql-zhu-ru-jie-ti-si-lu.html"><span>下一篇 →</span><strong>DNS外带SQL注入解题思路</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
   </div>
-</div>
-
-<footer>
-  <div class="wrap">
-    <div>&copy; 2026 pressure-J · 网络安全方向</div>
-    <div><a href="https://github.com/pressure-J">GitHub</a></div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#linux" class="toc-lv2">Linux常见目录</a><a href="#_1" class="toc-lv2">一、全局通用（所有发行版几乎一致）</a><a href="#_2" class="toc-lv2">二、日志文件速查（重点）</a><a href="#_3" class="toc-lv2">三、日志查询命令</a><a href="#grep" class="toc-lv3">grep的使用</a><a href="#_4" class="toc-lv3">常用管道搭配参数</a><a href="#_5" class="toc-lv3">常用命令</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
   </div>
 </footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
 </body>
 </html>

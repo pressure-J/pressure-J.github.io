@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Webshell查杀方法 · pressure-J</title>
+<meta name="description" content="简单官方一点：WebShell应急响应是指在检测到WebShell（恶意Web脚本）攻击后，采取一系列措施来控制、消除威胁，并恢复受影响的系统和服务。WebShell是一种常见的攻击手段，攻击者通过上传或注入恶意脚本到Web服务器…">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/webshell-cha-sha-fang-fa.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Webshell查杀方法 · pressure-J">
+<meta property="og:description" content="简单官方一点：WebShell应急响应是指在检测到WebShell（恶意Web脚本）攻击后，采取一系列措施来控制、消除威胁，并恢复受影响的系统和服务。WebShell是一种常见的攻击手段，攻击者通过上传或注入恶意脚本到Web服务器…">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/ir.html">应急响应</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>Webshell查杀方法</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-ir">应急响应</span>
+          <time datetime="2026-07-09">2026-07-09</time>
+          <span>5370 字</span>
+          <span>约 14 分钟</span>
+        </div>
+        <div class="chips post-tags"><span class="chip">应急响应</span><span class="chip">WebShell</span><span class="chip">查杀</span></div>
+      </header>
+      <div class="content"><h2 id="_1">前言</h2>
+<p>什么是WebShell应急响应？</p>
+<p>简单官方一点：WebShell应急响应是指在检测到WebShell（恶意Web脚本）攻击后，采取一系列措施来控制、消除威胁，并恢复受影响的系统和服务。WebShell是一种常见的攻击手段，攻击者通过上传或注入恶意脚本到Web服务器 上，从而获得对服务器的远程控制权限，而我们需要做的就是找到问题所在根源并且解决掉它。</p>
+<h2 id="webshell">手动排查webshell</h2>
+<p>手动排查的话就需要你对常见的后门类型有一定的了解。</p>
+<h3 id="_2">静态检测</h3>
+<p>我们可以查找一些特殊后缀结尾的文件。例如：.asp、.php、.jsp、.aspx。</p>
+<p>然后再从这类文件中查找后门的特征码，特征值，危险函数来查找webshell，例如查找内容含有exec()、eval()、system()的文件。</p>
+<p>软件</p>
+<p>优点：快速方便，对已知的webshell查找准确率高，部署方便，一个脚本就能搞定。</p>
+<p>缺点：漏报率、误报率高，无法查找0day型webshell，而且容易被绕过。</p>
+<details data-line="44" class="md-editor-code" open="" style="color: rgb(169, 183, 198); font-size: 12px; line-height: 1; margin: 20px 0px; font-family: -apple-system, BlinkMacSystemFont, &quot;Segoe UI Variable&quot;, &quot;Segoe UI&quot;, system-ui, ui-sans-serif, Helvetica, Arial, sans-serif, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;"><summary class="md-editor-code-head" style="display: grid; grid-template: &quot;1fr 1fr&quot;; justify-content: space-between; height: 32px; width: 809.281px; font-size: 12px; background-color: rgb(40, 44, 52); margin-block-end: 0px; border-start-start-radius: 5px; border-start-end-radius: 5px; -webkit-tap-highlight-color: rgba(0, 0, 0, 0); list-style: none; position: sticky; top: 0px; z-index: 10000; cursor: pointer; border-end-start-radius: 0px; border-end-end-radius: 0px;"><div class="md-editor-code-flag" style="margin-inline-start: 12px;"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-block-start: 11px; background-color: rgb(236, 106, 94);"></span><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-block-start: 11px; margin-inline-start: 4px; background-color: rgb(244, 191, 79);"></span><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-block-start: 11px; margin-inline-start: 4px; background-color: rgb(97, 197, 84);"></span></div><div class="md-editor-code-action" style="display: flex; align-items: center;"><span class="md-editor-code-lang" style="margin-inline-end: 10px; line-height: 32px;"></span><span class="md-editor-copy-button" data-tips="复制代码" data-processed="true" style="margin-inline-end: 10px; cursor: pointer; line-height: 32px; position: static;">复制代码</span><span class="md-editor-collapse-tips" style="margin-inline-end: 12px;"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-chevron-left md-editor-icon"><circle cx="12" cy="12" r="10"></circle><path d="m14 16-4-4 4-4"></path></svg></span></div></summary><pre style="position: relative; margin: 0px;"><code class="language-" language="" style="direction: ltr; color: rgb(169, 183, 198); background-color: rgb(40, 44, 52); border-radius: 2px; line-height: 1.6; padding-inline-start: 3.5em !important; font-family: source-code-pro, Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace; font-size: 14px; display: block; overflow: auto; padding: 1em; position: relative; border-start-start-radius: 0px; border-start-end-radius: 0px; border-end-start-radius: 5px; border-end-end-radius: 5px;"><span class="md-editor-code-block" style="display: inline-block; width: 746.281px; overflow: auto; vertical-align: bottom; color: rgb(169, 183, 198);">//搜索目录下适配当前应用的网页文件，查看内容是否有Webshell特征
+<span class="hljs-built_in" style="color: rgb(230, 192, 123);">find</span> ./ <span class="hljs-built_in" style="color: rgb(230, 192, 123);">type</span> f -name <span class="hljs-string" style="color: rgb(152, 195, 121);">"*.jsp"</span> | xargs grep <span class="hljs-string" style="color: rgb(152, 195, 121);">"exec("</span> 
+<span class="hljs-built_in" style="color: rgb(230, 192, 123);">find</span> ./ <span class="hljs-built_in" style="color: rgb(230, 192, 123);">type</span> f -name <span class="hljs-string" style="color: rgb(152, 195, 121);">"*.php"</span> | xargs grep <span class="hljs-string" style="color: rgb(152, 195, 121);">"eval("</span> 
+<span class="hljs-built_in" style="color: rgb(230, 192, 123);">find</span> ./ <span class="hljs-built_in" style="color: rgb(230, 192, 123);">type</span> f -name <span class="hljs-string" style="color: rgb(152, 195, 121);">"*.asp"</span> | xargs grep <span class="hljs-string" style="color: rgb(152, 195, 121);">"execute("</span> 
+<span class="hljs-built_in" style="color: rgb(230, 192, 123);">find</span> ./ <span class="hljs-built_in" style="color: rgb(230, 192, 123);">type</span> f -name <span class="hljs-string" style="color: rgb(152, 195, 121);">"*.aspx"</span> | xargs grep <span class="hljs-string" style="color: rgb(152, 195, 121);">"eval("</span> 
+
+//对于免杀Webshell，可以查看是否使用编码
+<span class="hljs-built_in" style="color: rgb(230, 192, 123);">find</span> ./ <span class="hljs-built_in" style="color: rgb(230, 192, 123);">type</span> f -name <span class="hljs-string" style="color: rgb(152, 195, 121);">"*.php"</span> | xargs grep <span class="hljs-string" style="color: rgb(152, 195, 121);">"base64_decode"</span> </span></code></pre></details>
+
+<h3 id="_3">动态检测</h3>
+<p>webshell执行时刻表现出来的特征，我们称为动态特征。只要我们把webshell特有的HTTP请求/响应做成特征库，加到IDS里面去检测所有的HTTP请求就好了。webshell如果执行系统命令的话，会有进程。Linux下就是起了bash，Win下就是启动cmd，这些都是动态特征。</p>
+<h3 id="_4">日志检测</h3>
+<p>使用Webshell一般不会在系统日志中留下记录，但是会在网站的web日志中留下Webshell页面的访问<a href="https://jishuzhan.net/article/1795682553114398721#"> 数据</a>和数据提交记录。日志分析检测技术通过大量的日志文件建立请求模型从而检测出异常文件，例如：一个平时是GET的请求突然有了POST请求并且返回代码为200。</p></div>
+      <div class="post-nav"><a class="pn-item prev" href="e-yi-cheng-xu-ying-ji-xiang-ying.html"><span>← 上一篇</span><strong>恶意程序应急响应</strong></a><a class="pn-item next" href="ying-ji-xiang-ying-si-da-jing-dian-chang-jing.html"><span>下一篇 →</span><strong>应急响应四大经典场景</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">前言</a><a href="#webshell" class="toc-lv2">手动排查webshell</a><a href="#_2" class="toc-lv3">静态检测</a><a href="#_3" class="toc-lv3">动态检测</a><a href="#_4" class="toc-lv3">日志检测</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

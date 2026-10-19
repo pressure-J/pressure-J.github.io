@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>古典密码 · pressure-J</title>
+<meta name="description" content="拿到一串东西，先判断它属于哪一层，再谈破法：">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/gu-dian-mi-ma.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="古典密码 · pressure-J">
+<meta property="og:description" content="拿到一串东西，先判断它属于哪一层，再谈破法：">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/crypto.html">密码学</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>古典密码</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-crypto">密码学</span>
+          <time datetime="2026-10-14">2026-10-14</time>
+          <span>8774 字</span>
+          <span>约 23 分钟</span>
+        </div>
+        
+      </header>
+      <div class="content"><blockquote>
+<p>古典密码 = 手工/纸笔时代的密码，共同特征是<strong>逐字符处理、密钥很短</strong>。信息论上它们早被淘汰，但 CTF 里是稳定的送分题（校赛/新生赛必考），也是理解现代密码"为什么需要分组和扩散"的起点。<br />
+本节讲<strong>原理 + 判别 + 打法</strong>；赛中的极简对照表在 <code>misc\Misc-Crypto离线速查表.md</code> 第 2 节。</p>
+</blockquote>
+<h2 id="_1">古典密码第一刀：先分编码层和密码层</h2>
+<p>拿到一串东西，先判断它属于哪一层，再谈破法：</p>
+<ul>
+<li><strong>编码层</strong>（ASCII、hex、Base64、URL、Brainfuck…）：<strong>无密钥、逆运算唯一</strong>，直接倒回去，不要枚举、不要统计。</li>
+<li><strong>密码层</strong>（凯撒、仿射、维吉尼亚、单表替换、换位…）：<strong>有密钥或需要搜索</strong>，才动枚举与频率分析。</li>
+</ul>
+<p>把编码当密码去爆破（或反过来）是纯粹的浪费。Base64 细看见 <code>baseknown\文本编码与乱码.md</code>。</p>
+<p>密码层内部再分两大类，这是选破法的依据：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>类别</th>
+<th>字母集合</th>
+<th>字母位置</th>
+<th>典型</th>
+<th>频率痕迹</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>换位</strong></td>
+<td>不变</td>
+<td>变</td>
+<td>栅栏、列置换、Scytale</td>
+<td>频率统计<strong>原样保留</strong>（IC 不降）</td>
+</tr>
+<tr>
+<td><strong>替换（单表）</strong></td>
+<td>变</td>
+<td>不变</td>
+<td>凯撒、仿射、单表替换、Atbash</td>
+<td>频率分布<strong>形状保留</strong>（e 仍最高）</td>
+</tr>
+<tr>
+<td><strong>替换（多表）</strong></td>
+<td>变</td>
+<td>不变</td>
+<td>维吉尼亚、Playfair</td>
+<td>频率被<strong>拉平</strong>（整体 IC≈0.04）</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="ic">判别利器：重合指数 IC</h3>
+<p>IC = 随机抽两个字母、它们相同的概率：</p>
+<p>$$IC=\frac{\sum_i n_i(n_i-1)}{N(N-1)}$$</p>
+<p>本机实测（<code>py</code>，Python 3.12.6）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>文本</th>
+<th>IC</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>真随机 20000 个字母</td>
+<td>0.0385</td>
+</tr>
+<tr>
+<td>英文自然语言</td>
+<td>0.0658</td>
+</tr>
+<tr>
+<td>上表英文做纯换位（列宽 7）后</td>
+<td>0.0658（<strong>与原文完全一致</strong>）</td>
+</tr>
+<tr>
+<td>同一段明文经维吉尼亚加密后的密文</td>
+<td>0.0414</td>
+</tr>
+</tbody>
+</table></div>
+<p>结论：</p>
+<ul>
+<li>IC 掉到 <strong>0.04 附近 → 多表替换</strong>（同一明文字母被加密成不同密文字母，频率被抹平）；</li>
+<li>IC 保持 <strong>0.066 → 单表替换或换位</strong>；</li>
+<li><strong>换位不改变 IC</strong>，所以"IC 高"不能区分换位与单表替换——区分靠结构：换位后的文本词长和被切碎，但字母频率分布、字母组合（字母对）统计都还在；单表替换则词长、标点、重复词位置全保留，只是字母全换了。</li>
+</ul>
+<h2 id="1-caesar">1. 凯撒密码（Caesar）</h2>
+<p><strong>原理</strong>：整个字母表统一平移 k 位，是最简单的单表替换（替换表就是"循环移位"）。</p>
+<p>$$C=(P+k)\bmod 26 \qquad P=(C-k)\bmod 26$$</p>
+<p>实测（k=3，历史原型）：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">caesar</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>          <span class="c1"># k&gt;0 = 向后移 k 位，k&lt;0 = 向前移</span>
+    <span class="n">o</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">s</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">islower</span><span class="p">():</span> <span class="n">o</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">chr</span><span class="p">((</span><span class="nb">ord</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="o">-</span> <span class="mi">97</span> <span class="o">+</span> <span class="n">k</span><span class="p">)</span> <span class="o">%</span> <span class="mi">26</span> <span class="o">+</span> <span class="mi">97</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">c</span><span class="o">.</span><span class="n">isupper</span><span class="p">():</span> <span class="n">o</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">chr</span><span class="p">((</span><span class="nb">ord</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="o">-</span> <span class="mi">65</span> <span class="o">+</span> <span class="n">k</span><span class="p">)</span> <span class="o">%</span> <span class="mi">26</span> <span class="o">+</span> <span class="mi">65</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span> <span class="n">o</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+    <span class="k">return</span> <span class="s1">''</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">o</span><span class="p">)</span>
+
+<span class="n">caesar</span><span class="p">(</span><span class="s2">"ATTACK AT DAWN"</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>    <span class="c1"># 'DWWDFN DW GDZQ'</span>
+<span class="n">caesar</span><span class="p">(</span><span class="s2">"ATTACK AT DAWN"</span><span class="p">,</span> <span class="mi">13</span><span class="p">)</span>   <span class="c1"># 'NGGNPX NG QNJA'  ← ROT13</span>
+<span class="n">caesar</span><span class="p">(</span><span class="s2">"DWWDFN"</span><span class="p">,</span> <span class="mi">23</span><span class="p">)</span>           <span class="c1"># 'ATTACK'          ← k=-3 解回</span>
+</code></pre></div></div>
+
+<ul>
+<li><strong>密钥空间只有 26</strong>，穷举 + 英文评分必出。</li>
+<li>ROT13 是 k=13 的特例：$13+13=26$，<strong>加密再加密一次就还原</strong>（自逆）。</li>
+<li>有高频词时<strong>一个词就能定偏移</strong>：密文里反复出现的 3 字母词几乎一定是 <code>the</code>，用一组对应字母算出 k，别打 26 份全文刷屏。</li>
+</ul>
+<p>脚本：<code>~/tools\CTF工具箱\crypto\01-凯撒爆破.py</code></p>
+<h2 id="2-affine">2. 仿射密码（Affine）</h2>
+<p><strong>原理</strong>：在凯撒的"平移"外面再套一层"乘数"，本质是打乱字母表的顺序。</p>
+<p>$$C=(aP+b)\bmod 26 \qquad P=a^{-1}(C-b)\bmod 26$$</p>
+<p><strong>关键约束</strong>：$a$ 必须与 26 互素，否则映射不是一双一（两字母会被映到同一字母），也无法求逆。</p>
+<p>实测：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">affine_enc</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>            <span class="c1"># 加密</span>
+    <span class="k">return</span> <span class="s1">''</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">chr</span><span class="p">((</span><span class="n">a</span> <span class="o">*</span> <span class="p">(</span><span class="nb">ord</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="o">-</span> <span class="mi">65</span><span class="p">)</span> <span class="o">+</span> <span class="n">b</span><span class="p">)</span> <span class="o">%</span> <span class="mi">26</span> <span class="o">+</span> <span class="mi">65</span><span class="p">)</span> <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">isalpha</span><span class="p">()</span> <span class="k">else</span> <span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">s</span><span class="o">.</span><span class="n">upper</span><span class="p">())</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">affine_dec</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>            <span class="c1"># 解密，a^(-1) 用 Python 3.8+ 的 pow(a, -1, 26)</span>
+    <span class="n">ai</span> <span class="o">=</span> <span class="nb">pow</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">26</span><span class="p">)</span>
+    <span class="k">return</span> <span class="s1">''</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">chr</span><span class="p">((</span><span class="n">ai</span> <span class="o">*</span> <span class="p">((</span><span class="nb">ord</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="o">-</span> <span class="mi">65</span><span class="p">)</span> <span class="o">-</span> <span class="n">b</span><span class="p">))</span> <span class="o">%</span> <span class="mi">26</span> <span class="o">+</span> <span class="mi">65</span><span class="p">)</span> <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">isalpha</span><span class="p">()</span> <span class="k">else</span> <span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">s</span><span class="o">.</span><span class="n">upper</span><span class="p">())</span>
+
+<span class="n">affine_enc</span><span class="p">(</span><span class="s2">"AFFINE"</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">8</span><span class="p">)</span>          <span class="c1"># 'IHHWVC'   (a=5, b=8)</span>
+<span class="n">affine_dec</span><span class="p">(</span><span class="s2">"IHHWVC"</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">8</span><span class="p">)</span>          <span class="c1"># 'AFFINE'   (5^(-1) mod 26 = 21)</span>
+</code></pre></div></div>
+
+<p><strong>密钥空间</strong>：与 26 互素的 $a$ 只有 $\varphi(26)=12$ 个（1,3,5,7,9,11,15,17,19,21,23,25），配上 26 个 $b$，共 $12\times 26=\mathbf{312}$ 种。312 全枚举 + 英文评分即可破，不需要频率分析。</p>
+<p>脚本：<code>~/tools\CTF工具箱\crypto\02-仿射爆破.py</code></p>
+<h2 id="3-vigenere">3. 维吉尼亚密码（Vigenère）</h2>
+<p><strong>原理</strong>：把凯撒的"一个固定位移"换成"一串位移"，位移按密钥字母逐个循环使用。同一个明文字母在不同位置会被加密成不同字母，这就是它能扛住单字母频率分析的原因。</p>
+<p>$$C_i=(P_i+K_{i\bmod L})\bmod 26 \qquad P_i=(C_i-K_{i\bmod L})\bmod 26$$</p>
+<p>其中 $L$ 是密钥长度，密钥不是字母就转成 0–25 的数字（密钥字母 → 位移量）。</p>
+<p>密钥 <code>LEMON</code>（=11,4,12,14,11,4…）加密 <code>ATTACK</code>：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>位置</th>
+<th>1</th>
+<th>2</th>
+<th>3</th>
+<th>4</th>
+<th>5</th>
+<th>6</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>明文</td>
+<td>A=0</td>
+<td>T=19</td>
+<td>T=19</td>
+<td>A=0</td>
+<td>C=2</td>
+<td>K=10</td>
+</tr>
+<tr>
+<td>密钥</td>
+<td>L=11</td>
+<td>E=4</td>
+<td>M=12</td>
+<td>O=14</td>
+<td>L=11</td>
+<td>E=4</td>
+</tr>
+<tr>
+<td>和 mod 26</td>
+<td>11</td>
+<td>23</td>
+<td>5</td>
+<td>14</td>
+<td>13</td>
+<td>14</td>
+</tr>
+<tr>
+<td>密文</td>
+<td>L</td>
+<td>X</td>
+<td>F</td>
+<td>O</td>
+<td>N</td>
+<td>V</td>
+</tr>
+</tbody>
+</table></div>
+<p>即 <code>LXFOPV</code>。注意第 4 位的 <code>A</code> 变成了 <code>O</code>、第 1 位的 <code>A</code> 变成了 <code>L</code>——<strong>同一个明文字母，密文不同</strong>，这正是频率分析失效的根源（实测：明文 <code>AAAAAA</code> + 密钥 <code>lemon</code> → <code>LEMONL</code>）。</p>
+<p><strong>破解四步</strong>（把它拆回若干个凯撒）：</p>
+<ol>
+<li><strong>定密钥长度 $L$</strong>：用<strong>重合指数</strong>。按 $L$ 分组后，如果 $L$ 是真周期，每组子串都是"单一凯撒"密文，其 IC 会回到 0.066；长度不对则仍是 0.04 附近。</li>
+<li><strong>按位置分列</strong>：$j=i\bmod L$，把密文拆成 $L$ 列，每列内部的位移相同。</li>
+<li><strong>逐列频率分析</strong>：对每列做卡方检验（与英文标准频率比对）求出该列的位移，$L$ 个位移拼起来就是密钥。</li>
+<li><strong>整体解密</strong>，通读确认。</li>
+</ol>
+<p>实测（MRCTF 真题的维吉尼亚密文，4129 个字母）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>密钥长度候选</th>
+<th>分组平均 IC</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1（不分列）</td>
+<td>0.0414</td>
+</tr>
+<tr>
+<td><strong>6</strong></td>
+<td><strong>0.0660</strong></td>
+</tr>
+<tr>
+<td>12</td>
+<td>0.0664</td>
+</tr>
+<tr>
+<td>18</td>
+<td>0.0654</td>
+</tr>
+<tr>
+<td>7、13、19…</td>
+<td>0.041 附近</td>
+</tr>
+</tbody>
+</table></div>
+<p>IC 在 6/12/18 都接近 0.066（真周期的倍数分组同样会"每列只剩一个位移"），所以<strong>要在容差内取最小的那个长度</strong>，否则会报出 12 而不是 6。本题还原出密钥 <code>gsfepn</code>，解出英文明文并给出 flag。</p>
+<blockquote>
+<p>⚠️ <strong>别用 Kasiski 的单个 gcd 定长度</strong>：它把所有重复子串的间隔倒进一个 gcd，任一"脏"间隔（重复碰巧、非周期重复）就能把结果拉成 1。本机工具箱 <code>05-维吉尼亚.py</code> 原来就是这么写的，同一道题上给出 <code>gcd=1</code> 完全失效，现已改成 IC 法（Kasiski 降级为参考）。</p>
+</blockquote>
+<p>脚本：<code>~/tools\CTF工具箱\crypto\05-维吉尼亚.py</code>（<code>DATA</code> 填密文；已知密钥可直接填 <code>KNOWN_KEY</code>）</p>
+<p><strong>可破的前提是密钥比明文短且有重复</strong>。密钥长度接近明文长度时，每列样本太少、统计失效，退化成近似一次一密（OTP），理论上不可破。</p>
+<h2 id="4">4. 换位类：栅栏密码与列置换</h2>
+<p><strong>原理</strong>：<strong>不改变字母，只重排顺序</strong>。栅栏（Rail Fence）是把明文按"之字形"写在 n 条轨道上、再按轨道顺序读出；列置换是按列写入、按列读出（本笔记里"简单按列切分"就是 2 栏的一种写法）。</p>
+<p>实测（明文 <code>WEAREDISCOVEREDFLEEATONCE</code>）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>栏数</th>
+<th>密文</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2</td>
+<td><code>WAEICVRDLETNEERDSOEEFEAOC</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>WECRLTEERDSOEEFEAOCAIVDEN</code></td>
+</tr>
+<tr>
+<td>2（等价写法：奇数位+偶数位，不折返）</td>
+<td><code>WAEICVRDLETNEERDSOEEFEAOC</code></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>识别</strong>：字母频率统计一丁点没变（IC 仍是 0.066），但词结构被切碎、出现不该有的字母组合；密文长度 = 明文长度。</p>
+<p><strong>破法</strong>：密文短时直接枚举栏数（2…N）逐个解密看哪个读得通；长文先按长度因数猜列宽，再调整列顺序（列置换的列顺序本身就是密钥，可以用字母对的统计来排）。</p>
+<p>脚本：<code>~/tools\CTF工具箱\crypto\03-栅栏爆破.py</code></p>
+<h2 id="5-monoalphabetic-substitution">5. 单表替换（Monoalphabetic Substitution）</h2>
+<p><strong>原理</strong>：整个明文共用<strong>一张固定的 26 字母映射表</strong>。凯撒和仿射只是它的两个特例（映射表分别"循环移位""线性打乱"）。密钥空间是 $26!\approx 4\times 10^{26}$，无法穷举，但它保留了全部的统计特征。</p>
+<p><strong>英文单字母频率序</strong>（破解的基础，由高到低）：</p>
+<p><code>e t a o i n s h r d l c u m w f g y p b v k j x q z</code></p>
+<p><strong>破法按这个优先级</strong>（前一步做完基本不需要后一步）：</p>
+<ol>
+<li><strong>已知明文锚点</strong>（最强）：题面给了 flag 格式，就在密文里找那段带花括号的 token 与格式逐字符对齐，一次拿到 6–7 个映射；非字母字符（<code>_</code>、<code>{}</code>、数字）不参与替换，直接保留。</li>
+<li><strong>模式匹配</strong>：长词结构极强——同样的字母重复模式对应同样的英文单词（如第 2、3 位相同、末三位相同 → <code>congratulations</code> 一类）。</li>
+<li><strong>频率分析</strong>：把密文最高频字母对齐到 <code>e</code>，第二高频对齐到 <code>t</code>，以此类推。</li>
+<li><strong>退火/爬山</strong>：只有前三步都推不动（密文极短、无锚点）才用。工具箱脚本用"英文四元组统计 + 词典奖励"双信号搜索最优 26 字母置换。</li>
+</ol>
+<p>脚本：<code>~/tools\CTF工具箱\crypto\16-单表替换-退火求解.py</code>（<code>DATA</code> 填密文；个别字母仍错时，把已确认的映射填进 <code>ANCHORS</code> 再跑）</p>
+<p><strong>判据</strong>：解出来的<strong>整段</strong>必须是通顺自然语言。只解出 flag 段不算成功——那可能只是巧合。</p>
+<h2 id="6-bacon">6. 培根密码（Bacon）</h2>
+<p><strong>原理</strong>：把每个字母编码成 <strong>5 个 A/B（两个符号）</strong>。$2^5=32$ 个组合，只需要 26 个字母，所以培根最初用 <strong>24 字母表</strong>（合并 I/J、U/V），编号 0–23。</p>
+<ul>
+<li><strong>24 字母表</strong>：<code>ABCDEFGHIKLMNOPQRSTUWXYZ</code>（注意没有 J、没有 V）</li>
+<li><strong>26 字母表</strong>（现代变体）：<code>ABCDEFGHIJKLMNOPQRSTUVWXYZ</code></li>
+</ul>
+<p>实测（同一个词两种表的结果完全不同）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>字母</th>
+<th>24 字母表</th>
+<th>26 字母表</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>C</td>
+<td><code>aaaba</code></td>
+<td><code>aaaba</code></td>
+</tr>
+<tr>
+<td>R</td>
+<td><code>baaaa</code></td>
+<td><code>baaab</code></td>
+</tr>
+<tr>
+<td>Y</td>
+<td><code>babba</code></td>
+<td><code>bbaaa</code></td>
+</tr>
+<tr>
+<td>P</td>
+<td><code>abbba</code></td>
+<td><code>abbbb</code></td>
+</tr>
+<tr>
+<td>T</td>
+<td><code>baaba</code></td>
+<td><code>baabb</code></td>
+</tr>
+<tr>
+<td>O</td>
+<td><code>abbab</code></td>
+<td><code>abbba</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>两张表从<strong>第 9 个字母</strong>就分叉（24 表第 9 位是 <code>K</code>，26 表是 <code>J</code>），U/V 合并又使靠后的字母整体错一位——所以<strong>先确定题目用的是哪张表</strong>，否则整段解出来的都是别字。</p>
+<p><strong>隐藏形态</strong>：A/B 不一定是字母 <code>A</code>/<code>B</code>。常见做法是用一段正常文字承载：大写/小写、两种字体、斜体/正体、每段首字等，先归一化成 0/1 串，再每 5 位一组查表。</p>
+<p>脚本：<code>~/tools\CTF工具箱\crypto\04-培根与摩斯.py</code></p>
+<h2 id="7-morse">7. 摩斯密码（Morse）</h2>
+<p><strong>原理</strong>：用两种"信号时长"给字符编号——点（1 个时间单位）、划（3 个时间单位）；字母内符号间隔 1 单位，字母间隔 3 单位，单词间隔 7 单位。</p>
+<p>常用表（记住最高频的几个就够开始）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>字母</th>
+<th>摩斯</th>
+<th>字母</th>
+<th>摩斯</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>E</td>
+<td><code>.</code></td>
+<td>T</td>
+<td><code>-</code></td>
+</tr>
+<tr>
+<td>S</td>
+<td><code>...</code></td>
+<td>O</td>
+<td><code>---</code></td>
+</tr>
+<tr>
+<td>A</td>
+<td><code>.-</code></td>
+<td>N</td>
+<td><code>-.</code></td>
+</tr>
+<tr>
+<td>H</td>
+<td><code>....</code></td>
+<td>I</td>
+<td><code>..</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>实测：<code>SOS</code> → <code>... --- ...</code>；<code>HELLO</code> → <code>.... . .-.. .-.. ---</code></p>
+<p><strong>变体</strong>（CTF 里比标准形态更常见）：</p>
+<ul>
+<li>点划被换成任意两种符号：<code>0/1</code>、<code>A/B</code>、<code>高/低</code>电平、<code>长/短</code>声音；</li>
+<li>给一段音频让听长短（用 Audacity 看波形，数出长短间隔，见 <code>misc\Misc-Crypto离线速查表.md</code>）；</li>
+<li>只给一串"点划分不清"的符号时，先按"两种值"归一化成 0/1，再按长度分组。</li>
+</ul>
+<p>脚本：<code>~/tools\CTF工具箱\crypto\04-培根与摩斯.py</code></p>
+<h2 id="8-playfair">8. Playfair（了解即可）</h2>
+<p><strong>原理</strong>：<strong>双字母替换</strong>。用一个 5×5 字母表（合并 I/J，共 25 格，密钥填进去、剩余字母按序补全），每次处理<strong>一对</strong>字母：</p>
+<ol>
+<li>两字母同行 → 各取右边一个（到行尾则绕回行首）；</li>
+<li>两字母同列 → 各取下边一个（绕回）；</li>
+<li>否则（构成矩形）→ 各取<strong>所在行</strong>的另一个角（互换列）。</li>
+</ol>
+<p>它是"多表替换"的一种：同一个字母在不同搭档下被加密成不同字母，所以单字母频率也被拉平。题目<strong>给了密钥就直接按规则查表解密</strong>，没给密钥很难破（密钥空间大、双字母统计在短密文上不够用）。加密前要先去重相邻重复对、补齐奇数长度的填充规则，题面通常会说明。</p>
+<h2 id="9">9. 题型速查：看到什么就用什么</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>看到什么</th>
+<th>是</th>
+<th>用什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>只有 A/B 两种字符，长度是 5 的倍数</td>
+<td>培根</td>
+<td><code>04-培根与摩斯.py</code>（先判 24/26 表）</td>
+</tr>
+<tr>
+<td>只有 <code>.</code>/<code>-</code>/空格，或长短不一的音频波形</td>
+<td>摩斯</td>
+<td><code>04-培根与摩斯.py</code> / Audacity 抄波形</td>
+</tr>
+<tr>
+<td>字母整体平移、<code>the</code> 这类词结构还在</td>
+<td>凯撒</td>
+<td><code>01-凯撒爆破.py</code>（26 种全枚举）</td>
+</tr>
+<tr>
+<td>单表替换但带乘数、无密钥</td>
+<td>仿射</td>
+<td><code>02-仿射爆破.py</code>（312 种全枚举）</td>
+</tr>
+<tr>
+<td>字母乱映射、词长标点正常、有重复词</td>
+<td>单表替换</td>
+<td><code>16-单表替换-退火求解.py</code></td>
+</tr>
+<tr>
+<td>密文长、整体 IC≈0.04、重复片段间距集中</td>
+<td>维吉尼亚</td>
+<td><code>05-维吉尼亚.py</code>（IC 定长度 + 逐列卡方）</td>
+</tr>
+<tr>
+<td>字母都在、IC 没降，但顺序成块乱</td>
+<td>栅栏/列置换</td>
+<td><code>03-栅栏爆破.py</code></td>
+</tr>
+<tr>
+<td>双字母一组、5×5 表</td>
+<td>Playfair</td>
+<td>给密钥直接查表</td>
+</tr>
+</tbody>
+</table></div>
+<p>脚本都在 <code>~/tools\CTF工具箱\crypto\</code>，改顶部 <code>DATA</code> 一行即跑。</p>
+<h2 id="10">10. 易错点</h2>
+<ul>
+<li><strong>编码当密码破（或反过来）</strong>：先问"有没有密钥、逆运算是不是唯一"，再决定枚举还是直接翻译。</li>
+<li><strong>维吉尼亚用 Kasiski 单个 gcd 定长度</strong>：任一脏间隔就把结果拉成 1。用重合指数。</li>
+<li><strong>真周期的整数倍 IC 一样高</strong>：不取最小长度就会报出 12 而不是 6。</li>
+<li><strong>拿 IC 判断"是不是换位"</strong>：换位不改变 IC，判断不了。</li>
+<li><strong>把退火当万用锤</strong>：多表替换、密钥长度 ≥ 明文的题，退火会稳定收敛到一个错解，<strong>不会告诉你"这题解不了"</strong>。先判可搜性，再用它。</li>
+<li><strong>培根不判字母表</strong>：24 表和 26 表解出来是两个不同的词。</li>
+<li><strong>摩斯直接当符号处理</strong>：点划常被替换成别的两种符号，要先归一化成 0/1。</li>
+<li><strong>仿射忽略 $a$ 与 26 互素</strong>：不互素的 $a$ 根本不构成合法密钥。</li>
+</ul>
+<h2 id="11">11. 验证记录</h2>
+<p>本节的每个示例输出都在本机 <code>py</code>（Python 3.12.6）实际跑出，非推算：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>内容</th>
+<th>实测结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>凯撒 k=3 / k=13 / k=23</td>
+<td><code>DWWDFN DW GDZQ</code> / <code>NGGNPX NG QNJA</code> / <code>ATTACK</code></td>
+</tr>
+<tr>
+<td>仿射 a=5, b=8</td>
+<td><code>AFFINE</code> → <code>IHHWVC</code> → <code>AFFINE</code>；互素 a 个数 12，密钥空间 312</td>
+</tr>
+<tr>
+<td>维吉尼亚 <code>LEMON</code> + <code>AAAAAA</code></td>
+<td><code>LEMONL</code>（同字母不同密文）</td>
+</tr>
+<tr>
+<td>栅栏 2/3 栏</td>
+<td><code>WAEICVRDLETNEERDSOEEFEAOC</code> / <code>WECRLTEERDSOEEFEAOCAIVDEN</code></td>
+</tr>
+<tr>
+<td>培根 CRYPTO 两表</td>
+<td><code>aaaba baaaa babba abbba baaba abbab</code> / <code>aaaba baaab bbaaa abbbb baabb abbba</code></td>
+</tr>
+<tr>
+<td>IC：随机 / 英文 / 换位后 / 维吉尼亚密文</td>
+<td>0.0385 / 0.0658 / 0.0658 / 0.0414</td>
+</tr>
+<tr>
+<td>维吉尼亚真题</td>
+<td>IC 在 L=6 分组 = 0.0660，密钥 <code>gsfepn</code>，解出英文明文</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>维吉尼亚那段数据取自 MRCTF 的一道题（John Perry Barlow《赛博空间独立宣言》），flag 为 <code>mrctf{vigenere_crypto_crack_man}</code>。</p>
+</blockquote>
+<h2 id="12-txt">12. 古典密码脚本用法：密文是字符串还是 txt 文件</h2>
+<p>工具箱里所有古典密码脚本都支持<strong>两种给法</strong>，顶部两个变量二选一：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">FILE</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">"~/\cipher.txt"</span>   <span class="c1"># 文件路径（**有换行/很长的纯文本一律用这个**）</span>
+<span class="n">DATA</span> <span class="o">=</span> <span class="s2">"ymj kqfl nx hfjxfw"</span>    <span class="c1"># 短的、单行的密文直接粘（FILE 非空时以 FILE 为准）</span>
+</code></pre></div></div>
+
+<p><strong>用 <code>FILE</code> 而不是硬粘进 <code>DATA</code></strong> 的三个理由：</p>
+<ol>
+<li>引号里的多行字符串要么显式写 <code>\n</code>、要么用三引号，写错一次就报语法错误，而直接给路径没有这个问题；</li>
+<li>读取时自动试 UTF-8-BOM / UTF-8 / GBK 三种编码（题目附件常是 GBK 或带 BOM），并剥掉 BOM 字符——BOM 若混进密文会被当成一个"字母"参与分组，整段位移全错；</li>
+<li>顺带处理换行符差异（CRLF / LF）。</li>
+</ol>
+<p><strong>换行符会怎么处理，各题不一样</strong>（这点必须记住，不是"统一去掉"就完事）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>脚本</th>
+<th>换行等空白的处理</th>
+<th>为什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>05-维吉尼亚.py</code></td>
+<td><strong>保留</strong>，原样参与分组</td>
+<td>分组是按<strong>字母在全文中的顺序</strong>编号的（<code>j = i mod L</code>），换行只是非字母字符、不影响位移序列；明文按原样输出，换行也保留</td>
+</tr>
+<tr>
+<td><code>16-单表替换-退火求解.py</code></td>
+<td><strong>保留</strong>，原样参与打分</td>
+<td>规则是逐字母固定映射，换行不参与映射、不影响统计</td>
+</tr>
+<tr>
+<td><code>01-凯撒爆破.py</code> / <code>02-仿射爆破.py</code></td>
+<td><strong>保留</strong>，原样输出</td>
+<td>同上，逐字母变换</td>
+</tr>
+<tr>
+<td><code>03-栅栏爆破.py</code></td>
+<td><strong>自动去掉全部空白</strong></td>
+<td>栅栏是<strong>换位</strong>：密文必须是连续字母流。换行会被当普通字符参与重排 → 解错（实测 <code>this\nistheflag</code> 解不出 <code>thisistheflag</code>）</td>
+</tr>
+<tr>
+<td><code>04-培根与摩斯.py</code></td>
+<td>培根去掉全部空白；摩斯<strong>按行分单词</strong></td>
+<td>培根被换行切断的 A/B 组要能接起来；摩斯的换行等价于单词分隔</td>
+</tr>
+</tbody>
+</table></div>
+<p>跑起来时会打印 <code>[*] 密文来源: ...</code>，括号里注明用的哪种编码、以及（栅栏）去掉了几个空白字符——<strong>先看这一行确认读进来的东西对</strong>，再往下看结果。典型输出（示例，不是代码）：</p>
+<blockquote>
+<p>[<em>] 密文来源: ~/\cipher.txt (gbk)　← 编码自动判对了<br />
+[</em>] 共 5119 字符, 其中字母 4129 个, 20 行　← 行数/字母数符合预期<br />
+[*] IC 法推测密钥长度: 6  (该长度分组平均 IC=0.0660)</p>
+</blockquote>
+<p><strong>其他容错</strong>：文件不存在时直接给出可读提示（不会抛一堆 traceback）；文件是二进制乱码时按 <code>utf-8 + replace</code> 硬读并用 <code>(含坏字节, 已替换)</code> 标注，用来判断"是不是给错文件了"。</p></div>
+      <div class="post-nav"><a class="pn-item prev" href="sm2-tuo-yuan-qu-xian-gong-yao-suan-fa-yuan-li-yu-gong-ji.html"><span>← 上一篇</span><strong>SM2-椭圆曲线公钥算法原理与攻击</strong></a><a class="pn-item next" href="python-yu-zhong-duan-jiao-hu-subprocess-yu-pty.html"><span>下一篇 →</span><strong>Python 与终端交互（subprocess 与 pty）</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">古典密码第一刀：先分编码层和密码层</a><a href="#ic" class="toc-lv3">判别利器：重合指数 IC</a><a href="#1-caesar" class="toc-lv2">1. 凯撒密码（Caesar）</a><a href="#2-affine" class="toc-lv2">2. 仿射密码（Affine）</a><a href="#3-vigenere" class="toc-lv2">3. 维吉尼亚密码（Vigenère）</a><a href="#4" class="toc-lv2">4. 换位类：栅栏密码与列置换</a><a href="#5-monoalphabetic-substitution" class="toc-lv2">5. 单表替换（Monoalphabetic Substitution）</a><a href="#6-bacon" class="toc-lv2">6. 培根密码（Bacon）</a><a href="#7-morse" class="toc-lv2">7. 摩斯密码（Morse）</a><a href="#8-playfair" class="toc-lv2">8. Playfair（了解即可）</a><a href="#9" class="toc-lv2">9. 题型速查：看到什么就用什么</a><a href="#10" class="toc-lv2">10. 易错点</a><a href="#11" class="toc-lv2">11. 验证记录</a><a href="#12-txt" class="toc-lv2">12. 古典密码脚本用法：密文是字符串还是 txt 文件</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

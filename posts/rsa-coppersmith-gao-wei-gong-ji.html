@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RSA-Coppersmith高位攻击 · pressure-J</title>
+<meta name="description" content="题目只给 n、e、c，外加 p 或 q 的部分二进制位（hint）。构造脚本特征：">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/rsa-coppersmith-gao-wei-gong-ji.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="RSA-Coppersmith高位攻击 · pressure-J">
+<meta property="og:description" content="题目只给 n、e、c，外加 p 或 q 的部分二进制位（hint）。构造脚本特征：">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/crypto.html">密码学</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>RSA-Coppersmith高位攻击</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-crypto">密码学</span>
+          <time datetime="2026-09-16">2026-09-16</time>
+          <span>3675 字</span>
+          <span>约 10 分钟</span>
+        </div>
+        <div class="chips post-tags"><span class="chip">crypto</span></div>
+      </header>
+      <div class="content"><h2 id="_1">题型识别（一眼看出）</h2>
+<p>题目<strong>只给 n、e、c</strong>，外加 p 或 q 的<strong>部分二进制位</strong>（hint）。构造脚本特征：</p>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">Crypto.Util.number</span><span class="w"> </span><span class="kn">import</span> <span class="n">getPrime</span><span class="p">,</span> <span class="n">bytes_to_long</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">secret</span><span class="w"> </span><span class="kn">import</span> <span class="n">flag</span>
+
+<span class="n">p</span> <span class="o">=</span> <span class="n">getPrime</span><span class="p">(</span><span class="mi">1024</span><span class="p">)</span>
+<span class="n">q</span> <span class="o">=</span> <span class="n">getPrime</span><span class="p">(</span><span class="mi">1024</span><span class="p">)</span>
+<span class="n">n</span> <span class="o">=</span> <span class="n">p</span> <span class="o">*</span> <span class="n">q</span>
+<span class="n">e</span> <span class="o">=</span> <span class="mi">65537</span>
+<span class="n">hint1</span> <span class="o">=</span> <span class="n">p</span> <span class="o">&gt;&gt;</span> <span class="mi">724</span>          <span class="c1"># p 的高 300 位</span>
+<span class="n">hint2</span> <span class="o">=</span> <span class="n">q</span> <span class="o">%</span> <span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="mi">265</span><span class="p">)</span>    <span class="c1"># q 的低 265 位</span>
+<span class="n">ct</span> <span class="o">=</span> <span class="nb">pow</span><span class="p">(</span><span class="n">bytes_to_long</span><span class="p">(</span><span class="n">flag</span><span class="p">),</span> <span class="n">e</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">hint1</span><span class="p">);</span> <span class="nb">print</span><span class="p">(</span><span class="n">hint2</span><span class="p">);</span> <span class="nb">print</span><span class="p">(</span><span class="n">n</span><span class="p">);</span> <span class="nb">print</span><span class="p">(</span><span class="n">ct</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p><strong>本质</strong>：RSA 的安全性建立在"不知道 p、q"上；一旦泄露了 p 或 q 足够多的比特位，就能用 Coppersmith 定理把剩下的比特补出来 → 分解 n → 解密。</p>
+<h2 id="coppersmith">Coppersmith 定理（核心工具）</h2>
+<p>给定模 $N$ 的多项式 $f(x)$（次数 $d$），若 $f$ 有一个足够小的根 $|x_0| &lt; N^{1/d}$，则可以用 LLL 格基约化把它求出来。</p>
+<p>在 RSA 里的用法（已知 p 的部分比特）：<br />
+- 把 p 的"已知部分"塞进多项式，未知部分当 $x$；<br />
+- <strong>未知比特数 ≤ 约 $0.44 \times p_bits$</strong> 时即可分解（1024 位 p → 约 <strong>454 位</strong>上限）；<br />
+- Sage 里直接调用 <code>f.small_roots(X=, beta=)</code>：<br />
+  - <code>X</code> = 未知根的上界（不是越大越好，<strong>超过理论上限反而失效</strong>）<br />
+  - <code>beta</code> = 因子 p 相对于 n 的大小，理论约 0.5，但<strong>实战取 0.4</strong>（见易错点 1）</p>
+<h2 id="_2">三种子类型</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>类型</th>
+<th>已知</th>
+<th>未知</th>
+<th>处理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>① 已知 p 高位</td>
+<td><code>p &gt;&gt; k</code>（高若干位）</td>
+<td>低 $(p_bits-k)$ 位</td>
+<td>直接 <code>f = x + (hint&lt;&lt;k)</code></td>
+</tr>
+<tr>
+<td>② 已知 p 低位</td>
+<td><code>p % 2^k</code>（低若干位）</td>
+<td>高 $(p_bits-k)$ 位</td>
+<td><code>f = 2^k*x + hint</code> 后 <code>.monic()</code></td>
+</tr>
+<tr>
+<td>③ 已知 p 高位 + q 低位</td>
+<td><code>p&gt;&gt;k</code> 且 <code>q % 2^m</code></td>
+<td>中间位</td>
+<td><strong>先把 q 低位转成 p 低位</strong>，再当类型②/高位处理</td>
+</tr>
+</tbody>
+</table></div>
+<p>类型③就是 <strong>2021 鹤城杯</strong> 这道题，也是最常考的一种。</p>
+<h2 id="_3">本题原理（鹤城杯，逐步推导）</h2>
+<p>已知：<code>hint1 = p &gt;&gt; 724</code>（p 的高 300 位）、<code>hint2 = q % 2^265</code>（q 的低 265 位）。</p>
+<p><strong>第 1 步：把 q 的低位转成 p 的低位。</strong><br />
+对 $n = p\cdot q$ 两边模 $2^{265}$，而 $q \equiv \text{hint2} \pmod{2^{265}}$：</p>
+<p>$$n \equiv p\cdot \text{hint2} \pmod{2^{265}} \;\Longrightarrow\; p \equiv n\cdot \text{hint2}^{-1} \pmod{2^{265}}$$</p>
+<p>即拿到 <strong>p 的低 265 位</strong> $p_{low}$。</p>
+<p><strong>第 2 步：写出 p 的完整表达式。</strong><br />
+$$p = \underbrace{\text{hint1}\cdot 2^{724}}<em low="low">{\text{高 300 位}} + \underbrace{p</em>}<em _text_中间未知="\text{中间未知">{\text{低 265 位}} + \underbrace{2^{265}\cdot t}</em>$$}</p>
+<p>未知量 $t$ 约 $724-265 = 459$ 位。</p>
+<p><strong>第 3 步：459 &gt; 454，爆破低 5 位。</strong><br />
+Coppersmith 上限约 454 位，多出的 5 位直接枚举：令 $t = 32x + i,\; i \in [0,31]$。</p>
+<p><strong>第 4 步：构造多项式求根。</strong><br />
+$$f(x) = \text{hint1}\cdot 2^{724} + p_{low} + (32x + i)\cdot 2^{265}$$</p>
+<p>取 <code>.monic()</code> 后 <code>small_roots(X=2^454, beta=0.4)</code> 求出 $x$，还原 $p$，分解 n，解密。</p>
+<blockquote>
+<p>直观理解：p 的高 300 位 + 低 265 位 = 565 位已知，只剩 459 位未知；超过一半的比特都知道了，Coppersmith 就能补齐中间那段。</p>
+</blockquote>
+<h2 id="_4">解题脚本</h2>
+<p>见同目录 <code>RSA-Coppersmith高位攻击-solve.py</code>（<strong>必须用 SageMath 运行</strong>，普通 Python 没有 <code>small_roots</code>）。</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># 核心片段</span>
+<span class="n">R</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">**</span> <span class="mi">265</span>
+<span class="n">p_low</span> <span class="o">=</span> <span class="n">n</span> <span class="o">*</span> <span class="n">inverse_mod</span><span class="p">(</span><span class="n">hint2</span><span class="p">,</span> <span class="n">R</span><span class="p">)</span> <span class="o">%</span> <span class="n">R</span>          <span class="c1"># p 的低 265 位</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="mi">5</span><span class="p">):</span>                        <span class="c1"># 爆破低 5 位</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="n">hint1</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="mi">724</span><span class="p">)</span> <span class="o">+</span> <span class="n">p_low</span> <span class="o">+</span> <span class="p">(</span><span class="n">x</span> <span class="o">*</span> <span class="mi">32</span> <span class="o">+</span> <span class="n">i</span><span class="p">)</span> <span class="o">*</span> <span class="n">R</span>
+    <span class="n">roots</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">monic</span><span class="p">()</span><span class="o">.</span><span class="n">small_roots</span><span class="p">(</span><span class="n">X</span><span class="o">=</span><span class="mi">2</span> <span class="o">**</span> <span class="mi">454</span><span class="p">,</span> <span class="n">beta</span><span class="o">=</span><span class="mf">0.4</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">roots</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="p">(</span><span class="n">Integer</span><span class="p">(</span><span class="n">roots</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="mi">32</span> <span class="o">+</span> <span class="n">i</span><span class="p">)</span> <span class="o">*</span> <span class="n">R</span> <span class="o">+</span> <span class="n">hint1</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="mi">724</span><span class="p">)</span> <span class="o">+</span> <span class="n">p_low</span>
+        <span class="k">break</span>
+</code></pre></div></div>
+
+<h2 id="2026-09-16">验证记录（2026-09-16）</h2>
+<ul>
+<li><strong>2021 鹤城杯原题</strong>实测：在 $i=19$ 命中 p，SageMath 9.3 全程 <strong>37.5 s</strong></li>
+<li>还原 <code>p = 133637329398256221348922087205912367118213472434713498908220867690672019569057789598459580146410501473689139466275052698529257254973211963162087316149628000798221014338373126500646873612341158676084318494058522014519669302359038980726479317742766438142835169562422371156257894374341629012755597863752154328407</code>，<code>n % p == 0</code> ✓</li>
+<li>flag：<code>flag{ef5e1582-8116-4f61-b458-f793dc03f2ff}</code></li>
+</ul>
+<h2 id="_5">易错点 / 经验（血泪）</h2>
+<ol>
+<li><strong><code>beta</code> 必须用 0.4，不要用 0.5</strong>：p、q 位数相同时，<code>small_roots(beta=0.5)</code> 正好踩在 q 与 $\sqrt n$ 谁大谁小的随机边界上，时灵时不灵；取 0.4 才稳定。（第一次就是被这个坑住，方向对但参数不对）</li>
+<li><strong>未知位超上限必须爆破</strong>：1024 位 p 的 Coppersmith 上限约 454 位，本题 459 位，超了 5 位 → 枚举低 5 位（<code>i in range(2**5)</code>），否则 <code>small_roots</code> 求不出。</li>
+<li><strong>多项式要 <code>.monic()</code></strong>：Sage 的 <code>small_roots</code> 要求首一多项式，非首一要先 <code>f.monic()</code>。</li>
+<li><strong>返回的是 Zmod 元素</strong>：<code>small_roots</code> 的根拼回去的 <code>p</code> 可能带 <code>Zmod(n)</code> 类型，<code>n // p</code> 会报 <code>ZeroDivisionError</code>；要 <code>Integer(...)</code> 转换。</li>
+<li><strong><code>X</code> 不是越大越好</strong>：<code>small_roots</code> 的 <code>X</code> 超过理论上限会失效——取在"刚好覆盖未知位"的值最稳。</li>
+<li><strong>环境</strong>：必须 SageMath（本机 <code>~/\AppData\Local\SageMath 9.3\</code>，<strong>不在 <code>py</code> 里</strong>，普通 Python 无 <code>small_roots</code>）。调用方法：<br />
+<code>powershell
+   cd "~/\AppData\Local\SageMath 9.3"
+   .\runtime\bin\bash.exe --login -c "/opt/sagemath-9.3/sage -c '...'"</code></li>
+<li>一次 <code>small_roots</code> 约 1~2 秒，爆破 32 次共几十秒，属正常。</li>
+</ol>
+<h2 id="_6">面试速答卡</h2>
+<ul>
+<li><strong>Q: Coppersmith 攻击适用于什么场景？</strong> A: 已知 RSA 模数 N 中某个因子 p 的部分比特（高位或低位），未知比特不超过约 $0.44\times p_bits$ 时，可求出完整 p 从而分解 N。</li>
+<li><strong>Q: 为什么已知 p 高位能攻击？</strong> A: 把 p 的已知高位固定，未知低位当变量构造模 N 的多项式，用 LLL 求小根，即 Coppersmith 定理。</li>
+<li><strong>Q: 同时给了 p 高位和 q 低位怎么办？</strong> A: 对 $n=pq$ 模 $2^k$ 把 q 低位转成 p 低位，于是 p 同时有高位和低位，再对中间未知段做 Coppersmith（超出上限就爆破若干低位）。</li>
+<li><strong>Q: <code>small_roots</code> 的 beta 为什么取 0.4 而不是 0.5？</strong> A: beta 是因子相对 N 的大小下界，p、q 同位数时理论约 0.5，但正好在临界点会导致求解不稳定，实战取 0.4 更可靠。</li>
+<li><strong>Q: 未知位只比上限多几位时怎么处理？</strong> A: 直接爆破多出的那几位（枚举），把未知位压到上限内再跑 Coppersmith。</li>
+<li><strong>Q: Coppersmith 的数学工具是什么？</strong> A: Howgrave-Graham 构造的格 + LLL 格基约化，找到系数足够小的多项式使小根成为整数根。</li>
+</ul>
+<p><em>最后更新：2026年9月16日</em></p></div>
+      <div class="post-nav"><a class="pn-item prev" href="mo-2-de-mi-li-san-dui-shu.html"><span>← 上一篇</span><strong>模2的幂-离散对数</strong></a><a class="pn-item next" href="rsa-p-jian-1-guang-hua-pollard-p-1.html"><span>下一篇 →</span><strong>RSA-p减1光滑-Pollard p-1</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">题型识别（一眼看出）</a><a href="#coppersmith" class="toc-lv2">Coppersmith 定理（核心工具）</a><a href="#_2" class="toc-lv2">三种子类型</a><a href="#_3" class="toc-lv2">本题原理（鹤城杯，逐步推导）</a><a href="#_4" class="toc-lv2">解题脚本</a><a href="#2026-09-16" class="toc-lv2">验证记录（2026-09-16）</a><a href="#_5" class="toc-lv2">易错点 / 经验（血泪）</a><a href="#_6" class="toc-lv2">面试速答卡</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

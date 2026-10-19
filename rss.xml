@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+<channel>
+  <title>pressure-J — 网络安全 · 应急响应 · 流量分析</title>
+  <link>https://pressure-j.github.io/</link>
+  <description>pressure-J 的技术笔记：应急响应、流量分析、Web 安全、密码学与 Linux。写能复现、能讲清楚的东西。</description>
+  <language>zh-CN</language>
+  <lastBuildDate>Mon, 19 Oct 2026 00:00:00 +0800</lastBuildDate>
+  <atom:link href="https://pressure-j.github.io/rss.xml" rel="self" type="application/rss+xml"/>
+  <item>
+    <title>Linux 基础：WSL 下的 Linux 入手操作</title>
+    <link>https://pressure-j.github.io/posts/linux-ji-chu-wsl-xia-de-linux-ru-shou-cao-zuo.html</link>
+    <guid isPermaLink="true">https://pressure-j.github.io/posts/linux-ji-chu-wsl-xia-de-linux-ru-shou-cao-zuo.html</guid>
+    <pubDate>Mon, 19 Oct 2026 00:00:00 +0800</pubDate>
+    <category>Linux</category>
+    <description>一句话：WSL2 是微软官方提供的轻量虚拟机，跑的是真实 Linux 内核，但由 Windows 深度托管——没有 BIOS、没有虚拟网卡配置界面、不用装系统、不用等开机。</description>
+  </item>
+  <item>
+    <title>开源蓝队项目清单（GitHub）</title>
+    <link>https://pressure-j.github.io/posts/kai-yuan-lan-dui-xiang-mu-qing-dan-github.html</link>
+    <guid isPermaLink="true">https://pressure-j.github.io/posts/kai-yuan-lan-dui-xiang-mu-qing-dan-github.html</guid>
+    <pubDate>Sun, 18 Oct 2026 00:00:00 +0800</pubDate>
+    <category>应急响应</category>
+    <description>不是工具，是规则的通用格式。所有主流工具（Hayabusa、Chainsaw、Splunk、Elastic、Sentinel）都能吃 Sigma 规则，所以它同时是规则仓库 + 语法标准。</description>
+  </item>
+  <item>
+    <title>离散对数问题（DLP）</title>
+    <link>https://pressure-j.github.io/posts/li-san-dui-shu-wen-ti-dlp.html</link>
+    <guid isPermaLink="true">https://pressure-j.github.io/posts/li-san-dui-shu-wen-ti-dlp.html</guid>
+    <pubDate>Sat, 17 Oct 2026 00:00:00 +0800</pubDate>
+    <category>密码学</category>
+    <description>已知 $g$ 和 $h$，求指数 $x$ 使 $g^x \equiv h$。 正向算幂很快（快速幂，$O(\log x)$ 次乘法），反向求指数很慢，这就是单向性的来源。</description>
+  </item>
+  <item>
+    <title>密码学常用函数速查</title>
+    <link>https://pressure-j.github.io/posts/mi-ma-xue-chang-yong-han-shu-su-cha.html</link>
+    <guid isPermaLink="true">https://pressure-j.github.io/posts/mi-ma-xue-chang-yong-han-shu-su-cha.html</guid>
+    <pubDate>Thu, 15 Oct 2026 00:00:00 +0800</pubDate>
+    <category>密码学</category>
+    <description>为什么一定要用它：(3100) % 7 是先把 3^100 这个天文数字完整算出来再取模。实测：</description>
+  </item>
+  <item>
+    <title>Python 与终端交互（subprocess 与 pty）</title>
+    <link>https://pressure-j.github.io/posts/python-yu-zhong-duan-jiao-hu-subprocess-yu-pty.html</link>
+    <guid isPermaLink="true">https://pressure-j.github.io/posts/python-yu-zhong-duan-jiao-hu-subprocess-yu-pty.html</guid>
+    <pubDate>Thu, 15 Oct 2026 00:00:00 +0800</pubDate>
+    <category>Python</category>
+    <description>print(r.stdout) # 实测 512 位密钥打印 2097 字符，直接正则抽 n/e/d</description>
+  </item>
+  <item>
+    <title>古典密码</title>
+    <link>https://pressure-j.github.io/posts/gu-dian-mi-ma.html</link>
+    <guid isPermaLink="true">https://pressure-j.github.io/posts/gu-dian-mi-ma.html</guid>
+    <pubDate>Wed, 14 Oct 2026 00:00:00 +0800</pubDate>
+    <category>密码学</category>
+    <description>拿到一串东西，先判断它属于哪一层，再谈破法：</description>
+  </item>
+  <item>
+    <title>SM2-椭圆曲线公钥算法原理与攻击</title>
+    <link>https://pressure-j.github.io/posts/sm2-tuo-yuan-qu-xian-gong-yao-suan-fa-yuan-li-yu-gong-ji.html</link>
+    <guid isPermaLink="true">https://pressure-j.github.io/posts/sm2-tuo-yuan-qu-xian-gong-yao-suan-fa-yuan-li-yu-gong-ji.html</guid>
+    <pubDate>Wed, 14 Oct 2026 00:00:00 +0800</pubDate>
+    <category>密码学</category>
+    <description>国密椭圆曲线公钥密码算法，标准号 GM/T 0003。曲线固定为 256 位素域曲线，支持签名、密钥交换、公钥加密三种功能。对标 ECDSA/ECDH/ECIES，但三处关键设计不同（见第 3 节）。</description>
+  </item>
+  <item>
+    <title>SM4-分组密码原理与攻击</title>
+    <link>https://pressure-j.github.io/posts/sm4-fen-zu-mi-ma-yuan-li-yu-gong-ji.html</link>
+    <guid isPermaLink="true">https://pressure-j.github.io/posts/sm4-fen-zu-mi-ma-yuan-li-yu-gong-ji.html</guid>
+    <pubDate>Wed, 14 Oct 2026 00:00:00 +0800</pubDate>
+    <category>密码学</category>
+    <description>国密分组对称密码，标准号 GM/T 0002（旧称 SMS4，GB/T 32907）。分组 128 bit、密钥 128 bit，32 轮。设计目标是替代 AES，抗差分/线性分析强度与 AES 同级。</description>
+  </item>
+  <item>
+    <title>SM3-杂凑算法原理与攻击</title>
+    <link>https://pressure-j.github.io/posts/sm3-za-cou-suan-fa-yuan-li-yu-gong-ji.html</link>
+    <guid isPermaLink="true">https://pressure-j.github.io/posts/sm3-za-cou-suan-fa-yuan-li-yu-gong-ji.html</guid>
+    <pubDate>Wed, 14 Oct 2026 00:00:00 +0800</pubDate>
+    <category>密码学</category>
+    <description>国密密码杂凑算法，标准号 GM/T 0004（GB/T 32905）。输入任意长度，输出固定 256 bit 摘要（8 个 32 位字）。设计对标 SHA-256，同为 Merkle–Damgård 结构。</description>
+  </item>
+  <item>
+    <title>国密算法总览</title>
+    <link>https://pressure-j.github.io/posts/guo-mi-suan-fa-zong-lan.html</link>
+    <guid isPermaLink="true">https://pressure-j.github.io/posts/guo-mi-suan-fa-zong-lan.html</guid>
+    <pubDate>Wed, 14 Oct 2026 00:00:00 +0800</pubDate>
+    <category>密码学</category>
+    <description>国产商用密码算法族。算法原理与攻击面已拆成三篇独立笔记，本篇只留体系总表、选型导航与公共工具链。</description>
+  </item>
+  <item>
+    <title>国密速通卡</title>
+    <link>https://pressure-j.github.io/posts/guo-mi-su-tong-ka.html</link>
+    <guid isPermaLink="true">https://pressure-j.github.io/posts/guo-mi-su-tong-ka.html</guid>
+    <pubDate>Wed, 14 Oct 2026 00:00:00 +0800</pubDate>
+    <category>密码学</category>
+    <description>为什么不用懂内部：这些算法本身都是安全的。出题人破不了算法，只能利用：</description>
+  </item>
+  <item>
+    <title>CTF 离线速查表（Misc + Crypto）</title>
+    <link>https://pressure-j.github.io/posts/ctf-li-xian-su-cha-biao-misc-crypto.html</link>
+    <guid isPermaLink="true">https://pressure-j.github.io/posts/ctf-li-xian-su-cha-biao-misc-crypto.html</guid>
+    <pubDate>Tue, 13 Oct 2026 00:00:00 +0800</pubDate>
+    <category>Misc</category>
+    <description>&gt; 内存取证题（vmem/mem/raw）：详细步骤见《Misc内存取证解题步骤.md》——vol.exe 用法、华为备份解密、lsadump 提密码。</description>
+  </item>
+  <item>
+    <title>FCSR线性化攻击-F-FCSR状态恢复</title>
+    <link>https://pressure-j.github.io/posts/fcsr-xian-xing-hua-gong-ji-f-fcsr-zhuang-tai-hui-fu.html</link>
+    <guid isPermaLink="true">https://pressure-j.github.io/posts/fcsr-xian-xing-hua-gong-ji-f-fcsr-zhuang-tai-hui-fu.html</guid>
+    <pubDate>Mon, 12 Oct 2026 00:00:00 +0800</pubDate>
+    <category>密码学</category>
+    <description>&gt; 考点：滤波式 FCSR 的线性化攻击（Hell–Johansson），把非线性进位寄存器&quot;冻住&quot;后整个密码退化成线性系统。</description>
+  </item>
+  <item>
+    <title>Web安全 · PHP 反序列化 + `__wakeup` 绕过 WriteUp —「I have a cat!」</title>
+    <link>https://pressure-j.github.io/posts/web-an-quan-php-fan-xu-lie-hua-wakeup-rao-guo-writeup-i-have-a-cat.html</link>
+    <guid isPermaLink="true">https://pressure-j.github.io/posts/web-an-quan-php-fan-xu-lie-hua-wakeup-rao-guo-writeup-i-have-a-cat.html</guid>
+    <pubDate>Sun, 11 Oct 2026 00:00:00 +0800</pubDate>
+    <category>Web 安全</category>
+    <description>&gt; 考点：源码泄露（备份文件）→ PHP 对象注入 → 私有属性序列化名 → 魔术方法 wakeup 绕过（CVE-2016-7124）</description>
+  </item>
+  <item>
+    <title>Misc视频隐写解题步骤</title>
+    <link>https://pressure-j.github.io/posts/misc-shi-pin-yin-xie-jie-ti-bu-zhou.html</link>
+    <guid isPermaLink="true">https://pressure-j.github.io/posts/misc-shi-pin-yin-xie-jie-ti-bu-zhou.html</guid>
+    <pubDate>Sat, 10 Oct 2026 00:00:00 +0800</pubDate>
+    <category>Misc</category>
+    <description>帧号 = 秒 × 帧率。帧率不能假设,必须读:</description>
+  </item>
+  <item>
+    <title>流量分析-按种类速查</title>
+    <link>https://pressure-j.github.io/posts/liu-liang-fen-xi-an-zhong-lei-su-cha.html</link>
+    <guid isPermaLink="true">https://pressure-j.github.io/posts/liu-liang-fen-xi-an-zhong-lei-su-cha.html</guid>
+    <pubDate>Fri, 09 Oct 2026 00:00:00 +0800</pubDate>
+    <category>Misc</category>
+    <description>&gt; 定位：CTF Misc / 应急响应流量题的按类型查表文档。看到什么流量，翻到对应一节。</description>
+  </item>
+  <item>
+    <title>Misc-秘密文件-FTP流量提取加密RAR</title>
+    <link>https://pressure-j.github.io/posts/misc-mi-mi-wen-jian-ftp-liu-liang-ti-qu-jia-mi-rar.html</link>
+    <guid isPermaLink="true">https://pressure-j.github.io/posts/misc-mi-mi-wen-jian-ftp-liu-liang-ti-qu-jia-mi-rar.html</guid>
+    <pubDate>Fri, 09 Oct 2026 00:00:00 +0800</pubDate>
+    <category>Misc</category>
+    <description>某公司内网被入侵，抓到了入侵流量，问偷走了什么机密文件。</description>
+  </item>
+  <item>
+    <title>循环异或 · 已知明文前缀推密钥周期（DASCTF 深空信号站 KS-3）</title>
+    <link>https://pressure-j.github.io/posts/xun-huan-yi-huo-yi-zhi-ming-wen-qian-zhui-tui-mi-yao-zhou-qi-dasctf.html</link>
+    <guid isPermaLink="true">https://pressure-j.github.io/posts/xun-huan-yi-huo-yi-zhi-ming-wen-qian-zhui-tui-mi-yao-zhou-qi-dasctf.html</guid>
+    <pubDate>Thu, 08 Oct 2026 00:00:00 +0800</pubDate>
+    <category>密码学</category>
+    <description>三条线索拼起来就是标准解法：明文[i] = 混合字节[i] ^ key[i % n]，其中 n &lt; 8。</description>
+  </item>
+  <item>
+    <title>Web安全 · 文件包含 + php://filter 伪协议 WriteUp —「蒋璐源的秘密」</title>
+    <link>https://pressure-j.github.io/posts/web-an-quan-wen-jian-bao-han-php-filter-wei-xie-yi-writeup-jiang-lu.html</link>
+    <guid isPermaLink="true">https://pressure-j.github.io/posts/web-an-quan-wen-jian-bao-han-php-filter-wei-xie-yi-writeup-jiang-lu.html</guid>
+    <pubDate>Mon, 05 Oct 2026 00:00:00 +0800</pubDate>
+    <category>Web 安全</category>
+    <description>原因：php://filter/... 是参数的值，不是路径。直接拼在 URL 路径里，nginx 会去找一个名为 php: 的目录，当然 404。</description>
+  </item>
+  <item>
+    <title>Web基础 · 数字的不同写法 / 通配符 / 正则表达式</title>
+    <link>https://pressure-j.github.io/posts/web-ji-chu-shu-zi-de-bu-tong-xie-fa-tong-pei-fu-zheng-ze-biao-da-shi.html</link>
+    <guid isPermaLink="true">https://pressure-j.github.io/posts/web-ji-chu-shu-zi-de-bu-tong-xie-fa-tong-pei-fu-zheng-ze-biao-da-shi.html</guid>
+    <pubDate>Mon, 05 Oct 2026 00:00:00 +0800</pubDate>
+    <category>Web 安全</category>
+    <description>这是理解全文的关键。用户输入 fla 这一串字符，它在不同环节会被不同的解释器赋予不同含义：</description>
+  </item>
+</channel>
+</rss>

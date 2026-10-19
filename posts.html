@@ -1,68 +1,1264 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>文章 · pressure-J 的技术笔记</title>
-<meta name="description" content="网络安全 · 应急响应 · 流量分析 · 密码学">
-<link rel="stylesheet" href="style.css">
+<title>全部文章 · pressure-J</title>
+<meta name="description" content="pressure-J 的全部技术笔记，共 97 篇。">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="全部文章 · pressure-J">
+<meta property="og:description" content="pressure-J 的全部技术笔记，共 97 篇。">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
 </head>
-<body>
-<header>
-  <div class="wrap">
-    <a class="logo" href="index.html">pressure-J<span>.</span></a>
-    <nav>
-      <a href="index.html">首页</a>
-      <a href="posts.html" class="on">文章</a>
-      <a href="https://github.com/pressure-J">GitHub</a>
-    </nav>
+<body class="">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="index.html">首页</a><a href="posts.html" class="on">文章</a><a href="category/index.html">分类</a><a href="about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
   </div>
 </header>
-
-<div class="wrap">
-  <div class="hero" style="padding-bottom:0">
-    <h1>技术文章</h1>
-    <p class="sub">共 6 篇 · 应急响应 / 流量分析 / Web 安全</p>
+<main class="wrap section">
+  <header class="page-head">
+    <h1>全部文章</h1>
+    <p>共 97 篇 · 按日期倒序</p>
+  </header>
+  <div class="filter-bar" id="search">
+    <div class="search-box">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      <input type="search" id="search-input" placeholder="搜索标题、摘要、标签…（按 / 聚焦）" autocomplete="off" aria-label="搜索文章">
+      <kbd>/</kbd>
+    </div>
+    <div class="cat-tabs">
+      <button class="tab on" data-filter="all">全部<span>97</span></button>
+      <button class="tab" data-filter="ir">应急响应<span>14</span></button><button class="tab" data-filter="web">Web 安全<span>17</span></button><button class="tab" data-filter="crypto">密码学<span>32</span></button><button class="tab" data-filter="misc">Misc<span>7</span></button><button class="tab" data-filter="linux">Linux<span>13</span></button><button class="tab" data-filter="python">Python<span>8</span></button><button class="tab" data-filter="base">基础<span>6</span></button>
+    </div>
   </div>
-  <div class="sec-title">全部文章</div>
-  <article class="card">
-    <h3><a href="posts/shiro-deserialization-traffic.html">Shiro RememberMe 反序列化 RCE 流量分析</a></h3>
-    <p>从抓包流量中定位 Shiro 默认密钥攻击：指纹识别（rememberMe=deleteMe）、AES-CBC 解密 Cookie、Java 序列化魔数识别，到通过 CAFEBABE 字节码提取恶意类名。</p>
-    <div class="meta"><span class="cat">应急响应</span>2026-07-10</div>
-  </article>
-  <article class="card">
-    <h3><a href="posts/webshell-encrypted-tunnel.html">Webshell 上传与加密隧道流量分析</a></h3>
-    <p>还原一条完整的入侵链：端口扫描 → Web 路径探活 → 上传 Webshell → 加载 PHP 后门框架 → 添加后门用户，以及如何从加密流量中识别隧道特征。</p>
-    <div class="meta"><span class="cat">应急响应</span>2026-07-08</div>
-  </article>
-  <article class="card">
-    <h3><a href="posts/ssh-bruteforce-log-analysis.html">SSH 暴力破解与日志分析</a></h3>
-    <p>认证日志 + 防火墙日志 + 审计日志三源关联：定位真实攻击 IP、识别混淆执行的恶意命令、还原下载的脚本与授予的执行权限。</p>
-    <div class="meta"><span class="cat">应急响应</span>2026-07-08</div>
-  </article>
-  <article class="card">
-    <h3><a href="posts/windows-rdp-bruteforce-log.html">Windows 安全日志分析：RDP 暴力破解识别</a></h3>
-    <p>事件 ID 与 LogonType 速查，XML 日志的 Excel / Power Query / PowerShell 三种分析路径，如何用 IP 分组统计从 177 条失败记录中锁定攻击源。</p>
-    <div class="meta"><span class="cat">应急响应</span>2026-07-08</div>
-  </article>
-  <article class="card">
-    <h3><a href="posts/sql-injection-waf-bypass.html">SQL 盲注与 WAF 黑名单绕过</a></h3>
-    <p>WAF 黑名单绕过的手法拆解：用制表符替代空格、用异或替代 and/or、分析黑名单的子串匹配逻辑，以及布尔盲注的二分探测方法。</p>
-    <div class="meta"><span class="cat">Web 安全</span>2026-07-15</div>
-  </article>
-  <article class="card">
-    <h3><a href="posts/linux-log-analysis-basics.html">Linux 日志分析基础</a></h3>
-    <p>应急响应中 Linux 侧的核心日志位置与判读方法：auth.log / secure 的认证记录、Web 访问日志的异常特征、以及快速筛出可疑行为的方法。</p>
-    <div class="meta"><span class="cat">应急响应</span>2026-07-08</div>
-  </article>
-
-</div>
-
-<footer>
-  <div class="wrap">
-    <div>&copy; 2026 pressure-J · 网络安全方向</div>
-    <div><a href="https://github.com/pressure-J">GitHub</a></div>
+  <p class="result-hint" id="result-hint" hidden></p>
+  <div class="post-list" id="post-list"><article class="post-card" data-cat="linux"
+     data-hay="linux 基础：wsl 下的 linux 入手操作 一句话：wsl2 是微软官方提供的轻量虚拟机，跑的是真实 linux 内核，但由 windows 深度托管——没有 bios、没有虚拟网卡配置界面、不用装系统、不用等开机。 ">
+  <div class="card-top">
+    <a class="cat-badge cat-linux" href="category/linux.html">Linux</a>
+    <time datetime="2026-10-19">2026-10-19</time>
+  </div>
+  <h3><a href="posts/linux-ji-chu-wsl-xia-de-linux-ru-shou-cao-zuo.html">Linux 基础：WSL 下的 Linux 入手操作</a></h3>
+  <p class="card-desc">一句话：WSL2 是微软官方提供的轻量虚拟机，跑的是真实 Linux 内核，但由 Windows 深度托管——没有 BIOS、没有虚拟网卡配置界面、不用装系统、不用等开机。</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">25 min · 9651 字</span>
+  </div>
+</article><article class="post-card" data-cat="ir"
+     data-hay="开源蓝队项目清单（github） 不是工具，是规则的通用格式。所有主流工具（hayabusa、chainsaw、splunk、elastic、sentinel）都能吃 sigma 规则，所以它同时是规则仓库 + 语法标准。 工具 蓝队 应急响应 威胁狩猎 sigma">
+  <div class="card-top">
+    <a class="cat-badge cat-ir" href="category/ir.html">应急响应</a>
+    <time datetime="2026-10-18">2026-10-18</time>
+  </div>
+  <h3><a href="posts/kai-yuan-lan-dui-xiang-mu-qing-dan-github.html">开源蓝队项目清单（GitHub）</a></h3>
+  <p class="card-desc">不是工具，是规则的通用格式。所有主流工具（Hayabusa、Chainsaw、Splunk、Elastic、Sentinel）都能吃 Sigma 规则，所以它同时是规则仓库 + 语法标准。</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">工具</span><span class="chip">蓝队</span><span class="chip">应急响应</span></div>
+    <span class="reading">24 min · 9215 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="离散对数问题（dlp） 已知 $g$ 和 $h$，求指数 $x$ 使 $g^x \equiv h$。 正向算幂很快（快速幂，$o(\log x)$ 次乘法），反向求指数很慢，这就是单向性的来源。 ">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="category/crypto.html">密码学</a>
+    <time datetime="2026-10-17">2026-10-17</time>
+  </div>
+  <h3><a href="posts/li-san-dui-shu-wen-ti-dlp.html">离散对数问题（DLP）</a></h3>
+  <p class="card-desc">已知 $g$ 和 $h$，求指数 $x$ 使 $g^x \equiv h$。 正向算幂很快（快速幂，$O(\log x)$ 次乘法），反向求指数很慢，这就是单向性的来源。</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">8 min · 2860 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="密码学常用函数速查 为什么一定要用它：(3100) % 7 是先把 3^100 这个天文数字完整算出来再取模。实测： crypto python 工具">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="category/crypto.html">密码学</a>
+    <time datetime="2026-10-15">2026-10-15</time>
+  </div>
+  <h3><a href="posts/mi-ma-xue-chang-yong-han-shu-su-cha.html">密码学常用函数速查</a></h3>
+  <p class="card-desc">为什么一定要用它：(3100) % 7 是先把 3^100 这个天文数字完整算出来再取模。实测：</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span><span class="chip">python</span><span class="chip">工具</span></div>
+    <span class="reading">38 min · 14613 字</span>
+  </div>
+</article><article class="post-card" data-cat="python"
+     data-hay="python 与终端交互（subprocess 与 pty） print(r.stdout) # 实测 512 位密钥打印 2097 字符，直接正则抽 n/e/d python subprocess 终端">
+  <div class="card-top">
+    <a class="cat-badge cat-python" href="category/python.html">Python</a>
+    <time datetime="2026-10-15">2026-10-15</time>
+  </div>
+  <h3><a href="posts/python-yu-zhong-duan-jiao-hu-subprocess-yu-pty.html">Python 与终端交互（subprocess 与 pty）</a></h3>
+  <p class="card-desc">print(r.stdout) # 实测 512 位密钥打印 2097 字符，直接正则抽 n/e/d</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">python</span><span class="chip">subprocess</span><span class="chip">终端</span></div>
+    <span class="reading">21 min · 7858 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="古典密码 拿到一串东西，先判断它属于哪一层，再谈破法： ">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="category/crypto.html">密码学</a>
+    <time datetime="2026-10-14">2026-10-14</time>
+  </div>
+  <h3><a href="posts/gu-dian-mi-ma.html">古典密码</a></h3>
+  <p class="card-desc">拿到一串东西，先判断它属于哪一层，再谈破法：</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">23 min · 8774 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="sm2-椭圆曲线公钥算法原理与攻击 国密椭圆曲线公钥密码算法，标准号 gm/t 0003。曲线固定为 256 位素域曲线，支持签名、密钥交换、公钥加密三种功能。对标 ecdsa/ecdh/ecies，但三处关键设计不同（见第 3 节）。 crypto ecc sm2">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="category/crypto.html">密码学</a>
+    <time datetime="2026-10-14">2026-10-14</time>
+  </div>
+  <h3><a href="posts/sm2-tuo-yuan-qu-xian-gong-yao-suan-fa-yuan-li-yu-gong-ji.html">SM2-椭圆曲线公钥算法原理与攻击</a></h3>
+  <p class="card-desc">国密椭圆曲线公钥密码算法，标准号 GM/T 0003。曲线固定为 256 位素域曲线，支持签名、密钥交换、公钥加密三种功能。对标 ECDSA/ECDH/ECIES，但三处关键设计不同（见第 3 节）。</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span><span class="chip">ecc</span><span class="chip">sm2</span></div>
+    <span class="reading">19 min · 7121 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="sm4-分组密码原理与攻击 国密分组对称密码，标准号 gm/t 0002（旧称 sms4，gb/t 32907）。分组 128 bit、密钥 128 bit，32 轮。设计目标是替代 aes，抗差分/线性分析强度与 aes 同级。 crypto symmetric sm4">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="category/crypto.html">密码学</a>
+    <time datetime="2026-10-14">2026-10-14</time>
+  </div>
+  <h3><a href="posts/sm4-fen-zu-mi-ma-yuan-li-yu-gong-ji.html">SM4-分组密码原理与攻击</a></h3>
+  <p class="card-desc">国密分组对称密码，标准号 GM/T 0002（旧称 SMS4，GB/T 32907）。分组 128 bit、密钥 128 bit，32 轮。设计目标是替代 AES，抗差分/线性分析强度与 AES 同级。</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span><span class="chip">symmetric</span><span class="chip">sm4</span></div>
+    <span class="reading">15 min · 5739 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="sm3-杂凑算法原理与攻击 国密密码杂凑算法，标准号 gm/t 0004（gb/t 32905）。输入任意长度，输出固定 256 bit 摘要（8 个 32 位字）。设计对标 sha-256，同为 merkle–damgård 结构。 crypto hash sm3">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="category/crypto.html">密码学</a>
+    <time datetime="2026-10-14">2026-10-14</time>
+  </div>
+  <h3><a href="posts/sm3-za-cou-suan-fa-yuan-li-yu-gong-ji.html">SM3-杂凑算法原理与攻击</a></h3>
+  <p class="card-desc">国密密码杂凑算法，标准号 GM/T 0004（GB/T 32905）。输入任意长度，输出固定 256 bit 摘要（8 个 32 位字）。设计对标 SHA-256，同为 Merkle–Damgård 结构。</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span><span class="chip">hash</span><span class="chip">sm3</span></div>
+    <span class="reading">15 min · 5587 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="国密算法总览 国产商用密码算法族。算法原理与攻击面已拆成三篇独立笔记，本篇只留体系总表、选型导航与公共工具链。 crypto sm2 sm3 sm4">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="category/crypto.html">密码学</a>
+    <time datetime="2026-10-14">2026-10-14</time>
+  </div>
+  <h3><a href="posts/guo-mi-suan-fa-zong-lan.html">国密算法总览</a></h3>
+  <p class="card-desc">国产商用密码算法族。算法原理与攻击面已拆成三篇独立笔记，本篇只留体系总表、选型导航与公共工具链。</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span><span class="chip">sm2</span><span class="chip">sm3</span></div>
+    <span class="reading">8 min · 3011 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="国密速通卡 为什么不用懂内部：这些算法本身都是安全的。出题人破不了算法，只能利用： crypto sm2 sm3 sm4 cheatsheet">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="category/crypto.html">密码学</a>
+    <time datetime="2026-10-14">2026-10-14</time>
+  </div>
+  <h3><a href="posts/guo-mi-su-tong-ka.html">国密速通卡</a></h3>
+  <p class="card-desc">为什么不用懂内部：这些算法本身都是安全的。出题人破不了算法，只能利用：</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span><span class="chip">sm2</span><span class="chip">sm3</span></div>
+    <span class="reading">5 min · 1951 字</span>
+  </div>
+</article><article class="post-card" data-cat="misc"
+     data-hay="ctf 离线速查表（misc + crypto） &gt; 内存取证题（vmem/mem/raw）：详细步骤见《misc内存取证解题步骤.md》——vol.exe 用法、华为备份解密、lsadump 提密码。 ">
+  <div class="card-top">
+    <a class="cat-badge cat-misc" href="category/misc.html">Misc</a>
+    <time datetime="2026-10-13">2026-10-13</time>
+  </div>
+  <h3><a href="posts/ctf-li-xian-su-cha-biao-misc-crypto.html">CTF 离线速查表（Misc + Crypto）</a></h3>
+  <p class="card-desc">&gt; 内存取证题（vmem/mem/raw）：详细步骤见《Misc内存取证解题步骤.md》——vol.exe 用法、华为备份解密、lsadump 提密码。</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">16 min · 6061 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="fcsr线性化攻击-f-fcsr状态恢复 &gt; 考点：滤波式 fcsr 的线性化攻击（hell–johansson），把非线性进位寄存器&quot;冻住&quot;后整个密码退化成线性系统。 crypto stream-cipher fcsr state-recovery">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="category/crypto.html">密码学</a>
+    <time datetime="2026-10-12">2026-10-12</time>
+  </div>
+  <h3><a href="posts/fcsr-xian-xing-hua-gong-ji-f-fcsr-zhuang-tai-hui-fu.html">FCSR线性化攻击-F-FCSR状态恢复</a></h3>
+  <p class="card-desc">&gt; 考点：滤波式 FCSR 的线性化攻击（Hell–Johansson），把非线性进位寄存器&quot;冻住&quot;后整个密码退化成线性系统。</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span><span class="chip">stream-cipher</span><span class="chip">fcsr</span></div>
+    <span class="reading">14 min · 5346 字</span>
+  </div>
+</article><article class="post-card" data-cat="web"
+     data-hay="web安全 · php 反序列化 + `__wakeup` 绕过 writeup —「i have a cat!」 &gt; 考点：源码泄露（备份文件）→ php 对象注入 → 私有属性序列化名 → 魔术方法 wakeup 绕过（cve-2016-7124） ">
+  <div class="card-top">
+    <a class="cat-badge cat-web" href="category/web.html">Web 安全</a>
+    <time datetime="2026-10-11">2026-10-11</time>
+  </div>
+  <h3><a href="posts/web-an-quan-php-fan-xu-lie-hua-wakeup-rao-guo-writeup-i-have-a-cat.html">Web安全 · PHP 反序列化 + `__wakeup` 绕过 WriteUp —「I have a cat!」</a></h3>
+  <p class="card-desc">&gt; 考点：源码泄露（备份文件）→ PHP 对象注入 → 私有属性序列化名 → 魔术方法 wakeup 绕过（CVE-2016-7124）</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">17 min · 6339 字</span>
+  </div>
+</article><article class="post-card" data-cat="misc"
+     data-hay="misc视频隐写解题步骤 帧号 = 秒 × 帧率。帧率不能假设,必须读: misc video stego">
+  <div class="card-top">
+    <a class="cat-badge cat-misc" href="category/misc.html">Misc</a>
+    <time datetime="2026-10-10">2026-10-10</time>
+  </div>
+  <h3><a href="posts/misc-shi-pin-yin-xie-jie-ti-bu-zhou.html">Misc视频隐写解题步骤</a></h3>
+  <p class="card-desc">帧号 = 秒 × 帧率。帧率不能假设,必须读:</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">misc</span><span class="chip">video</span><span class="chip">stego</span></div>
+    <span class="reading">11 min · 4293 字</span>
+  </div>
+</article><article class="post-card" data-cat="misc"
+     data-hay="流量分析-按种类速查 &gt; 定位：ctf misc / 应急响应流量题的按类型查表文档。看到什么流量，翻到对应一节。 misc 流量分析 pcap 速查">
+  <div class="card-top">
+    <a class="cat-badge cat-misc" href="category/misc.html">Misc</a>
+    <time datetime="2026-10-09">2026-10-09</time>
+  </div>
+  <h3><a href="posts/liu-liang-fen-xi-an-zhong-lei-su-cha.html">流量分析-按种类速查</a></h3>
+  <p class="card-desc">&gt; 定位：CTF Misc / 应急响应流量题的按类型查表文档。看到什么流量，翻到对应一节。</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">misc</span><span class="chip">流量分析</span><span class="chip">pcap</span></div>
+    <span class="reading">47 min · 17712 字</span>
+  </div>
+</article><article class="post-card" data-cat="misc"
+     data-hay="misc-秘密文件-ftp流量提取加密rar 某公司内网被入侵，抓到了入侵流量，问偷走了什么机密文件。 misc 流量分析 ftp rar writeup">
+  <div class="card-top">
+    <a class="cat-badge cat-misc" href="category/misc.html">Misc</a>
+    <time datetime="2026-10-09">2026-10-09</time>
+  </div>
+  <h3><a href="posts/misc-mi-mi-wen-jian-ftp-liu-liang-ti-qu-jia-mi-rar.html">Misc-秘密文件-FTP流量提取加密RAR</a></h3>
+  <p class="card-desc">某公司内网被入侵，抓到了入侵流量，问偷走了什么机密文件。</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">misc</span><span class="chip">流量分析</span><span class="chip">ftp</span></div>
+    <span class="reading">7 min · 2500 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="循环异或 · 已知明文前缀推密钥周期（dasctf 深空信号站 ks-3） 三条线索拼起来就是标准解法：明文[i] = 混合字节[i] ^ key[i % n]，其中 n &lt; 8。 ">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="category/crypto.html">密码学</a>
+    <time datetime="2026-10-08">2026-10-08</time>
+  </div>
+  <h3><a href="posts/xun-huan-yi-huo-yi-zhi-ming-wen-qian-zhui-tui-mi-yao-zhou-qi-dasctf.html">循环异或 · 已知明文前缀推密钥周期（DASCTF 深空信号站 KS-3）</a></h3>
+  <p class="card-desc">三条线索拼起来就是标准解法：明文[i] = 混合字节[i] ^ key[i % n]，其中 n &lt; 8。</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">3 min · 955 字</span>
+  </div>
+</article><article class="post-card" data-cat="web"
+     data-hay="web安全 · 文件包含 + php://filter 伪协议 writeup —「蒋璐源的秘密」 原因：php://filter/... 是参数的值，不是路径。直接拼在 url 路径里，nginx 会去找一个名为 php: 的目录，当然 404。 ">
+  <div class="card-top">
+    <a class="cat-badge cat-web" href="category/web.html">Web 安全</a>
+    <time datetime="2026-10-05">2026-10-05</time>
+  </div>
+  <h3><a href="posts/web-an-quan-wen-jian-bao-han-php-filter-wei-xie-yi-writeup-jiang-lu.html">Web安全 · 文件包含 + php://filter 伪协议 WriteUp —「蒋璐源的秘密」</a></h3>
+  <p class="card-desc">原因：php://filter/... 是参数的值，不是路径。直接拼在 URL 路径里，nginx 会去找一个名为 php: 的目录，当然 404。</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">19 min · 7328 字</span>
+  </div>
+</article><article class="post-card" data-cat="web"
+     data-hay="web基础 · 数字的不同写法 / 通配符 / 正则表达式 这是理解全文的关键。用户输入 fla 这一串字符，它在不同环节会被不同的解释器赋予不同含义： ">
+  <div class="card-top">
+    <a class="cat-badge cat-web" href="category/web.html">Web 安全</a>
+    <time datetime="2026-10-05">2026-10-05</time>
+  </div>
+  <h3><a href="posts/web-ji-chu-shu-zi-de-bu-tong-xie-fa-tong-pei-fu-zheng-ze-biao-da-shi.html">Web基础 · 数字的不同写法 / 通配符 / 正则表达式</a></h3>
+  <p class="card-desc">这是理解全文的关键。用户输入 fla 这一串字符，它在不同环节会被不同的解释器赋予不同含义：</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">18 min · 6831 字</span>
+  </div>
+</article><article class="post-card" data-cat="web"
+     data-hay="web安全 · 文件上传绕过（黑名单反转 + `&lt;script&gt;` 标签）writeup —「上传头像」 首页是一个&quot;上传头像&quot;页面，表单指向 uploadfile.php： ">
+  <div class="card-top">
+    <a class="cat-badge cat-web" href="category/web.html">Web 安全</a>
+    <time datetime="2026-10-05">2026-10-05</time>
+  </div>
+  <h3><a href="posts/web-an-quan-wen-jian-shang-chuan-rao-guo-hei-ming-dan-fan-zhuan-scri.html">Web安全 · 文件上传绕过（黑名单反转 + `&lt;script&gt;` 标签）WriteUp —「上传头像」</a></h3>
+  <p class="card-desc">首页是一个&quot;上传头像&quot;页面，表单指向 uploadfile.php：</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">18 min · 6746 字</span>
+  </div>
+</article><article class="post-card" data-cat="web"
+     data-hay="web安全 · ping 命令注入过滤绕过 writeup（dasctf 环境） 浏览器访问直接回显 /?ip=，说明参数名是 ip。传入 ?ip=127.0.0.1 后返回 ping 结果： ">
+  <div class="card-top">
+    <a class="cat-badge cat-web" href="category/web.html">Web 安全</a>
+    <time datetime="2026-10-05">2026-10-05</time>
+  </div>
+  <h3><a href="posts/web-an-quan-ping-ming-ling-zhu-ru-guo-lv-rao-guo-writeup-dasctf-huan.html">Web安全 · Ping 命令注入过滤绕过 WriteUp（DASCTF 环境）</a></h3>
+  <p class="card-desc">浏览器访问直接回显 /?ip=，说明参数名是 ip。传入 ?ip=127.0.0.1 后返回 ping 结果：</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">11 min · 4130 字</span>
+  </div>
+</article><article class="post-card" data-cat="web"
+     data-hay="web安全 · 一句话木马（eval webshell）writeup —「白给的shell」 一行，完完整整的一句话木马。 没有过滤、没有鉴权、没有长度限制。 ">
+  <div class="card-top">
+    <a class="cat-badge cat-web" href="category/web.html">Web 安全</a>
+    <time datetime="2026-10-05">2026-10-05</time>
+  </div>
+  <h3><a href="posts/web-an-quan-yi-ju-hua-mu-ma-eval-webshell-writeup-bai-gei-de-shell.html">Web安全 · 一句话木马（eval webshell）WriteUp —「白给的shell」</a></h3>
+  <p class="card-desc">一行，完完整整的一句话木马。 没有过滤、没有鉴权、没有长度限制。</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">9 min · 3465 字</span>
+  </div>
+</article><article class="post-card" data-cat="web"
+     data-hay="web安全 · unicorn shop「单字符 &amp;&amp; 数字解析」writeup（dasctf 环境） /charge 页面是一个「独角兽商店」，列了 4 件商品，price 字段通过 post 提交： ">
+  <div class="card-top">
+    <a class="cat-badge cat-web" href="category/web.html">Web 安全</a>
+    <time datetime="2026-10-05">2026-10-05</time>
+  </div>
+  <h3><a href="posts/web-an-quan-unicorn-shop-dan-zi-fu-shu-zi-jie-xi-writeup-dasctf-huan.html">Web安全 · Unicorn Shop「单字符 &amp;&amp; 数字解析」WriteUp（DASCTF 环境）</a></h3>
+  <p class="card-desc">/charge 页面是一个「独角兽商店」，列了 4 件商品，price 字段通过 POST 提交：</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">9 min · 3366 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="rabin密码 公钥加密算法（michael rabin, 1979），可以理解成&quot;rsa 的平方版&quot;：把 rsa 里的 $e$ 固定成 2，加密就是求平方。 crypto">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="category/crypto.html">密码学</a>
+    <time datetime="2026-10-04">2026-10-04</time>
+  </div>
+  <h3><a href="posts/rabin-mi-ma.html">Rabin密码</a></h3>
+  <p class="card-desc">公钥加密算法（Michael Rabin, 1979），可以理解成&quot;RSA 的平方版&quot;：把 RSA 里的 $e$ 固定成 2，加密就是求平方。</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span></div>
+    <span class="reading">7 min · 2507 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="schnorr协议 交互式零知识证明协议（zp 原始形式，课件版本），用于&quot;证明我知道私钥&quot;而不泄露私钥。是 ed25519、比特币 taproot 签名的原型。 crypto">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="category/crypto.html">密码学</a>
+    <time datetime="2026-09-26">2026-09-26</time>
+  </div>
+  <h3><a href="posts/schnorr-xie-yi.html">Schnorr协议</a></h3>
+  <p class="card-desc">交互式零知识证明协议（Zp 原始形式，课件版本），用于&quot;证明我知道私钥&quot;而不泄露私钥。是 Ed25519、比特币 Taproot 签名的原型。</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span></div>
+    <span class="reading">4 min · 1439 字</span>
+  </div>
+</article><article class="post-card" data-cat="base"
+     data-hay="文件基础与魔术字节 文件是计算机里存储数据的基本单位,本质就是磁盘上一段带名字的字节序列。 baseknown misc">
+  <div class="card-top">
+    <a class="cat-badge cat-base" href="category/base.html">基础</a>
+    <time datetime="2026-09-22">2026-09-22</time>
+  </div>
+  <h3><a href="posts/wen-jian-ji-chu-yu-mo-shu-zi-jie.html">文件基础与魔术字节</a></h3>
+  <p class="card-desc">文件是计算机里存储数据的基本单位,本质就是磁盘上一段带名字的字节序列。</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">baseknown</span><span class="chip">misc</span></div>
+    <span class="reading">19 min · 7128 字</span>
+  </div>
+</article><article class="post-card" data-cat="base"
+     data-hay="文本编码与乱码 计算机只存字节(0/1),不存&quot;字符&quot;。要让计算机认识 a、中、😀,必须有一套映射规则:字符 ↔ 字节序列。这套规则就叫字符编码(character encoding)。 baseknown misc">
+  <div class="card-top">
+    <a class="cat-badge cat-base" href="category/base.html">基础</a>
+    <time datetime="2026-09-22">2026-09-22</time>
+  </div>
+  <h3><a href="posts/wen-ben-bian-ma-yu-luan-ma.html">文本编码与乱码</a></h3>
+  <p class="card-desc">计算机只存字节(0/1),不存&quot;字符&quot;。要让计算机认识 A、中、😀,必须有一套映射规则:字符 ↔ 字节序列。这套规则就叫字符编码(Character Encoding)。</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">baseknown</span><span class="chip">misc</span></div>
+    <span class="reading">10 min · 3889 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="rsa-p减1光滑-pollard p-1 素数不是随机生成的，而是「小素数连乘 + 1」 → p−1 / q−1 的所有素因子都很小（光滑 / smooth） crypto">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="category/crypto.html">密码学</a>
+    <time datetime="2026-09-17">2026-09-17</time>
+  </div>
+  <h3><a href="posts/rsa-p-jian-1-guang-hua-pollard-p-1.html">RSA-p减1光滑-Pollard p-1</a></h3>
+  <p class="card-desc">素数不是随机生成的，而是「小素数连乘 + 1」 → p−1 / q−1 的所有素因子都很小（光滑 / smooth）</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span></div>
+    <span class="reading">4 min · 1368 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="rsa-coppersmith高位攻击 题目只给 n、e、c，外加 p 或 q 的部分二进制位（hint）。构造脚本特征： crypto">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="category/crypto.html">密码学</a>
+    <time datetime="2026-09-16">2026-09-16</time>
+  </div>
+  <h3><a href="posts/rsa-coppersmith-gao-wei-gong-ji.html">RSA-Coppersmith高位攻击</a></h3>
+  <p class="card-desc">题目只给 n、e、c，外加 p 或 q 的部分二进制位（hint）。构造脚本特征：</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span></div>
+    <span class="reading">10 min · 3675 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="模2的幂-离散对数 ⟨5⟩ 是阶为 2 的幂的循环群 → 指数部分可用 pohlig–hellman 按位求离散对数 crypto">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="category/crypto.html">密码学</a>
+    <time datetime="2026-09-13">2026-09-13</time>
+  </div>
+  <h3><a href="posts/mo-2-de-mi-li-san-dui-shu.html">模2的幂-离散对数</a></h3>
+  <p class="card-desc">⟨5⟩ 是阶为 2 的幂的循环群 → 指数部分可用 Pohlig–Hellman 按位求离散对数</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span></div>
+    <span class="reading">4 min · 1438 字</span>
+  </div>
+</article><article class="post-card" data-cat="misc"
+     data-hay="misc图片题解题步骤 扩展名可能被改。用工具箱 misc\03-文件类型识别与strings.py,拖入文件改 file 一行即可。 misc">
+  <div class="card-top">
+    <a class="cat-badge cat-misc" href="category/misc.html">Misc</a>
+    <time datetime="2026-09-09">2026-09-09</time>
+  </div>
+  <h3><a href="posts/misc-tu-pian-ti-jie-ti-bu-zhou.html">Misc图片题解题步骤</a></h3>
+  <p class="card-desc">扩展名可能被改。用工具箱 misc\03-文件类型识别与strings.py,拖入文件改 FILE 一行即可。</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">misc</span></div>
+    <span class="reading">19 min · 7289 字</span>
+  </div>
+</article><article class="post-card" data-cat="misc"
+     data-hay="内存取证题目解题步骤 铁律 1:镜像放纯英文路径(如 c:\opencodetmp\),中文路径会报 &quot;file does not exist&quot;。 铁律 2:-o 输出目录 必须放 -f 前面: misc">
+  <div class="card-top">
+    <a class="cat-badge cat-misc" href="category/misc.html">Misc</a>
+    <time datetime="2026-09-09">2026-09-09</time>
+  </div>
+  <h3><a href="posts/nei-cun-qu-zheng-ti-mu-jie-ti-bu-zhou.html">内存取证题目解题步骤</a></h3>
+  <p class="card-desc">铁律 1:镜像放纯英文路径(如 C:\opencodetmp\),中文路径会报 &quot;File does not exist&quot;。 铁律 2:-o 输出目录 必须放 -f 前面:</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">misc</span></div>
+    <span class="reading">10 min · 3812 字</span>
+  </div>
+</article><article class="post-card" data-cat="misc"
+     data-hay="流量分析题目解题步骤 同时碰运气搜字符串:打开文件后 ctrl+f → string → 搜 flag / { / key。 misc">
+  <div class="card-top">
+    <a class="cat-badge cat-misc" href="category/misc.html">Misc</a>
+    <time datetime="2026-09-09">2026-09-09</time>
+  </div>
+  <h3><a href="posts/liu-liang-fen-xi-ti-mu-jie-ti-bu-zhou.html">流量分析题目解题步骤</a></h3>
+  <p class="card-desc">同时碰运气搜字符串:打开文件后 Ctrl+F → String → 搜 flag / { / key。</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">misc</span></div>
+    <span class="reading">8 min · 2911 字</span>
+  </div>
+</article><article class="post-card" data-cat="base"
+     data-hay="wireshark使用与流量包分析基础 wireshark 是一个抓取/查看网络数据包的工具。数据在网络中按数据包(packet)传输,像一封封信。wireshark 能把这些包拆开,把三层内容全展示出来。 network">
+  <div class="card-top">
+    <a class="cat-badge cat-base" href="category/base.html">基础</a>
+    <time datetime="2026-09-09">2026-09-09</time>
+  </div>
+  <h3><a href="posts/wireshark-shi-yong-yu-liu-liang-bao-fen-xi-ji-chu.html">Wireshark使用与流量包分析基础</a></h3>
+  <p class="card-desc">Wireshark 是一个抓取/查看网络数据包的工具。数据在网络中按数据包(packet)传输,像一封封信。Wireshark 能把这些包拆开,把三层内容全展示出来。</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">network</span></div>
+    <span class="reading">5 min · 1987 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="流密码密钥重用 ks = os.urandom(n) # 一段随机密钥流 c1 = xor(knownplain, ks) # 已知明文的密文（题目会给你） c2 = xor(flag, ks) # flag 密文（题目会给你） crypto">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="category/crypto.html">密码学</a>
+    <time datetime="2026-09-09">2026-09-09</time>
+  </div>
+  <h3><a href="posts/liu-mi-ma-mi-yao-zhong-yong.html">流密码密钥重用</a></h3>
+  <p class="card-desc">ks = os.urandom(N) # 一段随机密钥流 c1 = xor(knownplain, ks) # 已知明文的密文（题目会给你） c2 = xor(flag, ks) # flag 密文（题目会给你）</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span></div>
+    <span class="reading">3 min · 1279 字</span>
+  </div>
+</article><article class="post-card" data-cat="python"
+     data-hay="python 数据加密编码函数大全 &gt; 来源：ctf 密码学 / 通用开发中需要对数据进行编码、哈希、对称加密、非对称加密的场景。 python crypto">
+  <div class="card-top">
+    <a class="cat-badge cat-python" href="category/python.html">Python</a>
+    <time datetime="2026-09-08">2026-09-08</time>
+  </div>
+  <h3><a href="posts/python-shu-ju-jia-mi-bian-ma-han-shu-da-quan.html">Python 数据加密编码函数大全</a></h3>
+  <p class="card-desc">&gt; 来源：CTF 密码学 / 通用开发中需要对数据进行编码、哈希、对称加密、非对称加密的场景。</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">python</span><span class="chip">crypto</span></div>
+    <span class="reading">10 min · 3776 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="lfsr线性反馈移位寄存器-状态恢复 lfsr（线性反馈移位寄存器）是最简单的密钥流生成器： crypto">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="category/crypto.html">密码学</a>
+    <time datetime="2026-09-08">2026-09-08</time>
+  </div>
+  <h3><a href="posts/lfsr-xian-xing-fan-kui-yi-wei-ji-cun-qi-zhuang-tai-hui-fu.html">LFSR线性反馈移位寄存器-状态恢复</a></h3>
+  <p class="card-desc">LFSR（线性反馈移位寄存器）是最简单的密钥流生成器：</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span></div>
+    <span class="reading">9 min · 3233 字</span>
+  </div>
+</article><article class="post-card" data-cat="python"
+     data-hay="文本文件读取与正则提取 文件内容是这种格式（顶部声明一个 e，下面每块一个 n/c）： python">
+  <div class="card-top">
+    <a class="cat-badge cat-python" href="category/python.html">Python</a>
+    <time datetime="2026-09-08">2026-09-08</time>
+  </div>
+  <h3><a href="posts/wen-ben-wen-jian-du-qu-yu-zheng-ze-ti-qu.html">文本文件读取与正则提取</a></h3>
+  <p class="card-desc">文件内容是这种格式（顶部声明一个 e，下面每块一个 n/c）：</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">python</span></div>
+    <span class="reading">6 min · 2106 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="哈希明文爆破（md5/sha 穷举） range(32, 127) # 空格(32) ~ ~ (126)，95 个可打印 ascii；127 取不到（右开区间） python ctf">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="category/crypto.html">密码学</a>
+    <time datetime="2026-09-08">2026-09-08</time>
+  </div>
+  <h3><a href="posts/ha-xi-ming-wen-bao-po-md5-sha-qiong-ju.html">哈希明文爆破（MD5/SHA 穷举）</a></h3>
+  <p class="card-desc">range(32, 127) # 空格(32) ~ ~ (126)，95 个可打印 ASCII；127 取不到（右开区间）</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">python</span><span class="chip">ctf</span></div>
+    <span class="reading">5 min · 1782 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="rsa低指数广播攻击 题目给 多对 (n, c)（常见三对），且都是同一明文、同一个小的公钥指数 e 加密： crypto">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="category/crypto.html">密码学</a>
+    <time datetime="2026-09-08">2026-09-08</time>
+  </div>
+  <h3><a href="posts/rsa-di-zhi-shu-guang-bo-gong-ji.html">RSA低指数广播攻击</a></h3>
+  <p class="card-desc">题目给 多对 (N, c)（常见三对），且都是同一明文、同一个小的公钥指数 e 加密：</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span></div>
+    <span class="reading">4 min · 1688 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="rsa-构造a反推参数 题目给一个大整数公式 a（含 x/y/z 的幂运算）+ n + c，形如： crypto">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="category/crypto.html">密码学</a>
+    <time datetime="2026-09-08">2026-09-08</time>
+  </div>
+  <h3><a href="posts/rsa-gou-zao-a-fan-tui-can-shu.html">RSA-构造A反推参数</a></h3>
+  <p class="card-desc">题目给一个大整数公式 A（含 x/y/z 的幂运算）+ n + c，形如：</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span></div>
+    <span class="reading">4 min · 1437 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="rsa共素数-gcd分解 本质：复用同一个素数 p 生成多个模数 → 任意两个 n 的 gcd 就是 p。 crypto">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="category/crypto.html">密码学</a>
+    <time datetime="2026-09-08">2026-09-08</time>
+  </div>
+  <h3><a href="posts/rsa-gong-su-shu-gcd-fen-jie.html">RSA共素数-gcd分解</a></h3>
+  <p class="card-desc">本质：复用同一个素数 p 生成多个模数 → 任意两个 n 的 gcd 就是 p。</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span></div>
+    <span class="reading">3 min · 991 字</span>
+  </div>
+</article><article class="post-card" data-cat="python"
+     data-hay="数字串处理技巧（ctf） 题目常给一长串数字，如 83 89 78 84 ...。很多人第一反应是手动加逗号拼成 python 列表： python ctf">
+  <div class="card-top">
+    <a class="cat-badge cat-python" href="category/python.html">Python</a>
+    <time datetime="2026-09-07">2026-09-07</time>
+  </div>
+  <h3><a href="posts/shu-zi-chuan-chu-li-ji-qiao-ctf.html">数字串处理技巧（CTF）</a></h3>
+  <p class="card-desc">题目常给一长串数字，如 83 89 78 84 ...。很多人第一反应是手动加逗号拼成 Python 列表：</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">python</span><span class="chip">ctf</span></div>
+    <span class="reading">3 min · 1095 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="rsa-dp泄露家族 本质：dp = d mod (p-1)（dq = d mod (q-1)）泄露。出题人用 crt 优化 rsa 时拆出的&quot;影子密钥&quot;送人了 → 解密能力白给。 crypto rsa">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="category/crypto.html">密码学</a>
+    <time datetime="2026-09-06">2026-09-06</time>
+  </div>
+  <h3><a href="posts/rsa-dp-xie-lou-jia-zu.html">RSA-dp泄露家族</a></h3>
+  <p class="card-desc">本质：dp = d mod (p-1)（dq = d mod (q-1)）泄露。出题人用 CRT 优化 RSA 时拆出的&quot;影子密钥&quot;送人了 → 解密能力白给。</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span><span class="chip">rsa</span></div>
+    <span class="reading">4 min · 1646 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="windows哈希破解-ntlm 题目给一段形如以下格式的账户数据（来自内存取证/mimikatz dump / sam 导出）： crypto windows hash">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="category/crypto.html">密码学</a>
+    <time datetime="2026-09-05">2026-09-05</time>
+  </div>
+  <h3><a href="posts/windows-ha-xi-po-jie-ntlm.html">Windows哈希破解-NTLM</a></h3>
+  <p class="card-desc">题目给一段形如以下格式的账户数据（来自内存取证/mimikatz dump / SAM 导出）：</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span><span class="chip">windows</span><span class="chip">hash</span></div>
+    <span class="reading">4 min · 1704 字</span>
+  </div>
+</article><article class="post-card" data-cat="python"
+     data-hay="str与bytes编码 python 2 到 python 3 最大的区别之一：字符串的&quot;身份&quot;变了。 python">
+  <div class="card-top">
+    <a class="cat-badge cat-python" href="category/python.html">Python</a>
+    <time datetime="2026-09-04">2026-09-04</time>
+  </div>
+  <h3><a href="posts/str-yu-bytes-bian-ma.html">str与bytes编码</a></h3>
+  <p class="card-desc">Python 2 到 Python 3 最大的区别之一：字符串的&quot;身份&quot;变了。</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">python</span></div>
+    <span class="reading">5 min · 1900 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="rsa共素数-pollardrho变体 实测：1024 位 n 约 6~21 秒出 p、q（耗时看随机起点，最快 1.5s，串行重试在最坏起点可能更久；真实题目规模偶发 30s+，属正常）。 crypto">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="category/crypto.html">密码学</a>
+    <time datetime="2026-09-03">2026-09-03</time>
+  </div>
+  <h3><a href="posts/rsa-gong-su-shu-pollardrho-bian-ti.html">RSA共素数-PollardRho变体</a></h3>
+  <p class="card-desc">实测：1024 位 n 约 6~21 秒出 p、q（耗时看随机起点，最快 1.5s，串行重试在最坏起点可能更久；真实题目规模偶发 30s+，属正常）。</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span></div>
+    <span class="reading">4 min · 1498 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="rsa-wiener攻击 看到的特征二选一即可怀疑： crypto">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="category/crypto.html">密码学</a>
+    <time datetime="2026-09-03">2026-09-03</time>
+  </div>
+  <h3><a href="posts/rsa-wiener-gong-ji.html">RSA-Wiener攻击</a></h3>
+  <p class="card-desc">看到的特征二选一即可怀疑：</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span></div>
+    <span class="reading">3 min · 1270 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="rsa共模攻击 题目给两对加密结果，特征三选一即可怀疑共模攻击： crypto">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="category/crypto.html">密码学</a>
+    <time datetime="2026-09-02">2026-09-02</time>
+  </div>
+  <h3><a href="posts/rsa-gong-mo-gong-ji.html">RSA共模攻击</a></h3>
+  <p class="card-desc">题目给两对加密结果，特征三选一即可怀疑共模攻击：</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span></div>
+    <span class="reading">6 min · 2278 字</span>
+  </div>
+</article><article class="post-card" data-cat="web"
+     data-hay="web 基础：php 打题函数速查表与伪协议全家桶 核心思路：php 函数几千个，但 ctf 高频的就几十个。遇到不认识的当场查 php.net/manual/zh/ 就行，会查比会背重要。下面按作用分组： ">
+  <div class="card-top">
+    <a class="cat-badge cat-web" href="category/web.html">Web 安全</a>
+    <time datetime="2026-09-01">2026-09-01</time>
+  </div>
+  <h3><a href="posts/web-ji-chu-php-da-ti-han-shu-su-cha-biao-yu-wei-xie-yi-quan-jia-tong.html">Web 基础：PHP 打题函数速查表与伪协议全家桶</a></h3>
+  <p class="card-desc">核心思路：PHP 函数几千个，但 CTF 高频的就几十个。遇到不认识的当场查 php.net/manual/zh/ 就行，会查比会背重要。下面按作用分组：</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">11 min · 4256 字</span>
+  </div>
+</article><article class="post-card" data-cat="web"
+     data-hay="web 安全：sql 盲注与 waf 绕过解题全流程（hack world 实战） 题面特征：hack world，提示&quot;flag 在表 flag 的列 flag&quot;，post 一个 id 参数。 ">
+  <div class="card-top">
+    <a class="cat-badge cat-web" href="category/web.html">Web 安全</a>
+    <time datetime="2026-09-01">2026-09-01</time>
+  </div>
+  <h3><a href="posts/sql-injection-waf-bypass.html">Web 安全：SQL 盲注与 WAF 绕过解题全流程（Hack World 实战）</a></h3>
+  <p class="card-desc">题面特征：Hack World，提示&quot;flag 在表 flag 的列 flag&quot;，POST 一个 id 参数。</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">8 min · 3059 字</span>
+  </div>
+</article><article class="post-card" data-cat="base"
+     data-hay="git 和 github 基础知识 git 是一个分布式版本控制系统，用于追踪文件的变更历史，支持多人协作开发。 ">
+  <div class="card-top">
+    <a class="cat-badge cat-base" href="category/base.html">基础</a>
+    <time datetime="2026-08-31">2026-08-31</time>
+  </div>
+  <h3><a href="posts/git-he-github-ji-chu-zhi-shi.html">Git 和 GitHub 基础知识</a></h3>
+  <p class="card-desc">Git 是一个分布式版本控制系统，用于追踪文件的变更历史，支持多人协作开发。</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">17 min · 6287 字</span>
+  </div>
+</article><article class="post-card" data-cat="linux"
+     data-hay="linux 基础：虚拟机网络排查 vm 没网 ≠ 一定是 vm 的问题。网络是一层层叠起来的，任何一层断了都表现为&quot;没网&quot;。正确姿势是从外到内逐层排除，而不是上来就乱敲命令。 ">
+  <div class="card-top">
+    <a class="cat-badge cat-linux" href="category/linux.html">Linux</a>
+    <time datetime="2026-08-31">2026-08-31</time>
+  </div>
+  <h3><a href="posts/linux-ji-chu-xu-ni-ji-wang-luo-pai-cha.html">Linux 基础：虚拟机网络排查</a></h3>
+  <p class="card-desc">VM 没网 ≠ 一定是 VM 的问题。网络是一层层叠起来的，任何一层断了都表现为&quot;没网&quot;。正确姿势是从外到内逐层排除，而不是上来就乱敲命令。</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">13 min · 5127 字</span>
+  </div>
+</article><article class="post-card" data-cat="base"
+     data-hay="技术栈与项目开发基础知识 技术栈（tech stack）＝ 构建一个项目时用到的所有技术工具的集合。可以理解为&quot;这个项目是用什么做出来的&quot;完整清单——编程语言、框架、数据库、服务器、第三方服务加起来，就是它的技术栈。 ">
+  <div class="card-top">
+    <a class="cat-badge cat-base" href="category/base.html">基础</a>
+    <time datetime="2026-08-31">2026-08-31</time>
+  </div>
+  <h3><a href="posts/ji-shu-zhan-yu-xiang-mu-kai-fa-ji-chu-zhi-shi.html">技术栈与项目开发基础知识</a></h3>
+  <p class="card-desc">技术栈（Tech Stack）＝ 构建一个项目时用到的所有技术工具的集合。可以理解为&quot;这个项目是用什么做出来的&quot;完整清单——编程语言、框架、数据库、服务器、第三方服务加起来，就是它的技术栈。</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">6 min · 2148 字</span>
+  </div>
+</article><article class="post-card" data-cat="linux"
+     data-hay="linux 基础：shell 编程与开发环境 在 linux 上开发，完整链条是：编辑器写代码（vim/vscode）→ 编译器构建（gcc）→ 调试器排错（gdb）→ 构建工具管理多文件（make）→ 容器化交付（docker）→ 版本控制协作（git）→ 终端复用提升效率（… ">
+  <div class="card-top">
+    <a class="cat-badge cat-linux" href="category/linux.html">Linux</a>
+    <time datetime="2026-08-28">2026-08-28</time>
+  </div>
+  <h3><a href="posts/linux-ji-chu-shell-bian-cheng-yu-kai-fa-huan-jing.html">Linux 基础：Shell 编程与开发环境</a></h3>
+  <p class="card-desc">在 Linux 上开发，完整链条是：编辑器写代码（Vim/VSCode）→ 编译器构建（GCC）→ 调试器排错（GDB）→ 构建工具管理多文件（Make）→ 容器化交付（Docker）→ 版本控制协作（Git）→ 终端复用提升效率（…</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">23 min · 8592 字</span>
+  </div>
+</article><article class="post-card" data-cat="web"
+     data-hay="web 基础：站点搭建与 http 工作原理 www（万维网） 是构建在互联网之上、由互相链接的超文本文档组成的信息系统。1989 年蒂姆·伯纳斯-李在 cern 发明了它，并定义了三大关键技术： ">
+  <div class="card-top">
+    <a class="cat-badge cat-web" href="category/web.html">Web 安全</a>
+    <time datetime="2026-08-28">2026-08-28</time>
+  </div>
+  <h3><a href="posts/web-ji-chu-zhan-dian-da-jian-yu-http-gong-zuo-yuan-li.html">Web 基础：站点搭建与 HTTP 工作原理</a></h3>
+  <p class="card-desc">WWW（万维网） 是构建在互联网之上、由互相链接的超文本文档组成的信息系统。1989 年蒂姆·伯纳斯-李在 CERN 发明了它，并定义了三大关键技术：</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">17 min · 6344 字</span>
+  </div>
+</article><article class="post-card" data-cat="linux"
+     data-hay="linux 服务：apache web 服务器 www 与 http：www 采用客户/服务器结构，浏览器（chrome/firefox 等）是 http 客户端，apache/iis 是 http 服务器软件。http 默认端口 80（默认可省略），改其他端口（如 8080）必… ">
+  <div class="card-top">
+    <a class="cat-badge cat-linux" href="category/linux.html">Linux</a>
+    <time datetime="2026-08-28">2026-08-28</time>
+  </div>
+  <h3><a href="posts/linux-fu-wu-apache-web-fu-wu-qi.html">Linux 服务：Apache Web 服务器</a></h3>
+  <p class="card-desc">WWW 与 HTTP：WWW 采用客户/服务器结构，浏览器（Chrome/Firefox 等）是 HTTP 客户端，Apache/IIS 是 HTTP 服务器软件。HTTP 默认端口 80（默认可省略），改其他端口（如 8080）必…</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">15 min · 5568 字</span>
+  </div>
+</article><article class="post-card" data-cat="linux"
+     data-hay="linux 服务：ftp 文件传输 ftp（file transfer protocol）：文件传输协议，可靠性强、传输效率高，采用 c/s 结构，默认控制端口 21，数据通道端口为 20（主动模式）。 ">
+  <div class="card-top">
+    <a class="cat-badge cat-linux" href="category/linux.html">Linux</a>
+    <time datetime="2026-08-28">2026-08-28</time>
+  </div>
+  <h3><a href="posts/linux-fu-wu-ftp-wen-jian-chuan-shu.html">Linux 服务：FTP 文件传输</a></h3>
+  <p class="card-desc">FTP（File Transfer Protocol）：文件传输协议，可靠性强、传输效率高，采用 C/S 结构，默认控制端口 21，数据通道端口为 20（主动模式）。</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">14 min · 5316 字</span>
+  </div>
+</article><article class="post-card" data-cat="linux"
+     data-hay="linux 服务：dns 域名解析 dns（domain name system）：把&quot;方便人记的域名&quot;翻译成&quot;机器可用的 ip 地址&quot;，可理解为一张巨大的分布式电话本。它是一个分布式数据库，命名系统呈倒置树的层次结构，称为域名空间（树最大深度 127 层，节点最长… ">
+  <div class="card-top">
+    <a class="cat-badge cat-linux" href="category/linux.html">Linux</a>
+    <time datetime="2026-08-28">2026-08-28</time>
+  </div>
+  <h3><a href="posts/linux-fu-wu-dns-yu-ming-jie-xi.html">Linux 服务：DNS 域名解析</a></h3>
+  <p class="card-desc">DNS（Domain Name System）：把&quot;方便人记的域名&quot;翻译成&quot;机器可用的 IP 地址&quot;，可理解为一张巨大的分布式电话本。它是一个分布式数据库，命名系统呈倒置树的层次结构，称为域名空间（树最大深度 127 层，节点最长…</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">14 min · 5288 字</span>
+  </div>
+</article><article class="post-card" data-cat="linux"
+     data-hay="linux 基础：用户权限与软件管理 linux 是多用户多任务系统，一切权限控制围绕三个身份展开：用户（user）、用户组（group）、其他人（others）。 ">
+  <div class="card-top">
+    <a class="cat-badge cat-linux" href="category/linux.html">Linux</a>
+    <time datetime="2026-08-28">2026-08-28</time>
+  </div>
+  <h3><a href="posts/linux-ji-chu-yong-hu-quan-xian-yu-ruan-jian-guan-li.html">Linux 基础：用户权限与软件管理</a></h3>
+  <p class="card-desc">Linux 是多用户多任务系统，一切权限控制围绕三个身份展开：用户（user）、用户组（group）、其他人（others）。</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">14 min · 5171 字</span>
+  </div>
+</article><article class="post-card" data-cat="linux"
+     data-hay="linux 基础：常用命令与文件系统 一句话原理：linux 遵循&quot;一切皆文件&quot;的设计思想——普通文件、目录、硬盘、键盘、网卡、进程，统统被抽象成文件，通过统一的命令进行操作。而&quot;命令行&quot;就是操作这些文件的工具箱：每个命令是一个小程序，专注做一件事；通过管道 |、重定向… ">
+  <div class="card-top">
+    <a class="cat-badge cat-linux" href="category/linux.html">Linux</a>
+    <time datetime="2026-08-28">2026-08-28</time>
+  </div>
+  <h3><a href="posts/linux-ji-chu-chang-yong-ming-ling-yu-wen-jian-xi-tong.html">Linux 基础：常用命令与文件系统</a></h3>
+  <p class="card-desc">一句话原理：Linux 遵循&quot;一切皆文件&quot;的设计思想——普通文件、目录、硬盘、键盘、网卡、进程，统统被抽象成文件，通过统一的命令进行操作。而&quot;命令行&quot;就是操作这些文件的工具箱：每个命令是一个小程序，专注做一件事；通过管道 |、重定向…</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">14 min · 5137 字</span>
+  </div>
+</article><article class="post-card" data-cat="linux"
+     data-hay="linux 基础：安装与系统配置 一句话原理：虚拟化软件在一台物理电脑上，用软件&quot;模拟&quot;出 cpu、内存、硬盘、网卡等硬件，让多个操作系统互不干扰地同时运行，仿佛各自占有一台独立电脑。这样做的价值是：资源复用、环境隔离、随手备份——网安学习最需要的就是&quot;随便折腾、坏… ">
+  <div class="card-top">
+    <a class="cat-badge cat-linux" href="category/linux.html">Linux</a>
+    <time datetime="2026-08-28">2026-08-28</time>
+  </div>
+  <h3><a href="posts/linux-ji-chu-an-zhuang-yu-xi-tong-pei-zhi.html">Linux 基础：安装与系统配置</a></h3>
+  <p class="card-desc">一句话原理：虚拟化软件在一台物理电脑上，用软件&quot;模拟&quot;出 CPU、内存、硬盘、网卡等硬件，让多个操作系统互不干扰地同时运行，仿佛各自占有一台独立电脑。这样做的价值是：资源复用、环境隔离、随手备份——网安学习最需要的就是&quot;随便折腾、坏…</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">13 min · 4830 字</span>
+  </div>
+</article><article class="post-card" data-cat="linux"
+     data-hay="linux 服务：samba 文件共享 samba 是什么：在 linux 上实现 smb/cifs 协议的开源软件，让 linux 可以无缝参与 windows 局域网资源共享。smb 协议（server message block）可看作局域网上共享文件和打印机的一种… ">
+  <div class="card-top">
+    <a class="cat-badge cat-linux" href="category/linux.html">Linux</a>
+    <time datetime="2026-08-28">2026-08-28</time>
+  </div>
+  <h3><a href="posts/linux-fu-wu-samba-wen-jian-gong-xiang.html">Linux 服务：Samba 文件共享</a></h3>
+  <p class="card-desc">Samba 是什么：在 Linux 上实现 SMB/CIFS 协议的开源软件，让 Linux 可以无缝参与 Windows 局域网资源共享。SMB 协议（Server Message Block）可看作局域网上共享文件和打印机的一种…</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">12 min · 4697 字</span>
+  </div>
+</article><article class="post-card" data-cat="linux"
+     data-hay="linux 进阶：内核编译与内核模块 linux 内核：操作系统的核心，管理进程调度、内存、文件系统、设备驱动、网络协议栈。发行版预编译的内核是通用配置，企业常按需裁剪/优化，或打安全补丁。 ">
+  <div class="card-top">
+    <a class="cat-badge cat-linux" href="category/linux.html">Linux</a>
+    <time datetime="2026-08-28">2026-08-28</time>
+  </div>
+  <h3><a href="posts/linux-jin-jie-nei-he-bian-yi-yu-nei-he-mo-kuai.html">Linux 进阶：内核编译与内核模块</a></h3>
+  <p class="card-desc">Linux 内核：操作系统的核心，管理进程调度、内存、文件系统、设备驱动、网络协议栈。发行版预编译的内核是通用配置，企业常按需裁剪/优化，或打安全补丁。</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">12 min · 4668 字</span>
+  </div>
+</article><article class="post-card" data-cat="web"
+     data-hay="web 安全：文件上传与文件包含 一句话原理：文件上传功能把用户上传的文件直接存进 web 可访问目录，且不校验文件内容。php/jsp 等可执行文件一进入 web 目录，攻击者访问它，服务器就按&quot;程序&quot;解析执行——一个 webshell（网页后门）就此诞生。 ">
+  <div class="card-top">
+    <a class="cat-badge cat-web" href="category/web.html">Web 安全</a>
+    <time datetime="2026-08-28">2026-08-28</time>
+  </div>
+  <h3><a href="posts/web-an-quan-wen-jian-shang-chuan-yu-wen-jian-bao-han.html">Web 安全：文件上传与文件包含</a></h3>
+  <p class="card-desc">一句话原理：文件上传功能把用户上传的文件直接存进 Web 可访问目录，且不校验文件内容。PHP/JSP 等可执行文件一进入 Web 目录，攻击者访问它，服务器就按&quot;程序&quot;解析执行——一个 webshell（网页后门）就此诞生。</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">12 min · 4617 字</span>
+  </div>
+</article><article class="post-card" data-cat="web"
+     data-hay="web 安全：逻辑漏洞与 ssrf 一句话原理：web 安全的另一大类漏洞不是&quot;代码写得烂&quot;（如注入），而是业务逻辑设计有缺陷——校验只做了一半、信任了不该信任的假设、流程可被预测。 ">
+  <div class="card-top">
+    <a class="cat-badge cat-web" href="category/web.html">Web 安全</a>
+    <time datetime="2026-08-28">2026-08-28</time>
+  </div>
+  <h3><a href="posts/web-an-quan-luo-ji-lou-dong-yu-ssrf.html">Web 安全：逻辑漏洞与 SSRF</a></h3>
+  <p class="card-desc">一句话原理：Web 安全的另一大类漏洞不是&quot;代码写得烂&quot;（如注入），而是业务逻辑设计有缺陷——校验只做了一半、信任了不该信任的假设、流程可被预测。</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">12 min · 4595 字</span>
+  </div>
+</article><article class="post-card" data-cat="linux"
+     data-hay="linux 服务：nfs 网络文件系统 nfs（network file system，网络文件系统）：让 linux 客户端像访问本地磁盘一样访问远程服务器上的文件系统，本地工作站省磁盘空间、home 目录全网可用、光驱等存储设备可被多机共享。 ">
+  <div class="card-top">
+    <a class="cat-badge cat-linux" href="category/linux.html">Linux</a>
+    <time datetime="2026-08-28">2026-08-28</time>
+  </div>
+  <h3><a href="posts/linux-fu-wu-nfs-wang-luo-wen-jian-xi-tong.html">Linux 服务：NFS 网络文件系统</a></h3>
+  <p class="card-desc">NFS（Network File System，网络文件系统）：让 Linux 客户端像访问本地磁盘一样访问远程服务器上的文件系统，本地工作站省磁盘空间、home 目录全网可用、光驱等存储设备可被多机共享。</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">12 min · 4406 字</span>
+  </div>
+</article><article class="post-card" data-cat="web"
+     data-hay="web 安全：xss 跨站脚本攻击 一句话原理：服务器把&quot;用户输入的数据&quot;和&quot;网页本身的代码&quot;不加区分地拼在一起返回给浏览器，浏览器把其中的 &lt;script&gt; 等标签当成合法程序执行——攻击者的 javascript 就在受害者的浏览器里运行了。 ">
+  <div class="card-top">
+    <a class="cat-badge cat-web" href="category/web.html">Web 安全</a>
+    <time datetime="2026-08-28">2026-08-28</time>
+  </div>
+  <h3><a href="posts/web-an-quan-xss-kua-zhan-jiao-ben-gong-ji.html">Web 安全：XSS 跨站脚本攻击</a></h3>
+  <p class="card-desc">一句话原理：服务器把&quot;用户输入的数据&quot;和&quot;网页本身的代码&quot;不加区分地拼在一起返回给浏览器，浏览器把其中的 &lt;script&gt; 等标签当成合法程序执行——攻击者的 JavaScript 就在受害者的浏览器里运行了。</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">11 min · 4323 字</span>
+  </div>
+</article><article class="post-card" data-cat="linux"
+     data-hay="linux 服务：dhcp 地址分配 dhcp（dynamic host configuration protocol，动态主机配置协议）：自动管理局域网内主机的 ip 地址、子网掩码、网关、dns 等参数，提升 ip 利用率、降低人工运维成本。 ">
+  <div class="card-top">
+    <a class="cat-badge cat-linux" href="category/linux.html">Linux</a>
+    <time datetime="2026-08-28">2026-08-28</time>
+  </div>
+  <h3><a href="posts/linux-fu-wu-dhcp-di-zhi-fen-pei.html">Linux 服务：DHCP 地址分配</a></h3>
+  <p class="card-desc">DHCP（Dynamic Host Configuration Protocol，动态主机配置协议）：自动管理局域网内主机的 IP 地址、子网掩码、网关、DNS 等参数，提升 IP 利用率、降低人工运维成本。</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">11 min · 4311 字</span>
+  </div>
+</article><article class="post-card" data-cat="web"
+     data-hay="web 安全：csrf 与点击劫持及 csp 绕过 一句话原理：浏览器会自动携带目标网站的 cookie 发起请求，服务器只认&quot;这个请求带着合法 cookie&quot;，不认&quot;这个请求是谁、在哪发起的&quot;。于是攻击者构造一个页面，受害者只要访问，浏览器就替他向目标网站发出敏感操作请求。 ">
+  <div class="card-top">
+    <a class="cat-badge cat-web" href="category/web.html">Web 安全</a>
+    <time datetime="2026-08-28">2026-08-28</time>
+  </div>
+  <h3><a href="posts/web-an-quan-csrf-yu-dian-ji-jie-chi-ji-csp-rao-guo.html">Web 安全：CSRF 与点击劫持及 CSP 绕过</a></h3>
+  <p class="card-desc">一句话原理：浏览器会自动携带目标网站的 Cookie 发起请求，服务器只认&quot;这个请求带着合法 Cookie&quot;，不认&quot;这个请求是谁、在哪发起的&quot;。于是攻击者构造一个页面，受害者只要访问，浏览器就替他向目标网站发出敏感操作请求。</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">11 min · 4226 字</span>
+  </div>
+</article><article class="post-card" data-cat="web"
+     data-hay="web 注入攻击：sql 注入与命令注入 一句话原理：程序把用户输入直接拼进了可执行语句（sql 语句 / shell 命令），输入里的特殊字符改变了语句原本的逻辑，实现了&quot;输入即代码&quot;。 ">
+  <div class="card-top">
+    <a class="cat-badge cat-web" href="category/web.html">Web 安全</a>
+    <time datetime="2026-08-28">2026-08-28</time>
+  </div>
+  <h3><a href="posts/web-zhu-ru-gong-ji-sql-zhu-ru-yu-ming-ling-zhu-ru.html">Web 注入攻击：SQL 注入与命令注入</a></h3>
+  <p class="card-desc">一句话原理：程序把用户输入直接拼进了可执行语句（SQL 语句 / shell 命令），输入里的特殊字符改变了语句原本的逻辑，实现了&quot;输入即代码&quot;。</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">11 min · 4009 字</span>
+  </div>
+</article><article class="post-card" data-cat="web"
+     data-hay="web 渗透测试：dvwa 与 burp suite 与暴力破解 一句话原理：登录认证的本质是&quot;把用户输入的口令和数据库里存的比对，一样就放行&quot;。只要口令空间是有限的、可枚举的，攻击者就能逐个尝试直到撞对一个——这就是暴力破解。它不依赖任何代码漏洞，只要口令弱，协议再安全也没用。 ">
+  <div class="card-top">
+    <a class="cat-badge cat-web" href="category/web.html">Web 安全</a>
+    <time datetime="2026-08-28">2026-08-28</time>
+  </div>
+  <h3><a href="posts/web-shen-tou-ce-shi-dvwa-yu-burp-suite-yu-bao-li-po-jie.html">Web 渗透测试：DVWA 与 Burp Suite 与暴力破解</a></h3>
+  <p class="card-desc">一句话原理：登录认证的本质是&quot;把用户输入的口令和数据库里存的比对，一样就放行&quot;。只要口令空间是有限的、可枚举的，攻击者就能逐个尝试直到撞对一个——这就是暴力破解。它不依赖任何代码漏洞，只要口令弱，协议再安全也没用。</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">10 min · 3886 字</span>
+  </div>
+</article><article class="post-card" data-cat="python"
+     data-hay="python class（类）知识总结 类（class）是创建对象的模板/蓝图，定义了对象拥有的属性（数据）和方法（行为）。 ">
+  <div class="card-top">
+    <a class="cat-badge cat-python" href="category/python.html">Python</a>
+    <time datetime="2026-08-28">2026-08-28</time>
+  </div>
+  <h3><a href="posts/python-class-lei-zhi-shi-zong-jie.html">Python Class（类）知识总结</a></h3>
+  <p class="card-desc">类（Class）是创建对象的模板/蓝图，定义了对象拥有的属性（数据）和方法（行为）。</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">8 min · 2983 字</span>
+  </div>
+</article><article class="post-card" data-cat="ir"
+     data-hay="windows 日志分析基础 title: windows日志分析基础 tags: [应急响应, 日志分析, windows] ">
+  <div class="card-top">
+    <a class="cat-badge cat-ir" href="category/ir.html">应急响应</a>
+    <time datetime="2026-08-14">2026-08-14</time>
+  </div>
+  <h3><a href="posts/windows-ri-zhi-fen-xi-ji-chu.html">Windows 日志分析基础</a></h3>
+  <p class="card-desc">title: Windows日志分析基础 tags: [应急响应, 日志分析, Windows]</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">15 min · 5526 字</span>
+  </div>
+</article><article class="post-card" data-cat="ir"
+     data-hay="shiro反序列化rce流量分析writeup 企业服务器被入侵，安全团队抓取了攻击流量。开发人员确认系统使用了 shiro 框架的默认密钥 90f1fe6c8c64e43d9d799888c5c69a68。分析攻击流量包，确认攻击者攻击时用的恶意类的名称。 应急响应 流量分析 shiro 反序列化 writeup">
+  <div class="card-top">
+    <a class="cat-badge cat-ir" href="category/ir.html">应急响应</a>
+    <time datetime="2026-07-10">2026-07-10</time>
+  </div>
+  <h3><a href="posts/shiro-deserialization-traffic.html">Shiro反序列化RCE流量分析WriteUp</a></h3>
+  <p class="card-desc">企业服务器被入侵，安全团队抓取了攻击流量。开发人员确认系统使用了 Shiro 框架的默认密钥 90F1FE6C8C64E43D9D799888C5C69A68。分析攻击流量包，确认攻击者攻击时用的恶意类的名称。</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">应急响应</span><span class="chip">流量分析</span><span class="chip">Shiro</span></div>
+    <span class="reading">13 min · 5006 字</span>
+  </div>
+</article><article class="post-card" data-cat="ir"
+     data-hay="bla日志分析工具使用指南 bla 是一款开源的蓝队应急响应日志分析工具，支持自动识别多种日志格式并进行安全检测。由 python 编写，离线可用，不上传日志。 工具 日志分析 bla">
+  <div class="card-top">
+    <a class="cat-badge cat-ir" href="category/ir.html">应急响应</a>
+    <time datetime="2026-07-10">2026-07-10</time>
+  </div>
+  <h3><a href="posts/bla-ri-zhi-fen-xi-gong-ju-shi-yong-zhi-nan.html">BLA日志分析工具使用指南</a></h3>
+  <p class="card-desc">BLA 是一款开源的蓝队应急响应日志分析工具，支持自动识别多种日志格式并进行安全检测。由 Python 编写，离线可用，不上传日志。</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">工具</span><span class="chip">日志分析</span><span class="chip">BLA</span></div>
+    <span class="reading">8 min · 3145 字</span>
+  </div>
+</article><article class="post-card" data-cat="ir"
+     data-hay="应急响应四大经典场景 定位webshell上传/访问：过滤 post 请求、200状态码、可疑ua（蚁剑/哥斯拉特征）、jsp/php/asp 后缀文件访问 应急响应 ctf 总结">
+  <div class="card-top">
+    <a class="cat-badge cat-ir" href="category/ir.html">应急响应</a>
+    <time datetime="2026-07-10">2026-07-10</time>
+  </div>
+  <h3><a href="posts/ying-ji-xiang-ying-si-da-jing-dian-chang-jing.html">应急响应四大经典场景</a></h3>
+  <p class="card-desc">定位Webshell上传/访问：过滤 POST 请求、200状态码、可疑UA（蚁剑/哥斯拉特征）、jsp/php/asp 后缀文件访问</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">应急响应</span><span class="chip">CTF</span><span class="chip">总结</span></div>
+    <span class="reading">6 min · 2373 字</span>
+  </div>
+</article><article class="post-card" data-cat="ir"
+     data-hay="webshell查杀方法 简单官方一点：webshell应急响应是指在检测到webshell（恶意web脚本）攻击后，采取一系列措施来控制、消除威胁，并恢复受影响的系统和服务。webshell是一种常见的攻击手段，攻击者通过上传或注入恶意脚本到web服务器… 应急响应 webshell 查杀">
+  <div class="card-top">
+    <a class="cat-badge cat-ir" href="category/ir.html">应急响应</a>
+    <time datetime="2026-07-09">2026-07-09</time>
+  </div>
+  <h3><a href="posts/webshell-cha-sha-fang-fa.html">Webshell查杀方法</a></h3>
+  <p class="card-desc">简单官方一点：WebShell应急响应是指在检测到WebShell（恶意Web脚本）攻击后，采取一系列措施来控制、消除威胁，并恢复受影响的系统和服务。WebShell是一种常见的攻击手段，攻击者通过上传或注入恶意脚本到Web服务器…</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">应急响应</span><span class="chip">WebShell</span><span class="chip">查杀</span></div>
+    <span class="reading">14 min · 5370 字</span>
+  </div>
+</article><article class="post-card" data-cat="ir"
+     data-hay="恶意程序应急响应 当无法在线排查时（如拿到磁盘镜像或内存 dump），需要在离线环境下分析恶意程序。本文覆盖 linux 和 windows 两个平台的离线应急响应方法。 应急响应 恶意程序 取证">
+  <div class="card-top">
+    <a class="cat-badge cat-ir" href="category/ir.html">应急响应</a>
+    <time datetime="2026-07-09">2026-07-09</time>
+  </div>
+  <h3><a href="posts/e-yi-cheng-xu-ying-ji-xiang-ying.html">恶意程序应急响应</a></h3>
+  <p class="card-desc">当无法在线排查时（如拿到磁盘镜像或内存 dump），需要在离线环境下分析恶意程序。本文覆盖 Linux 和 Windows 两个平台的离线应急响应方法。</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">应急响应</span><span class="chip">恶意程序</span><span class="chip">取证</span></div>
+    <span class="reading">4 min · 1634 字</span>
+  </div>
+</article><article class="post-card" data-cat="ir"
+     data-hay="web日志分析-sql注入攻击writeup 某单位 web 服务器日志中发现异常流量，分析 access.log 中的攻击行为，找出攻击者攻击了哪个数据库以及攻击方式。 sql注入 日志分析 writeup">
+  <div class="card-top">
+    <a class="cat-badge cat-ir" href="category/ir.html">应急响应</a>
+    <time datetime="2026-07-08">2026-07-08</time>
+  </div>
+  <h3><a href="posts/web-ri-zhi-fen-xi-sql-zhu-ru-gong-ji-writeup.html">Web日志分析-SQL注入攻击WriteUp</a></h3>
+  <p class="card-desc">某单位 Web 服务器日志中发现异常流量，分析 access.log 中的攻击行为，找出攻击者攻击了哪个数据库以及攻击方式。</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">SQL注入</span><span class="chip">日志分析</span><span class="chip">WriteUp</span></div>
+    <span class="reading">12 min · 4462 字</span>
+  </div>
+</article><article class="post-card" data-cat="ir"
+     data-hay="ssh暴力破解与日志分析writeup 2026年某日凌晨，运维人员发现一台核心服务器 cpu 使用率异常升高。检查系统日志发现大量 ssh 失败记录，且有多条来自不同 ip 的成功登录。进一步查看审计日志，发现其中某次用户登录执行了可疑命令。分析附件中的 combine… 应急响应 日志分析 ssh writeup">
+  <div class="card-top">
+    <a class="cat-badge cat-ir" href="category/ir.html">应急响应</a>
+    <time datetime="2026-07-08">2026-07-08</time>
+  </div>
+  <h3><a href="posts/ssh-bruteforce-log-analysis.html">SSH暴力破解与日志分析WriteUp</a></h3>
+  <p class="card-desc">2026年某日凌晨，运维人员发现一台核心服务器 CPU 使用率异常升高。检查系统日志发现大量 SSH 失败记录，且有多条来自不同 IP 的成功登录。进一步查看审计日志，发现其中某次用户登录执行了可疑命令。分析附件中的 combine…</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">应急响应</span><span class="chip">日志分析</span><span class="chip">SSH</span></div>
+    <span class="reading">11 min · 4227 字</span>
+  </div>
+</article><article class="post-card" data-cat="ir"
+     data-hay="windows安全日志分析-rdp暴力破解 这类题目通常会提供 windows 安全日志（security log）文件，格式为 xml，需要从中分析出： 应急响应 日志分析 windows rdp">
+  <div class="card-top">
+    <a class="cat-badge cat-ir" href="category/ir.html">应急响应</a>
+    <time datetime="2026-07-08">2026-07-08</time>
+  </div>
+  <h3><a href="posts/windows-rdp-bruteforce-log.html">Windows安全日志分析-RDP暴力破解</a></h3>
+  <p class="card-desc">这类题目通常会提供 Windows 安全日志（Security Log）文件，格式为 XML，需要从中分析出：</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">应急响应</span><span class="chip">日志分析</span><span class="chip">Windows</span></div>
+    <span class="reading">11 min · 4002 字</span>
+  </div>
+</article><article class="post-card" data-cat="ir"
+     data-hay="webshell上传与加密隧道分析writeup 某日凌晨，某重点单位网络安全设备突然触发告警，检测到内网流量异常。安全团队紧急响应，发现一台核心服务器疑似被攻击者横向渗透，并通过加密隧道进行通信和数据传输。安全设备完整捕获了攻击过程的流量（文件：流量分析.pcapng）。 应急响应 流量分析 webshell writeup">
+  <div class="card-top">
+    <a class="cat-badge cat-ir" href="category/ir.html">应急响应</a>
+    <time datetime="2026-07-08">2026-07-08</time>
+  </div>
+  <h3><a href="posts/webshell-encrypted-tunnel.html">Webshell上传与加密隧道分析WriteUp</a></h3>
+  <p class="card-desc">某日凌晨，某重点单位网络安全设备突然触发告警，检测到内网流量异常。安全团队紧急响应，发现一台核心服务器疑似被攻击者横向渗透，并通过加密隧道进行通信和数据传输。安全设备完整捕获了攻击过程的流量（文件：流量分析.pcapng）。</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">应急响应</span><span class="chip">流量分析</span><span class="chip">Webshell</span></div>
+    <span class="reading">8 min · 2892 字</span>
+  </div>
+</article><article class="post-card" data-cat="ir"
+     data-hay="sql注入dns外带数据writeup 企业安全团队发现 waf 告警，业务系统遭受大量 sql 注入扫描。进一步分析发现数据库服务器存在异常的 dns 查询记录。结合 web 访问日志，分析攻击者利用何种技术绕过检测并将数据库敏感信息外传。 sql注入 dns oob writeup">
+  <div class="card-top">
+    <a class="cat-badge cat-ir" href="category/ir.html">应急响应</a>
+    <time datetime="2026-07-08">2026-07-08</time>
+  </div>
+  <h3><a href="posts/sql-zhu-ru-dns-wai-dai-shu-ju-writeup.html">SQL注入DNS外带数据WriteUp</a></h3>
+  <p class="card-desc">企业安全团队发现 WAF 告警，业务系统遭受大量 SQL 注入扫描。进一步分析发现数据库服务器存在异常的 DNS 查询记录。结合 Web 访问日志，分析攻击者利用何种技术绕过检测并将数据库敏感信息外传。</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">SQL注入</span><span class="chip">DNS</span><span class="chip">OOB</span></div>
+    <span class="reading">6 min · 2433 字</span>
+  </div>
+</article><article class="post-card" data-cat="ir"
+     data-hay="dns外带sql注入解题思路 这类题目一般描述中会给几个关键词： sql注入 dns oob 解题思路">
+  <div class="card-top">
+    <a class="cat-badge cat-ir" href="category/ir.html">应急响应</a>
+    <time datetime="2026-07-08">2026-07-08</time>
+  </div>
+  <h3><a href="posts/dns-wai-dai-sql-zhu-ru-jie-ti-si-lu.html">DNS外带SQL注入解题思路</a></h3>
+  <p class="card-desc">这类题目一般描述中会给几个关键词：</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">SQL注入</span><span class="chip">DNS</span><span class="chip">OOB</span></div>
+    <span class="reading">5 min · 1776 字</span>
+  </div>
+</article><article class="post-card" data-cat="ir"
+     data-hay="linux日志分析基础 /var/log/syslog：记录系统的各种信息和错误。 /var/log/auth.log：记录身份验证相关的信息，如登录和认证失败。 /var/log/kern.log：记录内核生成的日志信息。 /var/log/dmesg… 应急响应 日志分析 linux">
+  <div class="card-top">
+    <a class="cat-badge cat-ir" href="category/ir.html">应急响应</a>
+    <time datetime="2026-07-08">2026-07-08</time>
+  </div>
+  <h3><a href="posts/linux-log-analysis-basics.html">Linux日志分析基础</a></h3>
+  <p class="card-desc">/var/log/syslog：记录系统的各种信息和错误。 /var/log/auth.log：记录身份验证相关的信息，如登录和认证失败。 /var/log/kern.log：记录内核生成的日志信息。 /var/log/dmesg…</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">应急响应</span><span class="chip">日志分析</span><span class="chip">Linux</span></div>
+    <span class="reading">4 min · 1615 字</span>
+  </div>
+</article><article class="post-card" data-cat="web"
+     data-hay="php反序列化漏洞 反序列化漏洞 = unserialize()接收用户输入 + 可利用的类 + 用户可控序列化内容 ctf web安全 php">
+  <div class="card-top">
+    <a class="cat-badge cat-web" href="category/web.html">Web 安全</a>
+    <time datetime="2026-07-05">2026-07-05</time>
+  </div>
+  <h3><a href="posts/php-fan-xu-lie-hua-lou-dong.html">PHP反序列化漏洞</a></h3>
+  <p class="card-desc">反序列化漏洞 = unserialize()接收用户输入 + 可利用的类 + 用户可控序列化内容</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">CTF</span><span class="chip">Web安全</span><span class="chip">PHP</span></div>
+    <span class="reading">11 min · 4011 字</span>
+  </div>
+</article><article class="post-card" data-cat="base"
+     data-hay="kali工具的使用 nmap -sv &lt;目标主机或目标网段&gt; 查看服务版本（如80，22，3306等信息） import-d4ea">
+  <div class="card-top">
+    <a class="cat-badge cat-base" href="category/base.html">基础</a>
+    <time datetime="2026-07-04">2026-07-04</time>
+  </div>
+  <h3><a href="posts/kali-gong-ju-de-shi-yong.html">kali工具的使用</a></h3>
+  <p class="card-desc">nmap -sV &lt;目标主机或目标网段&gt; 查看服务版本（如80，22，3306等信息）</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">Import-d4ea</span></div>
+    <span class="reading">5 min · 1755 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="格密码  crypto">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="category/crypto.html">密码学</a>
+    <time datetime="2026-04-26">2026-04-26</time>
+  </div>
+  <h3><a href="posts/ge-mi-ma.html">格密码</a></h3>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span></div>
+    <span class="reading">2 min · 841 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="素数分解 如果给定素数小于 256 位，通常可以通过 sympy、gmpy2 等库直接分解： crypto">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="category/crypto.html">密码学</a>
+    <time datetime="2025-10-26">2025-10-26</time>
+  </div>
+  <h3><a href="posts/su-shu-fen-jie.html">素数分解</a></h3>
+  <p class="card-desc">如果给定素数小于 256 位，通常可以通过 sympy、gmpy2 等库直接分解：</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span></div>
+    <span class="reading">3 min · 1300 字</span>
+  </div>
+</article><article class="post-card" data-cat="python"
+     data-hay="数据操作 切片（slicing）是 python 中用于​​提取序列子集​​的核心操作，适用于所有序列类型（字符串、列表、元组等）。它通过指定起始、结束位置和步长来灵活截取数据片段 python">
+  <div class="card-top">
+    <a class="cat-badge cat-python" href="category/python.html">Python</a>
+    <time datetime="2025-10-18">2025-10-18</time>
+  </div>
+  <h3><a href="posts/shu-ju-cao-zuo.html">数据操作</a></h3>
+  <p class="card-desc">切片（Slicing）是 Python 中用于​​提取序列子集​​的核心操作，适用于所有序列类型（字符串、列表、元组等）。它通过指定起始、结束位置和步长来灵活截取数据片段</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">python</span></div>
+    <span class="reading">5 min · 2078 字</span>
+  </div>
+</article><article class="post-card" data-cat="python"
+     data-hay="基本数据类型 在python中除int,float,char三中类型之外，还有字节(bytes)，元组(tuple)，列表(list),集合(set)和字典(dict)等类型 python">
+  <div class="card-top">
+    <a class="cat-badge cat-python" href="category/python.html">Python</a>
+    <time datetime="2025-10-16">2025-10-16</time>
+  </div>
+  <h3><a href="posts/ji-ben-shu-ju-lei-xing.html">基本数据类型</a></h3>
+  <p class="card-desc">在python中除int,float,char三中类型之外，还有字节(bytes)，元组(tuple)，列表(list),集合(set)和字典(dict)等类型</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">python</span></div>
+    <span class="reading">17 min · 6415 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="基础密码学 ascii 是一种 7 位编码标准，允许使用整数 0-127 表示文本。 crypto">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="category/crypto.html">密码学</a>
+    <time datetime="2025-10-16">2025-10-16</time>
+  </div>
+  <h3><a href="posts/ji-chu-mi-ma-xue.html">基础密码学</a></h3>
+  <p class="card-desc">ASCII 是一种 7 位编码标准，允许使用整数 0-127 表示文本。</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span></div>
+    <span class="reading">7 min · 2648 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="数论 用于计算两个整数的​​最大公约数​​。基于原理： crypto">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="category/crypto.html">密码学</a>
+    <time datetime="2025-10-16">2025-10-16</time>
+  </div>
+  <h3><a href="posts/shu-lun.html">数论</a></h3>
+  <p class="card-desc">用于计算两个整数的​​最大公约数​​。基于原理：</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span></div>
+    <span class="reading">7 min · 2610 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="rsa rsa 是首个实用的公钥加密算法（1977，rivest-shamir-adleman）：公钥加密、私钥解密，安全性建立在大整数分解的困难性上。 crypto">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="category/crypto.html">密码学</a>
+    <time datetime="2025-10-16">2025-10-16</time>
+  </div>
+  <h3><a href="posts/rsa.html">RSA</a></h3>
+  <p class="card-desc">RSA 是首个实用的公钥加密算法（1977，Rivest-Shamir-Adleman）：公钥加密、私钥解密，安全性建立在大整数分解的困难性上。</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">crypto</span></div>
+    <span class="reading">7 min · 2583 字</span>
+  </div>
+</article><article class="post-card" data-cat="crypto"
+     data-hay="cyperhack基础题目详解  ">
+  <div class="card-top">
+    <a class="cat-badge cat-crypto" href="category/crypto.html">密码学</a>
+    <time datetime="2025-09-15">2025-09-15</time>
+  </div>
+  <h3><a href="posts/cyperhack-ji-chu-ti-mu-xiang-jie.html">cyperhack基础题目详解</a></h3>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">3 min · 1127 字</span>
+  </div>
+</article></div>
+  <p class="empty-hint" id="empty-hint" hidden>没有匹配的文章，换个关键词试试。</p>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="index.html">首页</a>
+      <a href="posts.html">全部文章</a>
+      <a href="category/index.html">分类</a>
+      <a href="about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
   </div>
 </footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="assets/app.js" defer></script>
 </body>
 </html>

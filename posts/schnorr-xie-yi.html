@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schnorr协议 · pressure-J</title>
+<meta name="description" content="交互式零知识证明协议（Zp 原始形式，课件版本），用于&quot;证明我知道私钥&quot;而不泄露私钥。是 Ed25519、比特币 Taproot 签名的原型。">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/schnorr-xie-yi.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Schnorr协议 · pressure-J">
+<meta property="og:description" content="交互式零知识证明协议（Zp 原始形式，课件版本），用于&quot;证明我知道私钥&quot;而不泄露私钥。是 Ed25519、比特币 Taproot 签名的原型。">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/crypto.html">密码学</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>Schnorr协议</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-crypto">密码学</span>
+          <time datetime="2026-09-26">2026-09-26</time>
+          <span>1439 字</span>
+          <span>约 4 分钟</span>
+        </div>
+        <div class="chips post-tags"><span class="chip">crypto</span></div>
+      </header>
+      <div class="content"><p>交互式零知识证明协议（Zp* 原始形式，课件版本），用于"证明我知道私钥"而不泄露私钥。是 Ed25519、比特币 Taproot 签名的原型。</p>
+<h2 id="_1">系统参数</h2>
+<ul>
+<li>大素数 p = 2q+1（p、q 都是素数），阶为 q 的生成元 g</li>
+<li>私钥 x ∈ Zq，公钥 y = g^x mod p</li>
+<li>安全性基础：<strong>离散对数难题</strong>（知道 y、g 反推 x 不可行）</li>
+<li>群的核心性质：g^a · g^b = g^(a+b)（同底数指数相加）</li>
+</ul>
+<h2 id="_2">四步流程</h2>
+<ol>
+<li><strong>承诺</strong>（A→B）：A 随机选一次性 r ∈ Zq，发 t = g^r mod p</li>
+<li><strong>挑战</strong>（B→A）：B 随机生成 c ∈ Zq</li>
+<li><strong>响应</strong>（A→B）：A 算 s = r + c·x mod q 发给 B</li>
+<li><strong>验证</strong>（B）：接受 iff g^s ≡ t·y^c (mod p)</li>
+</ol>
+<p>验证为什么通过（完备性）：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>t · y^c = g^r · (g^x)^c = g^r · g^(c·x) = g^(r + c·x) = g^s  ✓
+</code></pre></div></div>
+
+<h2 id="_3">核心思想：把私钥掺进随机数</h2>
+<p>s = r + c·x 是一次一填充式的混合：<br />
+- <strong>一个方程两个未知数</strong>（r、x 都是 B 没有的）→ 单组 (t,c,s) 推不出 x，截获全部三轮也没用<br />
+- <strong>c 由 B 随机出</strong> → A 选 r 时不知道 c，没法针对挑战配一个不含真 x 的假 s</p>
+<p>零知识 = B 验证通过了，却没得到任何能算出 x 的信息。</p>
+<h2 id="_4">顺序为什么不能换</h2>
+<ul>
+<li><strong>必须先发 t 再出 c</strong>：否则骗子可以先随便选 s，倒推 t = g^s · y^{-c}，等式成立但根本不知道 x。先发 t 把 r 锁死（承诺的 binding 性）。</li>
+<li><strong>c 必须随机</strong>：考题不可预测，只能真的知道 x 才能当场答出。</li>
+<li><strong>r 必须一次性</strong>：同一个 r 回答两次挑战 → 私钥直接泄露：</li>
+</ul>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>s1 = r + c1·x
+s2 = r + c2·x
+相减: x = (s1 - s2) · (c1 - c2)^{-1} mod q
+</code></pre></div></div>
+
+<p>（经典事故：索尼 PS3 ECDSA 复用随机数、比特币早期钱包同款漏洞）</p>
+<h2 id="_5">三个安全性质</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>性质</th>
+<th>含义</th>
+<th>靠什么成立</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>完备性</td>
+<td>知道 x 的诚实 A 总能通过</td>
+<td>指数加法恒等式 g^(r+c·x)</td>
+</tr>
+<tr>
+<td>零知识</td>
+<td>B 通过了也偷不走 x</td>
+<td>一个方程两未知数；c 随机</td>
+</tr>
+<tr>
+<td>可靠性</td>
+<td>不知道 x 的骗子通不过</td>
+<td>先承诺后挑战的顺序 + 离散对数难</td>
+</tr>
+</tbody>
+</table></div>
+<p>可靠性量化：骗子乱蒙 s，等式成立概率 ≈ 1/q ≈ 2^-256。</p>
+<p><strong>特殊可靠性（special soundness）</strong>：能对同一 t 回答两个不同 c 的人必然知道 x（两式相减消去 r 解出 x）。"能过两轮 ⇒ 能算私钥"是零知识证明安全证明的标准套路。</p>
+<h2 id="fiat-shamir">转成签名：Fiat-Shamir 变换</h2>
+<p>交互式协议要求 B 在线发 c；签名时 B 不在场，用哈希冒充挑战：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>c := H(t ‖ y ‖ m) mod q
+签名 = (t, s)，验证仍是 g^s ≡ t·y^c
+</code></pre></div></div>
+
+<p>安全要求不变：c 依赖 t（先有 t 才有 c），"先选 s 后补 t"的作弊路径依然被顺序卡死。</p>
+<h2 id="rsa-schnorr">和 RSA 对比（为什么新协议选 Schnorr）</h2>
+<ul>
+<li>同等 128 位安全：RSA 公钥 3072 bit / 签名 384B vs 曲线版 256 bit / 64B</li>
+<li><strong>线性结构 s = r + c·x</strong> → 多签聚合成一个（MuSig2）、门限签名（FROST）、批量验证——RSA 做不到</li>
+<li>无填充方案，没有 Bleichenbacher 那类填充攻击面</li>
+<li>RSA 优势只在验签快、不需要可信参数</li>
+</ul>
+<h2 id="_6">实现代码</h2>
+<ul>
+<li><code>~/tools\homework\Schnorr.py</code>（课件 Zp* 版，含协议执行、伪造测试、r 复用提取私钥演示）</li>
+<li><code>~/tools\homework\Schnorr_noninteractive.py</code>（Fiat-Shamir 非交互版） </li>
+</ul></div>
+      <div class="post-nav"><a class="pn-item prev" href="wen-jian-ji-chu-yu-mo-shu-zi-jie.html"><span>← 上一篇</span><strong>文件基础与魔术字节</strong></a><a class="pn-item next" href="rabin-mi-ma.html"><span>下一篇 →</span><strong>Rabin密码</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">系统参数</a><a href="#_2" class="toc-lv2">四步流程</a><a href="#_3" class="toc-lv2">核心思想：把私钥掺进随机数</a><a href="#_4" class="toc-lv2">顺序为什么不能换</a><a href="#_5" class="toc-lv2">三个安全性质</a><a href="#fiat-shamir" class="toc-lv2">转成签名：Fiat-Shamir 变换</a><a href="#rsa-schnorr" class="toc-lv2">和 RSA 对比（为什么新协议选 Schnorr）</a><a href="#_6" class="toc-lv2">实现代码</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

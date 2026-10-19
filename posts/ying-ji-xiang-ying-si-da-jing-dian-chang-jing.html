@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>应急响应四大经典场景 · pressure-J</title>
+<meta name="description" content="定位Webshell上传/访问：过滤 POST 请求、200状态码、可疑UA（蚁剑/哥斯拉特征）、jsp/php/asp 后缀文件访问">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/ying-ji-xiang-ying-si-da-jing-dian-chang-jing.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="应急响应四大经典场景 · pressure-J">
+<meta property="og:description" content="定位Webshell上传/访问：过滤 POST 请求、200状态码、可疑UA（蚁剑/哥斯拉特征）、jsp/php/asp 后缀文件访问">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/ir.html">应急响应</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>应急响应四大经典场景</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-ir">应急响应</span>
+          <time datetime="2026-07-10">2026-07-10</time>
+          <span>2373 字</span>
+          <span>约 6 分钟</span>
+        </div>
+        <div class="chips post-tags"><span class="chip">应急响应</span><span class="chip">CTF</span><span class="chip">总结</span></div>
+      </header>
+      <div class="content"><h2 id="_1">一、四大经典出题场景</h2>
+<h3 id="1-web">1. Web日志分析（出现频率最高）</h3>
+<p>给 Apache/Nginx/IIS 访问日志或 error log，考点通常是：</p>
+<ul>
+<li></li>
+</ul>
+<p><strong>统计爆破/扫描源IP</strong>：SSH爆破(<code>/var/log/secure</code>)、Web目录扫描、SQL注入试探</p>
+<ul>
+<li></li>
+</ul>
+<p><strong>定位Webshell上传/访问</strong>：过滤 POST 请求、200状态码、可疑UA（蚁剑/哥斯拉特征）、jsp/php/asp 后缀文件访问</p>
+<ul>
+<li></li>
+</ul>
+<p><strong>提取攻击者IP、时间、利用的漏洞路径</strong>（如 <code>/manager/html</code>、<code>/upload.php</code>）</p>
+<ul>
+<li></li>
+</ul>
+<p><strong>问 Top N 访问IP、最早攻击时间、被上传的Webshell文件名</strong></p>
+<blockquote>
+<p>套路：用 <code>grep</code>/<code>awk</code>/<code>sort</code>/<code>uniq -c</code>统计，或用 Python 脚本正则匹配</p>
+</blockquote>
+<h3 id="2-webshellweb">2. Webshell与Web目录排查</h3>
+<p>给一个被入侵网站的 Web 根目录打包，要求：</p>
+<ul>
+<li></li>
+</ul>
+<p>找出<strong>隐藏/混淆的 Webshell</strong>（文件名含点如 <code>.shell.php</code>、藏在 <code>images/``include/</code>等目录、base64/rot13/gzip 混淆）</p>
+<ul>
+<li></li>
+</ul>
+<p>问 <strong>Webshell连接密码/工具类型</strong>（菜刀 z0/z1、冰蝎 AES、哥斯拉 MD5特征）</p>
+<ul>
+<li></li>
+</ul>
+<p>找出不死马（不死PHP马、写 <code>.user.ini</code>自动包含）及其生成文件</p>
+<ul>
+<li></li>
+</ul>
+<p>Flag 通常在 Webshell 源码注释、<code>eval(base64_decode(...))</code>解码后、或文件里藏的 <code>flag{}</code></p>
+<blockquote>
+<p>套路：<code>find</code>按 mtime 找新增文件 → <code>grep -R "eval\|base64\|assert\|preg_replace"</code>→ 人工或工具(D盾/河马)扫 → 解码</p>
+</blockquote>
+<h3 id="3-wireshark">3. 流量包分析（Wireshark + 解密）</h3>
+<p>给 <code>.pcapng</code>，常见套路：</p>
+<ul>
+<li></li>
+</ul>
+<p><strong>HTTP 流量中还原 Webshell 交互</strong>：跟踪 TCP 流，找 POST body 中的 Base64/AES 密文，冰蝎/哥斯拉需提取密钥解密</p>
+<ul>
+<li></li>
+</ul>
+<p><strong>FTP/SMB/HTTP 文件还原</strong>：导出对象(Export Objects)，还原攻击者上传的木马或下载的敏感文件</p>
+<ul>
+<li></li>
+</ul>
+<p><strong>DNS 隧道/CTF 隐蔽通道</strong>：过滤 <code>dns</code>看 TXT 记录或长子域名，提取编码数据</p>
+<ul>
+<li></li>
+</ul>
+<p><strong>问攻击者IP、C2域名、上传文件名、解密后命令</strong></p>
+<blockquote>
+<p>套路：Wireshark → Statistics → Conversations/HTTP → Follow TCP Stream → 导出/解码</p>
+</blockquote>
+<h3 id="4-linuxwindows">4. 系统取证（Linux/Windows 内存 &amp; 磁盘镜像）</h3>
+<ul>
+<li></li>
+</ul>
+<p><strong>Linux 排查</strong>：<code>/etc/passwd</code>查后门账号、<code>authorized_keys</code>查SSH公钥后门、<code>crontab</code>/<code>systemd</code>查持久化、<code>.bash_history</code>查操作痕迹、<code>/tmp</code>下可疑 ELF</p>
+<ul>
+<li></li>
+</ul>
+<p><strong>Windows 排查</strong>：隐藏账号/克隆账号(<code>lusrmgr.msc</code>/注册表)、计划任务、启动项、Prefetch/Amcache 找恶意程序执行记录</p>
+<ul>
+<li></li>
+</ul>
+<p><strong>内存取证(Volatility)</strong>：<code>pslist</code>找异常进程、<code>netscan</code>找外连、<code>cmdscan</code>/<code>consoles</code>看命令行、<code>filescan</code>/<code>dumpfiles</code>提取文件、<code>hashdump</code>抓 SAM</p>
+<ul>
+<li></li>
+</ul>
+<p><strong>磁盘镜像(Autopsy/foremost)</strong>：恢复被删除的文件、找隐藏分区中的 flag</p>
+<blockquote>
+<p>Flag 常在进程内存字符串、被删文件内容、dump出的配置文件里</p>
+</blockquote>
+<hr />
+<h2 id="_2">二、高频问答形式（答题模板）</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>问法</th>
+<th>典型答法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>攻击者IP</td>
+<td>日志/流量中最早出现扫描或成功登录的IP</td>
+</tr>
+<tr>
+<td>Webshell路径</td>
+<td>Web目录下找到的含eval/base64的php/jsp完整路径</td>
+</tr>
+<tr>
+<td>Webshell密码/工具</td>
+<td>解码后看到 <code>$_POST['xxx']</code>的 key，或工具特征(Godzilla/Behinder/AntSword)</td>
+</tr>
+<tr>
+<td>最早入侵时间</td>
+<td>日志中首个攻击请求或 <code>.php</code>文件 mtime</td>
+</tr>
+<tr>
+<td>后门账号名</td>
+<td><code>/etc/passwd</code>新增 UID≥1000 或 <code>/etc/shadow</code>无密码账户</td>
+</tr>
+<tr>
+<td>恶意文件MD5</td>
+<td>对找到的木马文件 <code>md5sum</code></td>
+</tr>
+<tr>
+<td>反弹Shell目的端口/C2域名</td>
+<td>流量中外连TCP连接的目的IP:Port 或 DNS查询域名</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="sop">三、通用解题套路（SOP）</h2>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>1. 先看题目描述 → 明确给了什么(日志/流量/镜像/目录)
+2. 按时间线梳理：
+   - 日志：爆破→成功登录/漏洞利用→Webshell上传→命令执行
+   - 流量：扫描→交互→文件传输
+3. 用特征过滤(关键字: eval/base64/cmd/whoami/z0/Go/Behinder)
+4. 提取异常文件→解码/反混淆→找flag{}
+5. 溯源填空(IP/时间/路径/密码/工具名)
+</code></pre></div></div>
+
+<hr />
+<h2 id="_3">四、常考知识点速记</h2>
+<ul>
+<li></li>
+</ul>
+<p><strong>日志路径</strong>：Ubuntu <code>/var/log/auth.log</code>，CentOS <code>/var/log/secure</code>，Nginx <code>/var/log/nginx/access.log</code></p>
+<ul>
+<li></li>
+</ul>
+<p><strong>Webshell特征</strong>：<code>eval(base64_decode())</code>、<code>assert</code>、<code>create_function</code>、<code>$_POST['x']</code>、<code>@ini_set</code></p>
+<ul>
+<li></li>
+</ul>
+<p><strong>内存取证命令</strong>：<code>imageinfo → pslist → netscan → cmdscan → linux_find_file → dumpfiles</code></p>
+<ul>
+<li></li>
+</ul>
+<p><strong>隐藏手段</strong>：<code>.</code>开头隐藏文件、改名 <code>.jpg.php</code>、写进图片 EXIF、不死马死循环重写自身</p></div>
+      <div class="post-nav"><a class="pn-item prev" href="webshell-cha-sha-fang-fa.html"><span>← 上一篇</span><strong>Webshell查杀方法</strong></a><a class="pn-item next" href="bla-ri-zhi-fen-xi-gong-ju-shi-yong-zhi-nan.html"><span>下一篇 →</span><strong>BLA日志分析工具使用指南</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">一、四大经典出题场景</a><a href="#1-web" class="toc-lv3">1. Web日志分析（出现频率最高）</a><a href="#2-webshellweb" class="toc-lv3">2. Webshell与Web目录排查</a><a href="#3-wireshark" class="toc-lv3">3. 流量包分析（Wireshark + 解密）</a><a href="#4-linuxwindows" class="toc-lv3">4. 系统取证（Linux/Windows 内存 &amp;amp; 磁盘镜像）</a><a href="#_2" class="toc-lv2">二、高频问答形式（答题模板）</a><a href="#sop" class="toc-lv2">三、通用解题套路（SOP）</a><a href="#_3" class="toc-lv2">四、常考知识点速记</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

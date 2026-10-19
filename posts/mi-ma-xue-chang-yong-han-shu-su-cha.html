@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>密码学常用函数速查 · pressure-J</title>
+<meta name="description" content="为什么一定要用它：(3100) % 7 是先把 3^100 这个天文数字完整算出来再取模。实测：">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/mi-ma-xue-chang-yong-han-shu-su-cha.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="密码学常用函数速查 · pressure-J">
+<meta property="og:description" content="为什么一定要用它：(3100) % 7 是先把 3^100 这个天文数字完整算出来再取模。实测：">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/crypto.html">密码学</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>密码学常用函数速查</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-crypto">密码学</span>
+          <time datetime="2026-10-15">2026-10-15</time>
+          <span>14613 字</span>
+          <span>约 38 分钟</span>
+        </div>
+        <div class="chips post-tags"><span class="chip">crypto</span><span class="chip">python</span><span class="chip">工具</span></div>
+      </header>
+      <div class="content"><blockquote>
+<p><strong>本文所有调用都在这台机器上实测跑过</strong>（环境见 §0），不是抄文档。重点讲「怎么调、参数是什么、坑在哪」；原理性内容只在必要处带一句。<br />
+速查表在 §10，踩坑清单在 §11。</p>
+</blockquote>
+<hr />
+<h2 id="0">0. 运行环境（先确认，不然一切白搭）</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>入口</th>
+<th>命令</th>
+<th>有什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>主解释器</strong></td>
+<td><code>py xxx.py</code>（Python 3.12.6，site-packages 在 <code>~/\Lib</code>）</td>
+<td>pycryptodome 3.23 / gmssl / gmpy2 2.3.1 / sympy 1.14 / numpy</td>
+</tr>
+<tr>
+<td>SageMath 9.3</td>
+<td>见下方命令（<strong>不在</strong> <code>py</code> 里）</td>
+<td>格、<code>small_roots</code>、<code>factor</code>、椭圆曲线、<code>ecm.exe</code></td>
+</tr>
+<tr>
+<td>Hermes 自带 python3.14</td>
+<td>不建议用</td>
+<td>只有标准库，没装上面这些</td>
+</tr>
+</tbody>
+</table></div>
+<div class="code-block" data-lang="powershell"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c"># Sage 全程用这条（实测可跑，普通 python 没有 sage.all）</span>
+<span class="nb">cd </span><span class="s2">"~/\AppData\Local\SageMath 9.3"</span>
+<span class="p">.\</span><span class="n">runtime</span><span class="p">\</span><span class="n">bin</span><span class="p">\</span><span class="n">bash</span><span class="p">.</span><span class="n">exe</span> <span class="p">-</span><span class="n">-login</span> <span class="n">-c</span> <span class="s2">"/opt/sagemath-9.3/sage -c 'print(factor(2^64-1))'"</span>
+<span class="c"># → 3 * 5 * 17 * 257 * 641 * 65537 * 6700417</span>
+</code></pre></div></div>
+
+<ul>
+<li>Sage 里跑脚本文件：<code>... -c</code> 换成脚本路径，或双击桌面「SageMath 9.3 Shell」交互。</li>
+<li>独立的椭圆曲线分解工具：<code>...\SageMath 9.3\runtime\opt\sagemath-9.3\local\bin\ecm.exe</code>（不在 PATH，要全路径）。</li>
+<li><strong>环境自检</strong>：<code>py ~/tools\CTF工具箱\00-考前环境自检.py</code>（赛前 10 分钟跑一遍）。</li>
+</ul>
+<blockquote>
+<p>⚠️ <code>~/\python.exe</code> <strong>已不存在</strong>（那是被卸载的 Miniconda，不是 SageMath）。见到老笔记里写这个路径，一律改成上面的 <code>py</code> 或 Sage 命令。</p>
+</blockquote>
+<hr />
+<h2 id="1-python-int90">1. Python 内置 <code>int</code>（90% 的题只用它就够）</h2>
+<h3 id="11-pow">1.1 模幂：<strong>必须用三参 <code>pow</code></strong></h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="nb">pow</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="n">exp</span><span class="p">,</span> <span class="n">mod</span><span class="p">)</span>        <span class="c1"># 模幂，O(log exp)</span>
+<span class="nb">pow</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">7</span><span class="p">)</span>             <span class="c1"># 4</span>
+</code></pre></div></div>
+
+<p><strong>为什么一定要用它</strong>：<code>(3**100) % 7</code> 是先把 3^100 这个<strong>天文数字</strong>完整算出来再取模。实测：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>写法</th>
+<th>耗时（10^6 量级指数）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>(3**e) % 7</code></td>
+<td>0.12 s</td>
+</tr>
+<tr>
+<td><code>pow(3, e, 7)</code></td>
+<td>0.000008 s</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>快 15000 倍</strong>，而且指数一大直接卡死。RSA 里 <code>pow(c, d, n)</code> 是全流程的性能命脉。</p>
+<h3 id="12-python-38">1.2 模逆（Python 3.8+ 内置，不用再手写扩展欧几里得）</h3>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="nb">pow</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">m</span><span class="p">)</span>      <span class="c1"># 求 a 在模 m 下的逆元</span>
+<span class="nb">pow</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">7</span><span class="p">)</span>      <span class="c1"># 5    （3*5=15≡1 mod 7）</span>
+</code></pre></div></div>
+
+<p>不存在逆元时抛 <code>ValueError</code>，可以 <code>try</code> 当"gcd≠1"的判据。</p>
+<h3 id="13-flag">1.3 大整数 ↔ 字节串（转 flag 全靠它）</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">n</span> <span class="o">=</span> <span class="mh">0x666c6167</span>
+<span class="n">n</span><span class="o">.</span><span class="n">to_bytes</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="s1">'big'</span><span class="p">)</span>              <span class="c1"># b'flag'</span>
+<span class="sa">b</span><span class="s1">'flag'</span><span class="o">.</span><span class="n">hex</span><span class="p">()</span>                     <span class="c1"># '666c6167'</span>
+<span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="sa">b</span><span class="s1">'flag'</span><span class="p">,</span> <span class="s1">'big'</span><span class="p">)</span>    <span class="c1"># 1718378855</span>
+<span class="nb">int</span><span class="p">(</span><span class="s1">'666c6167'</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>               <span class="c1"># 十六进制串转整数</span>
+<span class="nb">hex</span><span class="p">(</span><span class="mi">1718378855</span><span class="p">)</span>                   <span class="c1"># '0x666c6167'</span>
+</code></pre></div></div>
+
+<ul>
+<li><strong>长度不足要指明</strong>：<code>(65).to_bytes(4,'big')</code> → <code>b'\x00\x00\x00A'</code>。只给 <code>to_bytes(1)</code> 会 OverflowError。</li>
+<li><code>long_to_bytes</code>（§2）比手写 <code>to_bytes</code> 更省心：<strong>它按最小字节数自动算长度</strong>，直接 <code>.decode()</code> 就是明文，不用自己数位数。</li>
+</ul>
+<h3 id="14">1.4 其它</h3>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+<span class="n">math</span><span class="o">.</span><span class="n">gcd</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>      <span class="c1"># 最大公约数（RSA 共素数攻击的核心）</span>
+<span class="n">math</span><span class="o">.</span><span class="n">isqrt</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>       <span class="c1"># 整数平方根（Rabin 开方第一步）</span>
+<span class="n">math</span><span class="o">.</span><span class="n">lcm</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>      <span class="c1"># 最小公倍数</span>
+</code></pre></div></div>
+
+<p><strong>⚠️ 大数字符串转换限制（Python 3.11+）</strong>：实测本机 <code>sys.get_int_max_str_digits() == 4300</code>，超过就报错：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="nb">str</span><span class="p">(</span><span class="mi">10</span><span class="o">**</span><span class="mi">5000</span><span class="p">)</span>   <span class="c1"># ValueError: Exceeds the limit (4300 digits) for integer string conversion</span>
+<span class="nb">int</span><span class="p">(</span><span class="s1">'9'</span><span class="o">*</span><span class="mi">5000</span><span class="p">)</span>   <span class="c1"># 同样报错</span>
+<span class="nb">hex</span><span class="p">(</span><span class="mi">10</span><span class="o">**</span><span class="mi">5000</span><span class="p">)</span>   <span class="c1"># 没事（十六进制不受限）</span>
+</code></pre></div></div>
+
+<p>RSA 里要把超大整数打印/转十进制时先加一行：</p>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="n">sys</span><span class="o">.</span><span class="n">set_int_max_str_digits</span><span class="p">(</span><span class="mi">100000</span><span class="p">)</span>     <span class="c1"># 提到 10 万位</span>
+</code></pre></div></div>
+
+<p>注意：<strong><code>hex()</code> 和 <code>to_bytes()</code> 不受此限</strong>，只有 <code>str()</code>/<code>int(str)</code> 十进制互转受限。</p>
+<hr />
+<h2 id="2-cryptoutilnumberpycryptodome-rsa">2. <code>Crypto.Util.number</code>（pycryptodome）—— RSA 题主力</h2>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">Crypto.Util.number</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">getPrime</span><span class="p">,</span>          <span class="c1"># 生成 n 位随机素数</span>
+    <span class="n">getStrongPrime</span><span class="p">,</span>    <span class="c1"># 强素数（p-1 有大素因子），出题用</span>
+    <span class="n">isPrime</span><span class="p">,</span>           <span class="c1"># Miller-Rabin 素性判定</span>
+    <span class="n">inverse</span><span class="p">,</span>           <span class="c1"># 模逆，等价 pow(a,-1,m)</span>
+    <span class="n">GCD</span><span class="p">,</span>               <span class="c1"># 带大数加速的 gcd</span>
+    <span class="n">size</span><span class="p">,</span>              <span class="c1"># 一个数占多少 bit</span>
+    <span class="n">bytes_to_long</span><span class="p">,</span>     <span class="c1"># 字节串 → 整数   （明文 m 的还原方向）</span>
+    <span class="n">long_to_bytes</span><span class="p">,</span>     <span class="c1"># 整数 → 字节串   （出 flag 用这个）</span>
+    <span class="n">getRandomNBitInteger</span><span class="p">,</span>
+    <span class="n">getRandomRange</span><span class="p">,</span>
+<span class="p">)</span>
+</code></pre></div></div>
+
+<p>实测：</p>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">getPrime</span><span class="p">(</span><span class="mi">512</span><span class="p">)</span>                          <span class="c1"># 512 位随机素数</span>
+<span class="n">inverse</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">11</span><span class="p">)</span>                         <span class="c1"># 4</span>
+<span class="n">long_to_bytes</span><span class="p">(</span><span class="mh">0x666c6167</span><span class="p">)</span>              <span class="c1"># b'flag'</span>
+<span class="n">bytes_to_long</span><span class="p">(</span><span class="sa">b</span><span class="s1">'flag'</span><span class="p">)</span>                 <span class="c1"># 1718378855</span>
+<span class="n">size</span><span class="p">(</span><span class="mh">0xffff</span><span class="p">)</span>                           <span class="c1"># 16  （位长）</span>
+<span class="n">long_to_bytes</span><span class="p">(</span><span class="mi">65</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>                   <span class="c1"># b'\x00\x00\x00A'  （强制 4 字节，定长场景用）</span>
+<span class="n">getRandomNBitInteger</span><span class="p">(</span><span class="mi">32</span><span class="p">)</span><span class="o">.</span><span class="n">bit_length</span><span class="p">()</span>  <span class="c1"># 32</span>
+</code></pre></div></div>
+
+<p><strong>用法要点</strong><br />
+- <code>long_to_bytes(m)</code> 出来的就是明文字节流，末端常带 <code>\x00</code> 补齐的<strong>没有</strong>（它用最小长度），直接 <code>.decode(errors='ignore')</code> 看 flag。<br />
+- 反过来写脚本出题：<code>bytes_to_long(b'flag{test}')</code>。<br />
+- <code>inverse</code> 与 <code>pow(a,-1,m)</code> 等价，<strong>优先用内置 pow</strong>，少一个 import。</p>
+<hr />
+<h2 id="3-cryptocipherpycryptodome">3. 对称加密：<code>Crypto.Cipher</code>（pycryptodome）</h2>
+<h3 id="31-aes-iv">3.1 AES 五种模式的构造差异（<strong>IV 是必踩的坑</strong>）</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">Crypto.Cipher</span><span class="w"> </span><span class="kn">import</span> <span class="n">AES</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">Crypto.Util.Padding</span><span class="w"> </span><span class="kn">import</span> <span class="n">pad</span><span class="p">,</span> <span class="n">unpad</span>
+
+<span class="n">key</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">'0'</span> <span class="o">*</span> <span class="mi">16</span>            <span class="c1"># AES 密钥：16/24/32 字节</span>
+
+<span class="n">AES</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">AES</span><span class="o">.</span><span class="n">MODE_ECB</span><span class="p">)</span>                     <span class="c1"># ECB：不接受 IV</span>
+<span class="n">AES</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">AES</span><span class="o">.</span><span class="n">MODE_CBC</span><span class="p">,</span> <span class="n">iv</span><span class="p">)</span>                 <span class="c1"># CBC：iv 必须 16 字节</span>
+<span class="n">AES</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">AES</span><span class="o">.</span><span class="n">MODE_OFB</span><span class="p">,</span> <span class="n">iv</span><span class="p">)</span>                 <span class="c1"># OFB：同上</span>
+<span class="n">AES</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">AES</span><span class="o">.</span><span class="n">MODE_CTR</span><span class="p">,</span> <span class="n">nonce</span><span class="o">=</span><span class="sa">b</span><span class="s1">'1'</span><span class="o">*</span><span class="mi">8</span><span class="p">)</span>       <span class="c1"># CTR：nonce（8 字节）</span>
+<span class="n">AES</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">AES</span><span class="o">.</span><span class="n">MODE_GCM</span><span class="p">)</span>                     <span class="c1"># GCM：nonce 自动生成</span>
+
+<span class="n">c</span> <span class="o">=</span> <span class="n">AES</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">AES</span><span class="o">.</span><span class="n">MODE_CBC</span><span class="p">,</span> <span class="n">iv</span><span class="p">)</span>
+<span class="n">ct</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">encrypt</span><span class="p">(</span><span class="n">pad</span><span class="p">(</span><span class="sa">b</span><span class="s1">'flag'</span><span class="p">,</span> <span class="mi">16</span><span class="p">))</span>               <span class="c1"># ★ 加密前必须 pad</span>
+<span class="n">pt</span> <span class="o">=</span> <span class="n">unpad</span><span class="p">(</span><span class="n">AES</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">AES</span><span class="o">.</span><span class="n">MODE_CBC</span><span class="p">,</span> <span class="n">iv</span><span class="p">)</span><span class="o">.</span><span class="n">decrypt</span><span class="p">(</span><span class="n">ct</span><span class="p">),</span> <span class="mi">16</span><span class="p">)</span>
+</code></pre></div></div>
+
+<ul>
+<li><strong>ECB 不用 IV，CBC/OFB 必须传 IV，CTR 传 <code>nonce=</code></strong>；漏了会 <code>TypeError</code>。</li>
+<li><strong>CTR 也可以传 <code>counter=</code></strong>：<code>AES.new(key, AES.MODE_CTR, counter=Counter.new(128))</code>（<code>from Crypto.Util import Counter</code>；键名是 <code>counter_len / initial_value / prefix / suffix / little_endian</code>，<strong>不是</strong> <code>nbits</code>）。</li>
+<li><strong>GCM 用另一套方法</strong>（不是 <code>encrypt/decrypt</code>）：</li>
+</ul>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">c</span> <span class="o">=</span> <span class="n">AES</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">AES</span><span class="o">.</span><span class="n">MODE_GCM</span><span class="p">)</span>
+<span class="n">ct</span><span class="p">,</span> <span class="n">tag</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">encrypt_and_digest</span><span class="p">(</span><span class="sa">b</span><span class="s1">'hi'</span><span class="p">)</span>
+<span class="n">d</span> <span class="o">=</span> <span class="n">AES</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">AES</span><span class="o">.</span><span class="n">MODE_GCM</span><span class="p">,</span> <span class="n">nonce</span><span class="o">=</span><span class="n">c</span><span class="o">.</span><span class="n">nonce</span><span class="p">)</span>     <span class="c1"># 解密要复用同一个 nonce</span>
+<span class="n">d</span><span class="o">.</span><span class="n">decrypt_and_verify</span><span class="p">(</span><span class="n">ct</span><span class="p">,</span> <span class="n">tag</span><span class="p">)</span>                     <span class="c1"># 实测 → b'hi'</span>
+</code></pre></div></div>
+
+<h3 id="32-ecb-ecb">3.2 ECB 判块重复（"看到 ECB 就该想到"的第一反应）</h3>
+<p>实测：同一明文块加密后密文块相同，这就是 ECB 的结构泄露与重排攻击入口。</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">ct</span> <span class="o">=</span> <span class="n">AES</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="sa">b</span><span class="s1">'0'</span><span class="o">*</span><span class="mi">16</span><span class="p">,</span> <span class="n">AES</span><span class="o">.</span><span class="n">MODE_ECB</span><span class="p">)</span><span class="o">.</span><span class="n">encrypt</span><span class="p">(</span><span class="sa">b</span><span class="s1">'A'</span><span class="o">*</span><span class="mi">32</span><span class="p">)</span>
+<span class="n">ct</span><span class="p">[:</span><span class="mi">16</span><span class="p">]</span> <span class="o">==</span> <span class="n">ct</span><span class="p">[</span><span class="mi">16</span><span class="p">:]</span>        <span class="c1"># True —— 两块明文相同 → 两块密文相同</span>
+</code></pre></div></div>
+
+<h3 id="33-pad-unpad-pkcs7">3.3 填充：<code>pad</code> / <code>unpad</code> 与 PKCS7</h3>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">pad</span><span class="p">(</span><span class="sa">b</span><span class="s1">'x'</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>             <span class="c1"># b'x' + 15 个 '\x0f'  → 长度 16</span>
+<span class="n">pad</span><span class="p">(</span><span class="sa">b</span><span class="s1">'0'</span><span class="o">*</span><span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>          <span class="c1"># 恰好满块时**再补一整块** 0x10×16 → 长度 32</span>
+<span class="n">unpad</span><span class="p">(</span><span class="n">pad</span><span class="p">(</span><span class="sa">b</span><span class="s1">'x'</span><span class="p">,</span><span class="mi">16</span><span class="p">),</span> <span class="mi">16</span><span class="p">)</span>   <span class="c1"># b'x'</span>
+</code></pre></div></div>
+
+<ul>
+<li><strong>块长是 <code>AES.block_size</code>（16）</strong>，<code>.hex()</code> 看一堆 <code>0f0f0f...</code> 就是 PKCS7 的尾巴。</li>
+<li>解密忘了 <code>unpad</code> → 明文尾部一串 <code>\x04\x04\x04\x04</code>。</li>
+<li>CBC 的 padding oracle / 比特翻转攻击正是打 <code>unpad</code> 的报错反馈。</li>
+</ul>
+<h3 id="34">3.4 其它算法（一表）</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>调用</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>DES.new(key, mode, iv)</code></td>
+<td>8 字节块、8 字节 IV</td>
+</tr>
+<tr>
+<td><code>DES3.new(key, mode, iv)</code></td>
+<td>key 必须 24 字节，<strong>全 0 之类退化 key 会报错</strong>（实测 <code>ValueError: Triple DES key degenerates to single DES</code>）</td>
+</tr>
+<tr>
+<td><code>ARC4.new(key)</code></td>
+<td>RC4，无 IV，<code>encrypt()</code> 一次到底</td>
+</tr>
+<tr>
+<td><code>ChaCha20.new(key=b'0'*32, nonce=b'1'*8)</code></td>
+<td>流密码，支持 <code>.seek(n)</code> 跳位置</td>
+</tr>
+<tr>
+<td><code>Salsa20.new(key=b'0'*32, nonce=b'1'*8)</code></td>
+<td>同上</td>
+</tr>
+</tbody>
+</table></div>
+<p>可用模式常量实测：<code>MODE_ECB / CBC / CFB / OFB / CTR / GCM / CCM / EAX / OCB / SIV / OPENPGP / KW / KWP</code>。</p>
+<hr />
+<h2 id="4-cryptopublickeyrsa">4. 非对称：<code>Crypto.PublicKey.RSA</code> + 加密/签名封装</h2>
+<h3 id="41">4.1 密钥的生成 / 导入 / 导出 / 手工构造</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">Crypto.PublicKey</span><span class="w"> </span><span class="kn">import</span> <span class="n">RSA</span>
+
+<span class="n">k</span> <span class="o">=</span> <span class="n">RSA</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="mi">1024</span><span class="p">)</span>            <span class="c1"># ★ 实测 512 会报错：RSA modulus length must be &gt;= 1024</span>
+<span class="n">k</span><span class="o">.</span><span class="n">n</span><span class="p">,</span> <span class="n">k</span><span class="o">.</span><span class="n">e</span><span class="p">,</span> <span class="n">k</span><span class="o">.</span><span class="n">d</span>                     <span class="c1"># 直接出参数</span>
+<span class="n">k</span><span class="o">.</span><span class="n">export_key</span><span class="p">()</span>                    <span class="c1"># PEM 私钥（b'-----BEGIN RSA PRIVATE KEY-----'）</span>
+<span class="n">k</span><span class="o">.</span><span class="n">export_key</span><span class="p">(</span><span class="nb">format</span><span class="o">=</span><span class="s1">'DER'</span><span class="p">)</span>        <span class="c1"># DER</span>
+<span class="n">k</span><span class="o">.</span><span class="n">publickey</span><span class="p">()</span><span class="o">.</span><span class="n">export_key</span><span class="p">()</span>        <span class="c1"># PEM 公钥（-----BEGIN PUBLIC KEY-----）</span>
+
+<span class="n">k2</span> <span class="o">=</span> <span class="n">RSA</span><span class="o">.</span><span class="n">import_key</span><span class="p">(</span><span class="n">pem_bytes_or_str</span><span class="p">)</span>     <span class="c1"># 读 PEM/DER，自动识别公钥/私钥</span>
+
+<span class="c1"># 手工构造（CTF 里"已知 n,e"或"已知 p,q"时最常用）</span>
+<span class="n">RSA</span><span class="o">.</span><span class="n">construct</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>                     <span class="c1"># 只有公钥，用于加密/验签</span>
+<span class="n">RSA</span><span class="o">.</span><span class="n">construct</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="n">e</span><span class="p">,</span> <span class="n">d</span><span class="p">))</span>                  <span class="c1"># 私钥（无 p,q）→ 实测可解出 d 参与运算</span>
+<span class="n">RSA</span><span class="o">.</span><span class="n">construct</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="n">e</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">))</span>            <span class="c1"># 完整 CRT 加速</span>
+</code></pre></div></div>
+
+<p><strong>p、q 是素数</strong>才走 CRT，否则 <code>construct</code> 会报错——题目给的是合数因子时别硬塞。</p>
+<h3 id="42">4.2 加解密 / 签名验签（协议题、证书题用得上）</h3>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">Crypto.Cipher</span><span class="w"> </span><span class="kn">import</span> <span class="n">PKCS1_v1_5</span><span class="p">,</span> <span class="n">PKCS1_OAEP</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">Crypto.Signature</span><span class="w"> </span><span class="kn">import</span> <span class="n">pkcs1_15</span><span class="p">,</span> <span class="n">pss</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">Crypto.Hash</span><span class="w"> </span><span class="kn">import</span> <span class="n">SHA256</span>
+
+<span class="c1"># 加密（公钥）/ 解密（私钥）；PKCS1_v1_5 解密第二参是 sentinel，失败时返回它</span>
+<span class="n">ct</span> <span class="o">=</span> <span class="n">PKCS1_v1_5</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">k</span><span class="o">.</span><span class="n">publickey</span><span class="p">())</span><span class="o">.</span><span class="n">encrypt</span><span class="p">(</span><span class="sa">b</span><span class="s1">'flag'</span><span class="p">)</span>
+<span class="n">pt</span> <span class="o">=</span> <span class="n">PKCS1_v1_5</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">.</span><span class="n">decrypt</span><span class="p">(</span><span class="n">ct</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>          <span class="c1"># → b'flag'</span>
+
+<span class="c1"># OAEP 更安全，接口对称</span>
+<span class="n">ct</span> <span class="o">=</span> <span class="n">PKCS1_OAEP</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">k</span><span class="o">.</span><span class="n">publickey</span><span class="p">())</span><span class="o">.</span><span class="n">encrypt</span><span class="p">(</span><span class="sa">b</span><span class="s1">'x'</span><span class="p">)</span>
+<span class="n">PKCS1_OAEP</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">.</span><span class="n">decrypt</span><span class="p">(</span><span class="n">ct</span><span class="p">)</span>                     <span class="c1"># → b'x'</span>
+
+<span class="c1"># 签名</span>
+<span class="n">h</span> <span class="o">=</span> <span class="n">SHA256</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="sa">b</span><span class="s1">'msg'</span><span class="p">)</span>
+<span class="n">sig</span> <span class="o">=</span> <span class="n">pkcs1_15</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+<span class="n">pkcs1_15</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">k</span><span class="o">.</span><span class="n">publickey</span><span class="p">())</span><span class="o">.</span><span class="n">verify</span><span class="p">(</span><span class="n">SHA256</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="sa">b</span><span class="s1">'msg'</span><span class="p">),</span> <span class="n">sig</span><span class="p">)</span>    <span class="c1"># 通过 → 返回 None（不抛异常即成功）</span>
+</code></pre></div></div>
+
+<p><strong>注意 <code>verify</code> 成功返回 <code>None</code> 而不是 <code>True</code></strong>，要用"没抛异常"判断；写 <code>if verify(...)</code> 永远为假。</p>
+<h3 id="43-hmaccryptohash">4.3 哈希 / HMAC（<code>Crypto.Hash</code>）</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">Crypto.Hash</span><span class="w"> </span><span class="kn">import</span> <span class="n">MD5</span><span class="p">,</span> <span class="n">SHA1</span><span class="p">,</span> <span class="n">SHA256</span><span class="p">,</span> <span class="n">SHA512</span><span class="p">,</span> <span class="n">SHA3_256</span><span class="p">,</span> <span class="n">HMAC</span>
+<span class="n">SHA256</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="sa">b</span><span class="s1">'abc'</span><span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>                    <span class="c1"># ba7816bf...</span>
+<span class="n">HMAC</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="sa">b</span><span class="s1">'key'</span><span class="p">,</span> <span class="sa">b</span><span class="s1">'msg'</span><span class="p">,</span> <span class="n">SHA256</span><span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>      <span class="c1"># bf1a0c12...</span>
+</code></pre></div></div>
+
+<p><strong>用途</strong>：给 <code>pkcs1_15</code>/<code>pss</code> 喂对象；算 HMAC 校验。纯求摘要用标准库 <code>hashlib</code> 更快（§8）。</p>
+<hr />
+<h2 id="5-gmpy2">5. gmpy2 —— 大数加速 + 数论原语</h2>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">gmpy2</span>
+
+<span class="n">gmpy2</span><span class="o">.</span><span class="n">mpz</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>              <span class="c1"># 转 gmp 类型（大数运算提速，与 int 可混算）</span>
+<span class="n">gmpy2</span><span class="o">.</span><span class="n">invert</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">m</span><span class="p">)</span>        <span class="c1"># 模逆</span>
+<span class="n">gmpy2</span><span class="o">.</span><span class="n">powmod</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">m</span><span class="p">)</span>     <span class="c1"># 模幂</span>
+<span class="n">gmpy2</span><span class="o">.</span><span class="n">iroot</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>         <span class="c1"># k 次方根 → (root, exact)；低加密指数攻击用它开方</span>
+<span class="n">gmpy2</span><span class="o">.</span><span class="n">is_square</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>        <span class="c1"># 是否完全平方</span>
+<span class="n">gmpy2</span><span class="o">.</span><span class="n">gcdext</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>        <span class="c1"># 扩展欧几里得 → (g, s, t)</span>
+<span class="n">gmpy2</span><span class="o">.</span><span class="n">is_prime</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>      <span class="c1"># Miller-Rabin（k 轮）</span>
+<span class="n">gmpy2</span><span class="o">.</span><span class="n">next_prime</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>       <span class="c1"># 下一个素数</span>
+<span class="n">gmpy2</span><span class="o">.</span><span class="n">isqrt</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>            <span class="c1"># 整数平方根（*快*）</span>
+<span class="n">gmpy2</span><span class="o">.</span><span class="n">digits</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>       <span class="c1"># 转字符串进制</span>
+<span class="n">gmpy2</span><span class="o">.</span><span class="n">f_mod</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">m</span><span class="p">)</span> <span class="o">/</span> <span class="n">c_mod</span> <span class="c1"># 取模（结果符号不同，CTF 一般用 c_mod 保正）</span>
+</code></pre></div></div>
+
+<p>实测返回值：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">gmpy2</span><span class="o">.</span><span class="n">invert</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">11</span><span class="p">)</span>          <span class="c1"># mpz(4)</span>
+<span class="n">gmpy2</span><span class="o">.</span><span class="n">iroot</span><span class="p">(</span><span class="n">gmpy2</span><span class="o">.</span><span class="n">mpz</span><span class="p">(</span><span class="mi">27</span><span class="p">),</span> <span class="mi">3</span><span class="p">)</span> <span class="c1"># (mpz(3), True)   ← 第二项 True 表示"精确开方"</span>
+<span class="n">gmpy2</span><span class="o">.</span><span class="n">gcdext</span><span class="p">(</span><span class="mi">30</span><span class="p">,</span> <span class="mi">12</span><span class="p">)</span>         <span class="c1"># (mpz(6), mpz(1), mpz(-2))  → 6=30*1+12*(-2)</span>
+<span class="n">gmpy2</span><span class="o">.</span><span class="n">f_mod</span><span class="p">(</span><span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>           <span class="c1"># mpz(2)</span>
+<span class="n">gmpy2</span><span class="o">.</span><span class="n">c_mod</span><span class="p">(</span><span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>           <span class="c1"># mpz(-3)</span>
+<span class="n">gmpy2</span><span class="o">.</span><span class="n">isqrt</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>              <span class="c1"># mpz(3)</span>
+</code></pre></div></div>
+
+<h3 id="mpz">提速有多少？实测（别信"mpz 万能快"这种说法）</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>场景</th>
+<th>内置 <code>int</code></th>
+<th><code>gmpy2</code></th>
+<th>提速</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1024 bit 模幂 ×300</td>
+<td>2.08 s</td>
+<td>0.23 s</td>
+<td><strong>9.2×</strong></td>
+</tr>
+<tr>
+<td>2048 bit 模幂 ×60</td>
+<td>2.76 s</td>
+<td>0.30 s</td>
+<td><strong>9.2×</strong></td>
+</tr>
+<tr>
+<td>5000 bit <code>isqrt</code> ×1000</td>
+<td>0.026 s</td>
+<td>0.003 s</td>
+<td><strong>9×</strong></td>
+</tr>
+<tr>
+<td>4096 bit 乘加循环 ×3000</td>
+<td>0.0020 s</td>
+<td>0.0019 s</td>
+<td>1.06×</td>
+</tr>
+<tr>
+<td>小模数（2^1024−1 之类特殊数）模幂</td>
+<td>—</td>
+<td>—</td>
+<td>1.0×</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>结论</strong>：<strong>大数模幂/开方</strong>用 gmpy2 收益明显（近 10 倍，暴力跑几小时变几分钟）；普通小循环里 <code>mpz()</code> 化几乎没用，不必强求。另外 <code>pow(a,b,m)</code> 本身已是 C 实现，gmpy2 不是靠"换成 C"，而是靠 GMP 的 Montgomery 乘法优化。</p>
+<hr />
+<h2 id="6-sympy">6. sympy —— 数论与解方程（<strong>两个参数顺序大坑</strong>）</h2>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">sympy</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span><span class="n">nextprime</span><span class="p">,</span> <span class="n">prevprime</span><span class="p">,</span> <span class="n">primerange</span><span class="p">,</span> <span class="n">isprime</span><span class="p">,</span> <span class="n">factorint</span><span class="p">,</span>
+                   <span class="n">primefactors</span><span class="p">,</span> <span class="n">divisors</span><span class="p">,</span> <span class="n">totient</span><span class="p">,</span> <span class="n">mod_inverse</span><span class="p">,</span> <span class="n">gcd</span><span class="p">,</span> <span class="n">lcm</span><span class="p">,</span>
+                   <span class="n">discrete_log</span><span class="p">,</span> <span class="n">sqrt_mod</span><span class="p">,</span> <span class="n">nthroot_mod</span><span class="p">,</span> <span class="n">primitive_root</span><span class="p">,</span>
+                   <span class="n">Rational</span><span class="p">,</span> <span class="n">Matrix</span><span class="p">,</span> <span class="n">symbols</span><span class="p">,</span> <span class="n">solve</span><span class="p">,</span> <span class="n">Eq</span><span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sympy.ntheory.modular</span><span class="w"> </span><span class="kn">import</span> <span class="n">crt</span><span class="p">,</span> <span class="n">solve_congruence</span>
+</code></pre></div></div>
+
+<h3 id="61">6.1 常用调用</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">nextprime</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span>                 <span class="c1"># 101</span>
+<span class="n">prevprime</span><span class="p">(</span><span class="mi">101</span><span class="p">)</span>                 <span class="c1"># 97</span>
+<span class="nb">list</span><span class="p">(</span><span class="n">primerange</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">30</span><span class="p">))</span>       <span class="c1"># [11,13,17,19,23,29]</span>
+<span class="n">factorint</span><span class="p">(</span><span class="mi">360</span><span class="p">)</span>                 <span class="c1"># {2:3, 3:2, 5:1}   ← 返回 因子:指数 的 dict</span>
+<span class="n">divisors</span><span class="p">(</span><span class="mi">12</span><span class="p">)</span>                   <span class="c1"># [1,2,3,4,6,12]</span>
+<span class="n">totient</span><span class="p">(</span><span class="mi">36</span><span class="p">)</span>                    <span class="c1"># 12   （欧拉函数 φ）</span>
+<span class="n">mod_inverse</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">11</span><span class="p">)</span>             <span class="c1"># 4</span>
+<span class="n">Rational</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">)</span> <span class="o">+</span> <span class="n">Rational</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">6</span><span class="p">)</span>  <span class="c1"># 1/2  ← 分数不用浮点，避免精度坑</span>
+<span class="n">solve</span><span class="p">(</span><span class="n">x</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="mi">2</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>             <span class="c1"># [-sqrt(2), sqrt(2)]</span>
+<span class="n">solve</span><span class="p">([</span><span class="mi">2</span><span class="o">*</span><span class="n">x</span> <span class="o">+</span> <span class="mi">3</span> <span class="o">-</span> <span class="mi">7</span><span class="p">],</span> <span class="n">x</span><span class="p">)</span>        <span class="c1"># {x: 2}</span>
+</code></pre></div></div>
+
+<p>性能参考（实测）：<code>factorint(2^61-1)</code>、<code>factorint(20 位半素数)</code> 都是<strong>毫秒级</strong>。但 60 位以上的半素数就别指望 sympy，转 Sage/<code>ecm.exe</code>。</p>
+<h3 id="62-crt">6.2 ⚠️ <code>crt</code> 的参数顺序：<strong>先模数，后余数</strong></h3>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">crt</span><span class="p">([</span><span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">7</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>      <span class="c1"># (23, 105)   23 mod 3=2, mod 5=3, mod 7=2  ✓</span>
+<span class="n">crt</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">7</span><span class="p">])</span>      <span class="c1"># (5, 6)      ← 传反了它不报错，照样给你一个"解"</span>
+</code></pre></div></div>
+
+<p><strong>签名是 <code>crt(m_list, v_list)</code>，模数在前</strong>。返回 <code>(解, 模数乘积)</code>。传反不报错但结果完全错——共模/广播攻击里 CRT 合并错了会一路错到开方才发现，很难查。</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">solve_congruence</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>   <span class="c1"># (8, 15)  形如 (余数, 模数)，与 crt 相反</span>
+</code></pre></div></div>
+
+<h3 id="63-discrete_logn-a-b-bx-a-mod-n">6.3 ⚠️ <code>discrete_log(n, a, b)</code>：求的是 <strong>b^x ≡ a (mod n)</strong></h3>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">discrete_log</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>    <span class="c1"># 解 b^x ≡ a (mod n)  → 返回 x</span>
+</code></pre></div></div>
+
+<p>实测（n=7，底 3 的幂表：3^1=3, 3^2=2, 3^6=1）：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">discrete_log</span><span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>    <span class="c1"># 2      ← base=3, target=2：3^2=2 ✓</span>
+<span class="n">discrete_log</span><span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span>    <span class="c1"># ValueError: Log does not exist   ← 6 阶只有 2，覆盖不到 3</span>
+<span class="n">discrete_log</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">7</span><span class="p">)</span>   <span class="c1"># 3      ← 7^3 = 343 ≡ 2 (mod 11) ✓</span>
+</code></pre></div></div>
+
+<p><strong>记忆法</strong>：第二个参数是"想求对数的那个数"（target），第三个是"底"（base）。写反了要么报 <code>Log does not exist</code>，要么静默给错值。底若不是原根，超出阶的目标直接报错。</p>
+<h3 id="64-rabin">6.4 模平方根 / 高次剩余（Rabin、低指数题）</h3>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">sqrt_mod</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">7</span><span class="p">)</span>         <span class="c1"># 2      （x² ≡ 4 mod 7，只给一个解，需 ± 或枚举全部）</span>
+<span class="n">nthroot_mod</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">7</span><span class="p">)</span>   <span class="c1"># 1      （x³ ≡ 8 mod 7）</span>
+<span class="n">primitive_root</span><span class="p">(</span><span class="mi">7</span><span class="p">)</span>      <span class="c1"># 3      （最小的原根，DH/离散对数题造数据用）</span>
+</code></pre></div></div>
+
+<h3 id="65-matrixlll-sage">6.5 格的起点：<code>Matrix.lll()</code>（能跑，但实用攻击还是上 Sage）</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">sympy</span><span class="w"> </span><span class="kn">import</span> <span class="n">Matrix</span>
+<span class="n">Matrix</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">],[</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="p">],[</span><span class="mi">7</span><span class="p">,</span><span class="mi">8</span><span class="p">,</span><span class="mi">10</span><span class="p">]])</span><span class="o">.</span><span class="n">lll</span><span class="p">()</span>
+<span class="c1"># → [[0,0,1], [-1,1,0], [2,1,0]]</span>
+</code></pre></div></div>
+
+<p>要 Coppersmith / BKZ / 大格，还是用 Sage 的 <code>Matrix(ZZ, ...).LLL()</code>。</p>
+<hr />
+<h2 id="7-gmssl-sm2-sm3-sm4">7. gmssl —— 国密 SM2 / SM3 / SM4</h2>
+<h3 id="71-sm3">7.1 SM3</h3>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">gmssl</span><span class="w"> </span><span class="kn">import</span> <span class="n">sm3</span><span class="p">,</span> <span class="n">func</span>
+<span class="n">sm3</span><span class="o">.</span><span class="n">sm3_hash</span><span class="p">(</span><span class="n">func</span><span class="o">.</span><span class="n">bytes_to_list</span><span class="p">(</span><span class="sa">b</span><span class="s1">'abc'</span><span class="p">))</span>
+<span class="c1"># '66c7f0f462eeedd9d1f2d46bdc10e4e24167c4875cf2f7a2297da02b8f4ba8e0'</span>
+<span class="n">sm3</span><span class="o">.</span><span class="n">sm3_hash</span><span class="p">([</span><span class="mh">0x61</span><span class="p">,</span> <span class="mh">0x62</span><span class="p">,</span> <span class="mh">0x63</span><span class="p">])</span>      <span class="c1"># 等价，入参就是 list[int]</span>
+</code></pre></div></div>
+
+<ul>
+<li><strong>入参是 <code>list[int]</code>，不是 bytes</strong>，所以到处都要 <code>func.bytes_to_list(...)</code>。返回值是 <strong>hex 字符串</strong>（不是 bytes）。</li>
+<li><code>gmssl.func</code> 里还有：<code>list_to_bytes / pkcs7_padding / zero_padding / random_hex(n) / xor</code>。</li>
+<li><strong>标准库 <code>hashlib</code> 没有 SM3</strong>（实测 <code>hasattr(hashlib,'sm3') == False</code>），本机 SM3 三选一：<code>gmssl</code>、<code>openssl dgst -sm3</code>。</li>
+</ul>
+<h3 id="72-sm4">7.2 SM4</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">gmssl</span><span class="w"> </span><span class="kn">import</span> <span class="n">sm4</span>
+<span class="n">key</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">'0123456789abcdef'</span>          <span class="c1"># 16 字节</span>
+
+<span class="n">c</span> <span class="o">=</span> <span class="n">sm4</span><span class="o">.</span><span class="n">CryptSM4</span><span class="p">();</span> <span class="n">c</span><span class="o">.</span><span class="n">set_key</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">sm4</span><span class="o">.</span><span class="n">SM4_ENCRYPT</span><span class="p">)</span>
+<span class="n">ct</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">crypt_ecb</span><span class="p">(</span><span class="sa">b</span><span class="s1">'0123456789abcdef'</span><span class="p">)</span>       <span class="c1"># 16 字节明文 → **32 字节**密文（自动 PKCS7 填充）</span>
+<span class="n">d</span> <span class="o">=</span> <span class="n">sm4</span><span class="o">.</span><span class="n">CryptSM4</span><span class="p">();</span> <span class="n">d</span><span class="o">.</span><span class="n">set_key</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">sm4</span><span class="o">.</span><span class="n">SM4_DECRYPT</span><span class="p">)</span>
+<span class="n">d</span><span class="o">.</span><span class="n">crypt_ecb</span><span class="p">(</span><span class="n">ct</span><span class="p">)</span>                             <span class="c1"># → b'0123456789abcdef'  ✅ 往返</span>
+
+<span class="n">sm4</span><span class="o">.</span><span class="n">CryptSM4</span><span class="p">()</span><span class="o">.</span><span class="n">set_key</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">sm4</span><span class="o">.</span><span class="n">SM4_ENCRYPT</span><span class="p">)</span>
+<span class="n">c</span><span class="o">.</span><span class="n">crypt_cbc</span><span class="p">(</span><span class="n">iv</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>                       <span class="c1"># CBC：iv 在数据前面</span>
+</code></pre></div></div>
+
+<ul>
+<li>常量：<code>SM4_ENCRYPT=0 / SM4_DECRYPT=1</code>、<code>PKCS7=0 / ZERO=1</code>（实测取值）。</li>
+<li><strong>默认带 PKCS7 填充</strong>，16 字节输入会变成 32 字节输出——<strong>别以为它没填充</strong>，解密侧要让它自己 <code>unpad</code>（<code>crypt_ecb</code> 解密已自动去填充，实测往返正常）。</li>
+<li>手动填充用 <code>sm4.pkcs7_padding(list, block)</code> / <code>pkcs7_unpadding(...)</code>。</li>
+<li><strong>OFB/CTR 它没实现</strong>，要自己用 <code>sm4.SM4_BOXES_TABLE</code>、<code>one_round</code> 之类的原语拼（见 <code>~/tools\CTF工具箱\crypto\22-SM2随机数缺陷与OFB密钥流重用.py</code>）。</li>
+</ul>
+<h3 id="73-sm2">7.3 SM2</h3>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">gmssl</span><span class="w"> </span><span class="kn">import</span> <span class="n">sm2</span><span class="p">,</span> <span class="n">func</span>
+<span class="n">d</span>   <span class="o">=</span> <span class="s1">'00'</span><span class="o">*</span><span class="mi">31</span> <span class="o">+</span> <span class="s1">'01'</span>                       <span class="c1"># 私钥：64 位 hex 字符串（不是 bytes！）</span>
+<span class="n">pub</span> <span class="o">=</span> <span class="s1">'...'</span>                                <span class="c1"># 公钥：128 位 hex，不带 04 前缀</span>
+
+<span class="c1"># 没公钥时用私钥推（_kg 是内部方法，但实测可用）</span>
+<span class="n">kobj</span> <span class="o">=</span> <span class="n">sm2</span><span class="o">.</span><span class="n">CryptSM2</span><span class="p">(</span><span class="n">private_key</span><span class="o">=</span><span class="n">d</span><span class="p">,</span> <span class="n">public_key</span><span class="o">=</span><span class="s1">'00'</span><span class="p">)</span>
+<span class="n">pub</span>  <span class="o">=</span> <span class="n">kobj</span><span class="o">.</span><span class="n">_kg</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="mi">16</span><span class="p">),</span> <span class="n">sm2</span><span class="o">.</span><span class="n">default_ecc_table</span><span class="p">[</span><span class="s1">'g'</span><span class="p">])</span>     <span class="c1"># 返回 128 字符 hex</span>
+
+<span class="n">sm</span> <span class="o">=</span> <span class="n">sm2</span><span class="o">.</span><span class="n">CryptSM2</span><span class="p">(</span><span class="n">private_key</span><span class="o">=</span><span class="n">d</span><span class="p">,</span> <span class="n">public_key</span><span class="o">=</span><span class="n">pub</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">asn1</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">ct</span> <span class="o">=</span> <span class="n">sm</span><span class="o">.</span><span class="n">encrypt</span><span class="p">(</span><span class="sa">b</span><span class="s1">'hello'</span><span class="p">)</span>          <span class="c1"># → bytes，实测 len = 64 + len(msg) + 32 = 99</span>
+<span class="n">sm</span><span class="o">.</span><span class="n">decrypt</span><span class="p">(</span><span class="n">ct</span><span class="p">)</span>                     <span class="c1"># → b'hello' ✅（必须用相同 mode/asn1 的对象）</span>
+</code></pre></div></div>
+
+<p><strong>构造签名</strong>：<code>CryptSM2(private_key, public_key, ecc_table=默认SM2曲线, mode=0, asn1=False)</code></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>参数</th>
+<th>实测结论</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>mode</code></td>
+<td><strong>0 = C1‖C2‖C3</strong>，<strong>1 = C1‖C3‖C2</strong>。源码注释写"default is 1"，<strong>实际默认是 0</strong>——以实测为准。加密解密两侧必须一致，否则解出乱码</td>
+</tr>
+<tr>
+<td><code>asn1</code></td>
+<td><code>True</code> 时密文外面包一层 DER 结构（OpenSSL 的密文格式）。<code>asn1=False</code>（默认）是裸拼接。<strong>两者互不兼容</strong>：拿 OpenSSL 的密文喂它要先看 asn1 标志</td>
+</tr>
+<tr>
+<td>C1 长度</td>
+<td>固定 <strong>64 字节</strong>（x‖y，无 04 前缀）</td>
+</tr>
+<tr>
+<td>密文结构实测</td>
+<td>mode=0：<code>C1(64) ‖ C2(len(msg)) ‖ C3(32)</code>；mode=1：<code>C1(64) ‖ C3(32) ‖ C2</code>，两者总长相同</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>签名（推荐带 SM3 的封装）</strong>：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">sig</span> <span class="o">=</span> <span class="n">sm</span><span class="o">.</span><span class="n">sign_with_sm3</span><span class="p">(</span><span class="sa">b</span><span class="s1">'msg'</span><span class="p">)</span>           <span class="c1"># 返回 128 位 hex 字符串（r‖s），内部自带随机 k</span>
+<span class="n">sm</span><span class="o">.</span><span class="n">verify_with_sm3</span><span class="p">(</span><span class="n">sig</span><span class="p">,</span> <span class="sa">b</span><span class="s1">'msg'</span><span class="p">)</span>          <span class="c1"># True / False（实测改一个字节就 False）</span>
+</code></pre></div></div>
+
+<ul>
+<li>要<strong>指定 k</strong>（复现随机数重用漏洞）用底层 <code>sign(data, K)</code>，K 是 hex 字符串——自己指定 k 就等于故意泄露私钥的场景。</li>
+<li>验签失败返回 <code>False</code>（不会抛异常），和 pycryptodome 的行为不同。</li>
+<li><strong>SM2 的 k 重用公式和 ECDSA 不一样</strong>：SM2 是 <code>d = t/(1−t)</code>，<code>t = (s1−s2)/(r1−r2)</code>（同一 k 下 r1=r2，s 相减）；照抄 ECDSA 的公式必得错私钥。详见 <code>05-国密/SM2-椭圆曲线公钥算法原理与攻击.md</code>。</li>
+<li><strong>gmssl 的 sm2.py 依赖 <code>Cryptodome</code></strong>（pycryptodomex）；本机 <code>Crypto</code> 和 <code>Cryptodome</code> 都在，能正常用。若换机器只有 <code>Crypto</code>，<code>import gmssl</code> 会报 ModuleNotFoundError。</li>
+</ul>
+<hr />
+<h2 id="8">8. 标准库（任何环境都有，赛场兜底）</h2>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span><span class="o">,</span><span class="w"> </span><span class="nn">hmac</span><span class="o">,</span><span class="w"> </span><span class="nn">secrets</span><span class="o">,</span><span class="w"> </span><span class="nn">base64</span><span class="o">,</span><span class="w"> </span><span class="nn">binascii</span><span class="o">,</span><span class="w"> </span><span class="nn">struct</span>
+
+<span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="sa">b</span><span class="s1">'abc'</span><span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>                     <span class="c1"># ba7816bf...</span>
+<span class="n">hashlib</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="s1">'sha256'</span><span class="p">,</span> <span class="sa">b</span><span class="s1">'a'</span><span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>                <span class="c1"># 动态算法名</span>
+<span class="n">hashlib</span><span class="o">.</span><span class="n">pbkdf2_hmac</span><span class="p">(</span><span class="s1">'sha256'</span><span class="p">,</span> <span class="sa">b</span><span class="s1">'pw'</span><span class="p">,</span> <span class="sa">b</span><span class="s1">'salt'</span><span class="p">,</span> <span class="mi">1000</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span> <span class="c1"># 0a382535...</span>
+<span class="n">hashlib</span><span class="o">.</span><span class="n">scrypt</span><span class="p">(</span><span class="sa">b</span><span class="s1">'pw'</span><span class="p">,</span> <span class="n">salt</span><span class="o">=</span><span class="sa">b</span><span class="s1">'salt'</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">2</span><span class="o">**</span><span class="mi">14</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dklen</span><span class="o">=</span><span class="mi">16</span><span class="p">)</span>
+
+<span class="n">hmac</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="sa">b</span><span class="s1">'key'</span><span class="p">,</span> <span class="sa">b</span><span class="s1">'msg'</span><span class="p">,</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>   <span class="c1"># bf1a0c12...</span>
+<span class="n">hmac</span><span class="o">.</span><span class="n">compare_digest</span><span class="p">(</span><span class="sa">b</span><span class="s1">'a'</span><span class="p">,</span> <span class="sa">b</span><span class="s1">'a'</span><span class="p">)</span>                        <span class="c1"># 抗时序比较，返回 True/False</span>
+
+<span class="n">secrets</span><span class="o">.</span><span class="n">token_bytes</span><span class="p">(</span><span class="mi">16</span><span class="p">)</span>      <span class="c1"># 密码学安全随机 ★ 别用 random</span>
+<span class="n">secrets</span><span class="o">.</span><span class="n">randbelow</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>        <span class="c1"># [0,10) 随机数</span>
+
+<span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="sa">b</span><span class="s1">'flag</span><span class="si">{x}</span><span class="s1">'</span><span class="p">)</span>          <span class="c1"># b'ZmxhZ3t4fQ=='</span>
+<span class="n">base64</span><span class="o">.</span><span class="n">urlsafe_b64encode</span><span class="p">(</span><span class="sa">b</span><span class="s1">'flag'</span><span class="p">)</span>     <span class="c1"># URL 安全变体（+ / 换成 - _）</span>
+<span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="s1">'ZmxhZw=='</span><span class="p">)</span>          <span class="c1"># 长度不对会 padding 报错 → 手动补 '='</span>
+
+<span class="n">binascii</span><span class="o">.</span><span class="n">hexlify</span><span class="p">(</span><span class="sa">b</span><span class="s1">'flag'</span><span class="p">)</span>             <span class="c1"># b'666c6167'</span>
+<span class="n">binascii</span><span class="o">.</span><span class="n">unhexlify</span><span class="p">(</span><span class="s1">'666c6167'</span><span class="p">)</span>        <span class="c1"># b'flag'</span>
+<span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s1">'&lt;I'</span><span class="p">,</span> <span class="mh">0x41424344</span><span class="p">)</span><span class="o">.</span><span class="n">hex</span><span class="p">()</span>   <span class="c1"># '44434241'  小端打包（二进制协议题）</span>
+<span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s1">'&lt;I'</span><span class="p">,</span> <span class="sa">b</span><span class="s1">'ABCD'</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>       <span class="c1"># 1145258561</span>
+</code></pre></div></div>
+
+<ul>
+<li><code>hashlib</code> 没有 MD5 的"爆破"能力，但小空间穷举直接用循环 + <code>digest()</code>。</li>
+<li>大文件摘要用 <code>h = hashlib.sha256(); h.update(chunk); h.digest()</code> 分块喂。</li>
+</ul>
+<hr />
+<h2 id="9">9. 命令行工具（一条命令顶一段代码）</h2>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># --- OpenSSL（本机 3.5.5，原生支持国密）---</span>
+openssl<span class="w"> </span>dgst<span class="w"> </span>-sm3<span class="w"> </span>file<span class="w">                    </span><span class="c1"># SM3 摘要</span>
+openssl<span class="w"> </span>enc<span class="w"> </span>-sm4-cbc<span class="w"> </span>-K<span class="w"> </span>&lt;32位hex&gt;<span class="w"> </span>-iv<span class="w"> </span>&lt;32位hex&gt;<span class="w"> </span>-in<span class="w"> </span>f<span class="w"> </span>-out<span class="w"> </span>f.enc<span class="w">    </span><span class="c1"># SM4-CBC 加密</span>
+openssl<span class="w"> </span>enc<span class="w"> </span>-sm4-cbc<span class="w"> </span>-d<span class="w"> </span>-K<span class="w"> </span>...<span class="w"> </span>-iv<span class="w"> </span>...<span class="w"> </span>-in<span class="w"> </span>f.enc<span class="w">                    </span><span class="c1"># 解密</span>
+openssl<span class="w"> </span>genrsa<span class="w"> </span>-out<span class="w"> </span>k.pem<span class="w"> </span><span class="m">1024</span><span class="w">            </span><span class="c1"># 生成 RSA 私钥</span>
+openssl<span class="w"> </span>rsa<span class="w"> </span>-in<span class="w"> </span>k.pem<span class="w"> </span>-text<span class="w"> </span>-noout<span class="w">        </span><span class="c1"># ★ 打印 n/e/d/p/q（RSA 题第一步）</span>
+openssl<span class="w"> </span>rsa<span class="w"> </span>-in<span class="w"> </span>k.pem<span class="w"> </span>-pubout<span class="w">             </span><span class="c1"># 导出公钥 PEM</span>
+openssl<span class="w"> </span>base64<span class="w"> </span>/<span class="w"> </span><span class="nb">echo</span><span class="w"> </span>-n<span class="w"> </span>flag<span class="w"> </span><span class="p">|</span><span class="w"> </span>openssl<span class="w"> </span>base64
+openssl<span class="w"> </span>enc<span class="w"> </span>-aes-128-cbc<span class="w"> </span>-in<span class="w"> </span>f<span class="w"> </span>-out<span class="w"> </span>f.enc<span class="w"> </span>-K<span class="w"> </span>...<span class="w"> </span>-iv<span class="w"> </span>...<span class="w">   </span><span class="c1"># 对称加解密</span>
+
+<span class="c1"># --- GnuPG（本机 2.4.9）---</span>
+gpg<span class="w"> </span>--list-keys<span class="w"> </span>/<span class="w"> </span>gpg<span class="w"> </span>-d<span class="w"> </span>file.gpg<span class="w"> </span>/<span class="w"> </span>gpg<span class="w"> </span>--verify<span class="w"> </span>sig<span class="w"> </span>file
+</code></pre></div></div>
+
+<p><strong>注意</strong>：<code>openssl enc</code> 的 <code>-K</code>（大写）是十六进制密钥，<code>-k</code>（小写）是口令派生，别混。<br />
+OpenSSL 的 SM2 密文是 <strong>DER 编码</strong>，对应 gmssl 的 <code>asn1=True</code>。</p>
+<hr />
+<h2 id="10">10. 按题目特征秒查</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>题目信号</th>
+<th>用哪套函数</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>任意 RSA 加解密、求 d</td>
+<td><code>pow(c, d, n)</code>、<code>pow(e, -1, φ)</code></td>
+</tr>
+<tr>
+<td>两 e 共模、已知 d/p/q</td>
+<td>纯 <code>int</code>：<code>pow</code> 三参 + 扩展欧几里得（<code>gmpy2.gcdext</code>）</td>
+</tr>
+<tr>
+<td>小 e、明文短（m^3 &lt; n）</td>
+<td><code>gmpy2.iroot(c, 3)</code>，不精确时补位枚举</td>
+</tr>
+<tr>
+<td>多组 n 同 e（广播）</td>
+<td><code>sympy.ntheory.modular.crt</code>（<strong>先模数后余数</strong>）+ <code>iroot</code></td>
+</tr>
+<tr>
+<td>多组 n 两两求 gcd</td>
+<td><code>math.gcd</code> / <code>Crypto.Util.number.GCD</code></td>
+</tr>
+<tr>
+<td>密文是一堆十六进制大数</td>
+<td><code>long_to_bytes</code> → <code>.decode()</code></td>
+</tr>
+<tr>
+<td>ECB 题（重复块）</td>
+<td>pycryptodome AES ECB + 分块比对</td>
+</tr>
+<tr>
+<td>CBC 翻转 / padding oracle</td>
+<td><code>pad</code> / <code>unpad</code> 的报错行为</td>
+</tr>
+<tr>
+<td>流密码密钥流重用</td>
+<td><code>Crypto.Util.strxor.strxor</code> 或 <code>bytes(a^b for ...)</code></td>
+</tr>
+<tr>
+<td>哈希明文爆破</td>
+<td>循环 + <code>hashlib.md5(x).hexdigest()</code></td>
+</tr>
+<tr>
+<td>离散对数（小群）</td>
+<td><code>sympy.discrete_log(n, a, b)</code>（<strong>记得参数序</strong>）</td>
+</tr>
+<tr>
+<td>素因子分解（≤60 位半素数）</td>
+<td><code>sympy.factorint</code> → 更大转 Sage / <code>ecm.exe</code></td>
+</tr>
+<tr>
+<td>Coppersmith / 格题</td>
+<td>Sage：<code>f.monic().small_roots(X=, beta=)</code>、<code>Matrix(ZZ,...).LLL()</code></td>
+</tr>
+<tr>
+<td>老式散列 / PEM 解析</td>
+<td><code>Crypto.PublicKey.RSA.import_key</code>、<code>export_key</code></td>
+</tr>
+<tr>
+<td>国密 SM2/SM3/SM4</td>
+<td><code>gmssl</code>（见 §7）或 <code>openssl</code> CLI（见 §9）</td>
+</tr>
+<tr>
+<td>对称协议题（ESP/证书）</td>
+<td><code>Crypto.Cipher</code> AES/DES + <code>PKCS1_v1_5</code></td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="11">11. 踩坑清单（全部本机实测）</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>坑</th>
+<th>正确做法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>(a**b) % m</code> 慢 1000+ 倍且会卡死</td>
+<td><code>pow(a, b, m)</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>str()/int()</code> 转换超 4300 位报 ValueError</td>
+<td><code>sys.set_int_max_str_digits(100000)</code>；或改用 <code>hex()</code>/<code>to_bytes()</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>RSA.generate(512)</code> 报错</td>
+<td>最小 1024 位</td>
+</tr>
+<tr>
+<td>4</td>
+<td>ECB/CBC/CTR 构造参数不同，IV 必须显式给</td>
+<td>ECB 无 IV；CBC/OFB 传 16 字节 iv；CTR 传 <code>nonce=</code></td>
+</tr>
+<tr>
+<td>5</td>
+<td>AES 解密后尾部 <code>\x04\x04\x04\x04</code></td>
+<td>加密 <code>pad</code>、解密 <code>unpad</code></td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>pkcs1_15.verify()</code> 失败不返回 False 而是抛异常</td>
+<td>用 try/except，成功返回 <code>None</code></td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>sympy.crt</code> 参数传反<strong>不报错但结果错</strong></td>
+<td><code>crt(m_list, v_list)</code>，模数在前</td>
+</tr>
+<tr>
+<td>8</td>
+<td><code>sympy.discrete_log</code> 参数语义搞混 → <code>Log does not exist</code></td>
+<td><code>discrete_log(n, target, base)</code></td>
+</tr>
+<tr>
+<td>9</td>
+<td><code>gmssl</code> SM3 传 bytes 报错</td>
+<td><code>sm3_hash(func.bytes_to_list(data))</code>，返回 hex 字符串</td>
+</tr>
+<tr>
+<td>10</td>
+<td><code>gmssl</code> SM2 的 mode 注释与实现不符</td>
+<td><strong>默认 mode=0 = C1C2C3</strong>；以实测为准，加解密两侧统一</td>
+</tr>
+<tr>
+<td>11</td>
+<td>拿 OpenSSL 的 SM2 密文直接喂 gmssl 解不开</td>
+<td>那是 DER 格式 → <code>CryptSM2(..., asn1=True)</code></td>
+</tr>
+<tr>
+<td>12</td>
+<td>SM4 输出比输入长一倍</td>
+<td>它默认 PKCS7 填充，正常现象</td>
+</tr>
+<tr>
+<td>13</td>
+<td>SM2 k 重用照抄 ECDSA 公式 → 私钥错</td>
+<td>SM2 用 <code>d = t/(1−t)</code></td>
+</tr>
+<tr>
+<td>14</td>
+<td><code>DES3.new(b'0'*24, ...)</code> 报 ValueError</td>
+<td>三段密钥不能相同（退化 key）</td>
+</tr>
+<tr>
+<td>15</td>
+<td><code>hashlib</code> 找 <code>sm3</code> 属性</td>
+<td>本机没有，用 gmssl 或 openssl CLI</td>
+</tr>
+<tr>
+<td>16</td>
+<td><code>gmpy2.mpz()</code> 到处乱套以为会快</td>
+<td>只在大数模幂/开方上有 ~9× 收益；普通循环无差别</td>
+</tr>
+<tr>
+<td>17</td>
+<td>老笔记里的 <code>~/\python.exe</code></td>
+<td>已卸载，用 <code>py</code> 或上面的 Sage 命令</td>
+</tr>
+<tr>
+<td>18</td>
+<td>Sage 脚本用 <code>py</code> 跑，报没有 <code>sage.all</code></td>
+<td>必须用 <code>runtime\bin\bash.exe --login -c ".../sage -c '...'"</code></td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="_1">相关</h2>
+<ul>
+<li>环境清单：[本机安全工具与解释器清单](</li>
+<li>题解脚本库：<code>~/tools\CTF工具箱\crypto\</code>（改顶部数据行直接跑）</li>
+<li>环境自检：<code>~/tools\CTF工具箱\00-考前环境自检.py</code></li>
+<li>本目录各攻击笔记见 [README](</li>
+</ul></div>
+      <div class="post-nav"><a class="pn-item prev" href="python-yu-zhong-duan-jiao-hu-subprocess-yu-pty.html"><span>← 上一篇</span><strong>Python 与终端交互（subprocess 与 pty）</strong></a><a class="pn-item next" href="li-san-dui-shu-wen-ti-dlp.html"><span>下一篇 →</span><strong>离散对数问题（DLP）</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#0" class="toc-lv2">0. 运行环境（先确认，不然一切白搭）</a><a href="#1-python-int90" class="toc-lv2">1. Python 内置 int（90% 的题只用它就够）</a><a href="#11-pow" class="toc-lv3">1.1 模幂：必须用三参 pow</a><a href="#12-python-38" class="toc-lv3">1.2 模逆（Python 3.8+ 内置，不用再手写扩展欧几里得）</a><a href="#13-flag" class="toc-lv3">1.3 大整数 ↔ 字节串（转 flag 全靠它）</a><a href="#14" class="toc-lv3">1.4 其它</a><a href="#2-cryptoutilnumberpycryptodome-rsa" class="toc-lv2">2. Crypto.Util.number（pycryptodome）—— RSA 题主力</a><a href="#3-cryptocipherpycryptodome" class="toc-lv2">3. 对称加密：Crypto.Cipher（pycryptodome）</a><a href="#31-aes-iv" class="toc-lv3">3.1 AES 五种模式的构造差异（IV 是必踩的坑）</a><a href="#32-ecb-ecb" class="toc-lv3">3.2 ECB 判块重复（&quot;看到 ECB 就该想到&quot;的第一反应）</a><a href="#33-pad-unpad-pkcs7" class="toc-lv3">3.3 填充：pad / unpad 与 PKCS7</a><a href="#34" class="toc-lv3">3.4 其它算法（一表）</a><a href="#4-cryptopublickeyrsa" class="toc-lv2">4. 非对称：Crypto.PublicKey.RSA + 加密/签名封装</a><a href="#41" class="toc-lv3">4.1 密钥的生成 / 导入 / 导出 / 手工构造</a><a href="#42" class="toc-lv3">4.2 加解密 / 签名验签（协议题、证书题用得上）</a><a href="#43-hmaccryptohash" class="toc-lv3">4.3 哈希 / HMAC（Crypto.Hash）</a><a href="#5-gmpy2" class="toc-lv2">5. gmpy2 —— 大数加速 + 数论原语</a><a href="#mpz" class="toc-lv3">提速有多少？实测（别信&quot;mpz 万能快&quot;这种说法）</a><a href="#6-sympy" class="toc-lv2">6. sympy —— 数论与解方程（两个参数顺序大坑）</a><a href="#61" class="toc-lv3">6.1 常用调用</a><a href="#62-crt" class="toc-lv3">6.2 ⚠️ crt 的参数顺序：先模数，后余数</a><a href="#63-discrete_logn-a-b-bx-a-mod-n" class="toc-lv3">6.3 ⚠️ discrete_log(n, a, b)：求的是 b^x ≡ a (mod n)</a><a href="#64-rabin" class="toc-lv3">6.4 模平方根 / 高次剩余（Rabin、低指数题）</a><a href="#65-matrixlll-sage" class="toc-lv3">6.5 格的起点：Matrix.lll()（能跑，但实用攻击还是上 Sage）</a><a href="#7-gmssl-sm2-sm3-sm4" class="toc-lv2">7. gmssl —— 国密 SM2 / SM3 / SM4</a><a href="#71-sm3" class="toc-lv3">7.1 SM3</a><a href="#72-sm4" class="toc-lv3">7.2 SM4</a><a href="#73-sm2" class="toc-lv3">7.3 SM2</a><a href="#8" class="toc-lv2">8. 标准库（任何环境都有，赛场兜底）</a><a href="#9" class="toc-lv2">9. 命令行工具（一条命令顶一段代码）</a><a href="#10" class="toc-lv2">10. 按题目特征秒查</a><a href="#11" class="toc-lv2">11. 踩坑清单（全部本机实测）</a><a href="#_1" class="toc-lv2">相关</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

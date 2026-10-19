@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>kali工具的使用 · pressure-J</title>
+<meta name="description" content="nmap -sV &lt;目标主机或目标网段&gt; 查看服务版本（如80，22，3306等信息）">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/kali-gong-ju-de-shi-yong.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="kali工具的使用 · pressure-J">
+<meta property="og:description" content="nmap -sV &lt;目标主机或目标网段&gt; 查看服务版本（如80，22，3306等信息）">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/base.html">基础</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>kali工具的使用</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-base">基础</span>
+          <time datetime="2026-07-04">2026-07-04</time>
+          <span>1755 字</span>
+          <span>约 5 分钟</span>
+        </div>
+        <div class="chips post-tags"><span class="chip">Import-d4ea</span></div>
+      </header>
+      <div class="content"><h2 id="nmap">nmap使用</h2>
+<h3 id="_1">主机存活扫描</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>nmap<span class="w"> </span>&lt;目标ip或目标网段&gt;
+nmap<span class="w"> </span><span class="m">192</span>.168.1.1
+nmap<span class="w"> </span><span class="m">192</span>.168.1.1/24
+nmap<span class="w"> </span><span class="m">192</span>.168.1.1-100
+</code></pre></div></div>
+
+<h3 id="_2">端口存活扫描</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>nmap<span class="w"> </span>-sS<span class="w"> </span>-p<span class="w"> </span>&lt;端口号&gt;<span class="w"> </span>&lt;目标主机或目标网段&gt;<span class="w"> </span>——&gt;需要root权限
+nmap<span class="w"> </span>-sT<span class="w"> </span>-p<span class="w"> </span>&lt;端口号&gt;<span class="w"> </span>&lt;目标主机或目标网段&gt;
+nmap<span class="w"> </span>-sU<span class="w"> </span>-p<span class="w"> </span>&lt;端口号&gt;<span class="w"> </span>&lt;目标主机或目标网段&gt;
+nmap<span class="w"> </span>-p-<span class="w"> </span>&lt;目标主机或目标网段&gt;
+</code></pre></div></div>
+
+<h3 id="_3">其他服务探测与功能</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>nmap<span class="w"> </span>-sV<span class="w"> </span>&lt;目标主机或目标网段&gt;<span class="w"> </span>查看服务版本（如80，22，3306等信息）
+nmap<span class="w"> </span>-O<span class="w"> </span>&lt;目标主机或目标网段&gt;<span class="w"> </span>查看操作系统信息（硬件信息）
+nmap<span class="w"> </span>-oN<span class="w"> </span>result.txt<span class="w"> </span>&lt;目标&gt;<span class="w"> </span>将结果输出
+</code></pre></div></div>
+
+<h3 id="_4">绕防火墙选项</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>nmap<span class="w"> </span>-T0<span class="w"> </span>&lt;目标主机或目标网段&gt;<span class="w"> </span>间隔扫描，T0~T5，T0接近5分钟一个包
+nmap<span class="w"> </span>-f<span class="w"> </span>&lt;目标主机或目标网段&gt;<span class="w"> </span>分片扫描，还有-ff
+nmap<span class="w"> </span>--mtu<span class="w"> </span>&lt;8的倍数&gt;<span class="w"> </span>&lt;目标主机或目标网段&gt;<span class="w"> </span>自定义分片
+</code></pre></div></div>
+
+<h3 id="_5">最常用的选项</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>nmap<span class="w"> </span>-sS<span class="w"> </span>-sV<span class="w"> </span>-A<span class="w"> </span>&lt;目标&gt;<span class="w"> </span>最常用的综合扫描命令，适合快速获取目标信息
+</code></pre></div></div>
+
+<h2 id="dirb">dirb使用</h2>
+<h3 id="_6">目录文件爆破</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>dirb<span class="w"> </span>&lt;目标站点&gt;<span class="w"> </span>&lt;字典&gt;<span class="w"> </span>-o<span class="w"> </span>&lt;输出结果文件名&gt;
+</code></pre></div></div>
+
+<h3 id="_7">绕过防火墙</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>dirb<span class="w"> </span>&lt;目标站点&gt;<span class="w"> </span>&lt;字典&gt;<span class="w"> </span>-z<span class="w"> </span>&lt;毫秒数&gt;<span class="w"> </span>-t<span class="w"> </span>&lt;并发数&gt;
+</code></pre></div></div>
+
+<h2 id="hashcatjohn">hashcat和john</h2>
+<h3 id="hashcat">hashcat</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="se">\\</span>hashcat使用
+hashcat<span class="w"> </span>-b<span class="w">      </span>hashcat破解测速
+
+hashcat<span class="w"> </span>-m<span class="w"> </span><span class="o">[</span>类型码<span class="o">]</span><span class="w"> </span>-a<span class="w"> </span><span class="o">[</span>攻击模式<span class="o">]</span><span class="w"> </span><span class="o">[</span>哈希文件<span class="o">]</span><span class="w"> </span><span class="o">[</span>字典/掩码<span class="o">]</span><span class="w"> </span><span class="o">[</span>选项<span class="o">]</span>
+//常用的类型码：
+<span class="m">0</span><span class="w">    </span>→<span class="w"> </span>MD5
+<span class="m">1000</span><span class="w"> </span>→<span class="w"> </span>NTLM
+<span class="m">1800</span><span class="w"> </span>→<span class="w"> </span>SHA-512<span class="w"> </span><span class="o">(</span>Linux<span class="w"> </span>shadow<span class="o">)</span>
+<span class="m">1400</span><span class="w"> </span>→<span class="w"> </span>SHA-256
+//攻击模式
+<span class="m">0</span><span class="w"> </span>→<span class="w"> </span>字典攻击<span class="w">    </span>纯跑字典，最普通的模式
+<span class="m">1</span><span class="w"> </span>→<span class="w"> </span>组合攻击<span class="w">    </span>两本字典组合攻击
+<span class="m">3</span><span class="w"> </span>→<span class="w"> </span>掩码攻击<span class="w">    </span>无需字典，只需要掩码
+<span class="m">6</span><span class="w"> </span>→<span class="w"> </span>字典+掩码组合<span class="w"> </span>字典+掩码组合攻击，还有7即掩码+字典攻击
+</code></pre></div></div>
+
+<h3 id="john">john</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>john<span class="w"> </span>password.txt
+</code></pre></div></div>
+
+<h2 id="hydra">hydra</h2>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>服务类爆破
+hydra<span class="w"> </span>-l<span class="w"> </span><span class="o">[</span>用户名<span class="o">]</span><span class="w"> </span>-p<span class="w"> </span><span class="o">[</span>密码<span class="o">]</span><span class="w"> </span><span class="o">[</span>选项<span class="o">]</span><span class="w"> </span>ip<span class="w"> </span><span class="o">[</span>服务名<span class="o">]</span>
+</code></pre></div></div>
+
+<h2 id="msf">msf</h2>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>查找模块<span class="w">    </span>search<span class="w"> </span>xxx
+进入利用模块<span class="w">  </span>use<span class="w"> </span>xxx
+查看选项模块<span class="w">  </span>options
+填充选项模块<span class="w">  </span><span class="nb">set</span><span class="w"> </span><span class="o">[</span>选项<span class="o">]</span><span class="w"> </span>xxx
+运行<span class="w">  </span>run
+//msf默认的payload是反弹shell【linux/x64/meterpreter/reverse_tcp】成执行指令：
+<span class="nb">set</span><span class="w"> </span>payload<span class="w"> </span>cmd/windows/generic<span class="w">         </span><span class="nb">set</span><span class="w"> </span>payload<span class="w"> </span>cmd/unix/generic
+<span class="nb">set</span><span class="w"> </span>CMD<span class="w"> </span>xxx
+back<span class="w"> </span>返回<span class="w">  </span><span class="nb">exit</span><span class="w"> </span>退出
+
+python3<span class="w"> </span>-c<span class="w"> </span><span class="s2">"import pty;pty.spawn('/bin/bash')"</span><span class="w">   </span>改成交互式shell
+
+靶场drupal【不适合设置cmd】<span class="w">  </span>
+靶场struct2<span class="w"> </span>s02-045<span class="w">       </span>exploit/multi/http/struts2_content_type_ognl
+</code></pre></div></div>
+
+<h2 id="_8">靶场实战</h2>
+<h2 id="_9">靶场下载地址</h2>
+<p>https://download.vulnhub.com/w1r3s/w1r3s.v1.0.1.zip</p>
+<p>作业：<br />
+https://www.vulnhub.com/entry/lampiao-1%2C249/【提权使用脏牛   msf模块搜索 dirty ， exp需编译执行】</p>
+<p>拿到www-data用户权限60                                                                                                        </p>
+<p>拿到root用户权限80分</p>
+<p>拿到flag得100分</p></div>
+      <div class="post-nav"><a class="pn-item prev" href="ge-mi-ma.html"><span>← 上一篇</span><strong>格密码</strong></a><a class="pn-item next" href="php-fan-xu-lie-hua-lou-dong.html"><span>下一篇 →</span><strong>PHP反序列化漏洞</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#nmap" class="toc-lv2">nmap使用</a><a href="#_1" class="toc-lv3">主机存活扫描</a><a href="#_2" class="toc-lv3">端口存活扫描</a><a href="#_3" class="toc-lv3">其他服务探测与功能</a><a href="#_4" class="toc-lv3">绕防火墙选项</a><a href="#_5" class="toc-lv3">最常用的选项</a><a href="#dirb" class="toc-lv2">dirb使用</a><a href="#_6" class="toc-lv3">目录文件爆破</a><a href="#_7" class="toc-lv3">绕过防火墙</a><a href="#hashcatjohn" class="toc-lv2">hashcat和john</a><a href="#hashcat" class="toc-lv3">hashcat</a><a href="#john" class="toc-lv3">john</a><a href="#hydra" class="toc-lv2">hydra</a><a href="#msf" class="toc-lv2">msf</a><a href="#_8" class="toc-lv2">靶场实战</a><a href="#_9" class="toc-lv2">靶场下载地址</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

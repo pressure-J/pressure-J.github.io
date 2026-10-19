@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Web 基础：PHP 打题函数速查表与伪协议全家桶 · pressure-J</title>
+<meta name="description" content="核心思路：PHP 函数几千个，但 CTF 高频的就几十个。遇到不认识的当场查 php.net/manual/zh/ 就行，会查比会背重要。下面按作用分组：">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/web-ji-chu-php-da-ti-han-shu-su-cha-biao-yu-wei-xie-yi-quan-jia-tong.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Web 基础：PHP 打题函数速查表与伪协议全家桶 · pressure-J">
+<meta property="og:description" content="核心思路：PHP 函数几千个，但 CTF 高频的就几十个。遇到不认识的当场查 php.net/manual/zh/ 就行，会查比会背重要。下面按作用分组：">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/web.html">Web 安全</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>Web 基础：PHP 打题函数速查表与伪协议全家桶</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-web">Web 安全</span>
+          <time datetime="2026-09-01">2026-09-01</time>
+          <span>4256 字</span>
+          <span>约 11 分钟</span>
+        </div>
+        
+      </header>
+      <div class="content"><blockquote>
+<p>来源：ZJCTF「NiZhuanSiWei」等文件包含/反序列化实战题沉淀，2026-09-01<br />
+定位：PHP 审计题的"词典"——看不懂代码、不认识伪协议时翻这篇<br />
+实战场景：任何给 PHP 源码的题（文件包含、反序列化、命令执行、SSRF）</p>
+</blockquote>
+<hr />
+<h2 id="90-php">一、最小函数集：看懂 90% 的 PHP 题只需要这些</h2>
+<p><strong>核心思路</strong>：PHP 函数几千个，但 CTF 高频的就几十个。<strong>遇到不认识的当场查 php.net/manual/zh/ 就行，会查比会背重要</strong>。下面按作用分组：</p>
+<h3 id="1">1. 输入获取（入口）</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>函数/变量</th>
+<th>人话解释</th>
+<th>常见用法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>$_GET['x']</code></td>
+<td>拿 URL <code>?x=值</code></td>
+<td><code>?cmd=ls</code> → <code>$_GET['cmd']</code></td>
+</tr>
+<tr>
+<td><code>$_POST['x']</code></td>
+<td>拿 POST body 里的参数</td>
+<td>表单提交</td>
+</tr>
+<tr>
+<td><code>$_COOKIE['x']</code></td>
+<td>拿 Cookie</td>
+<td><code>Cookie: user=xxx</code></td>
+</tr>
+<tr>
+<td><code>$_REQUEST['x']</code></td>
+<td>GET/POST/Cookie 全要</td>
+<td>不区分来源</td>
+</tr>
+<tr>
+<td><code>$_SERVER['HTTP_X']</code></td>
+<td>拿 HTTP 头</td>
+<td><code>X-Forwarded-For</code>、UA 等</td>
+</tr>
+<tr>
+<td><code>file_get_contents("php://input")</code></td>
+<td>拿原始请求体</td>
+<td>POST body 全文（伪协议入口）</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="2">2. 输出（看结果 / 泄漏信息）</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>函数</th>
+<th>人话解释</th>
+<th>注意</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>echo</code> / <code>print</code></td>
+<td>输出字符串</td>
+<td>输出对象时触发 <code>__toString()</code></td>
+</tr>
+<tr>
+<td><code>print_r()</code> / <code>var_dump()</code></td>
+<td>打印数组/对象结构</td>
+<td>调试神器，审计时经常让源码"现原形"</td>
+</tr>
+<tr>
+<td><code>highlight_file()</code> / <code>show_source()</code></td>
+<td>高亮显示文件源码</td>
+<td>读 PHP 源码（不执行）</td>
+</tr>
+<tr>
+<td><code>phpinfo()</code></td>
+<td>输出 PHP 配置全貌</td>
+<td>泄漏版本、禁用函数、环境变量</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="3">3. 文件操作（高危区）</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>函数</th>
+<th>人话解释</th>
+<th>危险点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>file_get_contents($f)</code></td>
+<td>把文件内容读成字符串</td>
+<td>参数可控 → 读任意文件（配合伪协议）</td>
+</tr>
+<tr>
+<td><code>file_put_contents($f, $c)</code></td>
+<td>把字符串写进文件</td>
+<td>参数可控 → 写 webshell</td>
+</tr>
+<tr>
+<td><code>include</code> / <code>require</code></td>
+<td>加载并<strong>执行</strong> PHP 文件</td>
+<td>参数可控 → LFI/RFI 文件包含</td>
+</tr>
+<tr>
+<td><code>fopen/fread/fwrite</code></td>
+<td>底层文件读写</td>
+<td>同上</td>
+</tr>
+<tr>
+<td><code>readfile()</code></td>
+<td>直接输出文件内容</td>
+<td>读文件</td>
+</tr>
+<tr>
+<td><code>unlink()/rename()/copy()</code></td>
+<td>删/改/拷文件</td>
+<td>参数可控可删站</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="4">4. 字符串与编码</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>函数</th>
+<th>人话解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>strlen()</code></td>
+<td>字符串长度</td>
+</tr>
+<tr>
+<td><code>substr($s, $i, $n)</code></td>
+<td>截取部分字符串</td>
+</tr>
+<tr>
+<td><code>str_replace($a,$b,$s)</code></td>
+<td>替换（过滤靠它实现时可用双写绕过）</td>
+</tr>
+<tr>
+<td><code>strpos($s, $k)</code></td>
+<td>查 k 在 s 里的位置（找不到返回 false）</td>
+</tr>
+<tr>
+<td><code>trim()</code></td>
+<td>去首尾空格</td>
+</tr>
+<tr>
+<td><code>md5()</code></td>
+<td>哈希（弱类型比较 <code>==</code> 可以绕过）</td>
+</tr>
+<tr>
+<td><code>base64_encode/decode</code></td>
+<td>base64 编解码（和 filter 伪协议是搭档）</td>
+</tr>
+<tr>
+<td><code>serialize/unserialize</code></td>
+<td>序列化/反序列化（反序列化漏洞核心）</td>
+</tr>
+<tr>
+<td><code>urlencode/urldecode</code></td>
+<td>URL 编解码（payload 传输必备）</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="5">5. 正则与判断</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>函数</th>
+<th>人话解释</th>
+<th>绕过点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>preg_match('/x/', $s)</code></td>
+<td>正则匹配，有就返回 1</td>
+<td>黑名单最常见实现，可用数组/换行/编码绕过</td>
+</tr>
+<tr>
+<td><code>preg_replace('/x/', $r, $s)</code></td>
+<td>正则替换</td>
+<td><code>/e</code> 修饰符 = 命令执行（老版本）</td>
+</tr>
+<tr>
+<td><code>isset($x)</code></td>
+<td>变量是否存在</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>empty($x)</code></td>
+<td>是否为空</td>
+<td><code>0</code>、<code>"0"</code>、<code>null</code> 都算空</td>
+</tr>
+<tr>
+<td><code>exit()/die()</code></td>
+<td>立刻终止程序</td>
+<td>被拦时后面的代码不执行</td>
+</tr>
+<tr>
+<td><code>is_numeric($x)</code></td>
+<td>是否数字</td>
+<td>数字+字母绕过（<code>1e3</code>）</td>
+</tr>
+<tr>
+<td><code>in_array($x, $arr)</code></td>
+<td>是否在数组里</td>
+<td>默认松散比较</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="6-rce">6. 系统与命令（RCE 高危区）</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>函数</th>
+<th>人话解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>system()</code></td>
+<td>执行命令并输出结果（最常用）</td>
+</tr>
+<tr>
+<td><code>exec()</code></td>
+<td>执行命令，只返回最后一行</td>
+</tr>
+<tr>
+<td><code>shell_exec()</code></td>
+<td>执行命令返回全部输出，不输出到页面</td>
+</tr>
+<tr>
+<td><code>passthru()</code></td>
+<td>执行并原样输出二进制</td>
+</tr>
+<tr>
+<td><code>`cmd`</code>（反引号）</td>
+<td><code>shell_exec</code> 的简写</td>
+</tr>
+<tr>
+<td><code>eval($code)</code></td>
+<td>把字符串当 PHP 代码执行</td>
+</tr>
+<tr>
+<td><code>assert($code)</code></td>
+<td>字符串为真时当代码执行（老版本）</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="_1">二、伪协议全家桶（必背清单）</h2>
+<p>伪协议 = <strong>"假装是文件路径，实际是特殊入口"</strong>。<code>file_get_contents</code>、<code>include</code>、<code>fopen</code> 等吃路径的函数都能用它们。</p>
+<h3 id="_2">核心两招（先背这两个）</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>场景</th>
+<th>用法</th>
+<th>为什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>读 PHP 源码</strong></td>
+<td><code>php://filter/read=convert.base64-encode/resource=文件名</code></td>
+<td>include/fetch 会<strong>执行</strong> php 文件看不到源码；filter 转成 base64 只输出不执行，本地解码即得源码</td>
+</tr>
+<tr>
+<td><strong>伪造文件内容</strong></td>
+<td><code>data://text/plain;base64,&lt;base64内容&gt;</code> 或 <code>php://input</code>（POST body 直接写内容）</td>
+<td>需要 <code>file_get_contents($x)==="某个固定字符串"</code> 时，自己提交内容满足它</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="_3">全清单</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>伪协议</th>
+<th>干什么</th>
+<th>经典场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>php://filter</code></td>
+<td>读文件+过滤器（base64/rot13/iconv 等）</td>
+<td>读 .php 源码；写日志注入</td>
+</tr>
+<tr>
+<td><code>php://input</code></td>
+<td>请求体当文件内容</td>
+<td>绕过文件内容检查（POST 写内容）</td>
+</tr>
+<tr>
+<td><code>php://temp</code> / <code>php://memory</code></td>
+<td>临时内存流</td>
+<td>少见，配合上传</td>
+</tr>
+<tr>
+<td><code>php://fd</code></td>
+<td>直接访问文件描述符</td>
+<td>高权限操作</td>
+</tr>
+<tr>
+<td><code>data://</code></td>
+<td>数据流：<code>data://text/plain;base64,xxx</code> 或 <code>data://text/plain,明文</code></td>
+<td>伪造内容、绕过固定字符串检查</td>
+</tr>
+<tr>
+<td><code>phar://</code></td>
+<td>读 phar 压缩包内文件</td>
+<td><strong>phar 反序列化</strong>（无 unserialize 也能触发）</td>
+</tr>
+<tr>
+<td><code>zip://</code></td>
+<td>读 zip 内文件</td>
+<td>配合上传打包含</td>
+</tr>
+<tr>
+<td><code>file://</code></td>
+<td>本地文件</td>
+<td>读 /etc/passwd 等</td>
+</tr>
+<tr>
+<td><code>http://</code> <code>https://</code> <code>ftp://</code></td>
+<td>远程拉取当文件</td>
+<td>远程包含（RFI）、SSRF</td>
+</tr>
+<tr>
+<td><code>glob://</code></td>
+<td>目录通配匹配</td>
+<td>列目录</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="_4">记忆口诀</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>读源码不执行  → php://filter/read=convert.base64-encode/resource=xx
+伪造内容比内容 → data://text/plain;base64,编码 或 php://input
+任意文件读取  → php://filter 或 file://
+压缩打包含   → phar://  zip://
+远程当文件   → http://  (SSRF/远程包含)
+</code></pre></div></div>
+
+<hr />
+<h2 id="php">三、拿到 PHP 源码怎么读（方法论）</h2>
+<ol>
+<li><strong>找入口</strong>：哪些变量接收用户输入（<code>$_GET</code>/<code>$_POST</code>/<code>$_COOKIE</code>...）</li>
+<li><strong>找处理</strong>：输入经过了哪些函数（过滤？拼接？）</li>
+<li><strong>找危险函数</strong>：文件操作 / 命令执行 / unserialize / eval / include</li>
+<li><strong>看过滤</strong>：黑名单（preg_match）还是白名单，能不能绕过</li>
+<li><strong>构造 payload</strong>：危险函数需要的参数，从可控输入一步步喂进去</li>
+</ol>
+<p><strong>反序列化题五问</strong>（配合上面用）：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>入口在哪？ → 哪些类可用？ → 哪个魔术方法危险？ → 危险代码要什么参数？ → 过滤怎么绕？
+</code></pre></div></div>
+
+<hr />
+<h2 id="zjctfnizhuansiwei">四、实战示例：ZJCTF「NiZhuanSiWei」是怎么用这些知识的</h2>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>① 入口：$_GET["text"] $_GET["file"] $_GET["password"]
+② 处理：text 被 file_get_contents 检查 === "welcome to the zjctf"
+   → 绕过：data://text/plain;base64,d2VsY29tZSB0byB0aGUgempjdGY=
+③ 危险函数：include($file)（文件包含）、unserialize($password)+echo（反序列化）
+④ 过滤：preg_match("/flag/", $file) → file 参数不能含 flag
+   → 绕过：php://filter 读 useless.php（不含 flag 字样）拿 Flag 类源码
+⑤ 构造：password=O:4:"Flag":1:{s:4:"file";s:8:"flag.php";}
+   → echo 对象触发 __toString → file_get_contents("flag.php") 吐源码出 flag
+</code></pre></div></div>
+
+<hr />
+<h2 id="_5">五、面试/考试速答卡</h2>
+<ul>
+<li><strong>读 PHP 源码用啥</strong>：<code>php://filter/read=convert.base64-encode/resource=文件名</code>（必须 base64，否则 include 会执行）</li>
+<li><strong>file_get_contents 内容检查怎么绕</strong>：<code>data://</code> 或 <code>php://input</code> 自己提交内容</li>
+<li><strong>include vs file_get_contents</strong>：include 加载并<strong>执行</strong> PHP；file_get_contents 只读字符串不执行</li>
+<li><strong>echo 一个对象会发生什么</strong>：触发 <code>__toString()</code> 魔术方法</li>
+<li><strong>最常见危险函数</strong>：<code>include</code> <code>file_get_contents</code> <code>system</code> <code>eval</code> <code>unserialize</code></li>
+<li><strong>黑名单 preg_match 常见绕过</strong>：数组参数（preg_match 遇数组返回 false）、换行符 <code>%0a</code>、URL 编码</li>
+<li><strong>函数看不懂怎么办</strong>：查 php.net/manual/zh/，CTF 高频函数就上面几十个</li>
+</ul></div>
+      <div class="post-nav"><a class="pn-item prev" href="sql-injection-waf-bypass.html"><span>← 上一篇</span><strong>Web 安全：SQL 盲注与 WAF 绕过解题全流程（Hack World 实战）</strong></a><a class="pn-item next" href="rsa-gong-mo-gong-ji.html"><span>下一篇 →</span><strong>RSA共模攻击</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#90-php" class="toc-lv2">一、最小函数集：看懂 90% 的 PHP 题只需要这些</a><a href="#1" class="toc-lv3">1. 输入获取（入口）</a><a href="#2" class="toc-lv3">2. 输出（看结果 / 泄漏信息）</a><a href="#3" class="toc-lv3">3. 文件操作（高危区）</a><a href="#4" class="toc-lv3">4. 字符串与编码</a><a href="#5" class="toc-lv3">5. 正则与判断</a><a href="#6-rce" class="toc-lv3">6. 系统与命令（RCE 高危区）</a><a href="#_1" class="toc-lv2">二、伪协议全家桶（必背清单）</a><a href="#_2" class="toc-lv3">核心两招（先背这两个）</a><a href="#_3" class="toc-lv3">全清单</a><a href="#_4" class="toc-lv3">记忆口诀</a><a href="#php" class="toc-lv2">三、拿到 PHP 源码怎么读（方法论）</a><a href="#zjctfnizhuansiwei" class="toc-lv2">四、实战示例：ZJCTF「NiZhuanSiWei」是怎么用这些知识的</a><a href="#_5" class="toc-lv2">五、面试/考试速答卡</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

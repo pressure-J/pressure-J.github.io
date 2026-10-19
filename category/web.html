@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Web 安全 · pressure-J</title>
+<meta name="description" content="SQL 注入、文件包含/上传、反序列化、SSRF 与绕过手法">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/category/web.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Web 安全 · pressure-J">
+<meta property="og:description" content="SQL 注入、文件包含/上传、反序列化、SSRF 与绕过手法">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html">文章</a><a href="../category/index.html" class="on">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap section">
+  <nav class="breadcrumb"><a href="../index.html">首页</a><span>/</span>分类</nav>
+  <header class="page-head page-head-cat">
+    <h1><span class="cat-badge cat-web">Web 安全</span> 17 篇</h1>
+    <p>SQL 注入、文件包含/上传、反序列化、SSRF 与绕过手法</p>
+  </header>
+  <div class="post-list"><article class="post-card" data-cat="web"
+     data-hay="web安全 · php 反序列化 + `__wakeup` 绕过 writeup —「i have a cat!」 &gt; 考点：源码泄露（备份文件）→ php 对象注入 → 私有属性序列化名 → 魔术方法 wakeup 绕过（cve-2016-7124） ">
+  <div class="card-top">
+    <a class="cat-badge cat-web" href="../category/web.html">Web 安全</a>
+    <time datetime="2026-10-11">2026-10-11</time>
+  </div>
+  <h3><a href="../posts/web-an-quan-php-fan-xu-lie-hua-wakeup-rao-guo-writeup-i-have-a-cat.html">Web安全 · PHP 反序列化 + `__wakeup` 绕过 WriteUp —「I have a cat!」</a></h3>
+  <p class="card-desc">&gt; 考点：源码泄露（备份文件）→ PHP 对象注入 → 私有属性序列化名 → 魔术方法 wakeup 绕过（CVE-2016-7124）</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">17 min · 6339 字</span>
+  </div>
+</article><article class="post-card" data-cat="web"
+     data-hay="web安全 · 文件包含 + php://filter 伪协议 writeup —「蒋璐源的秘密」 原因：php://filter/... 是参数的值，不是路径。直接拼在 url 路径里，nginx 会去找一个名为 php: 的目录，当然 404。 ">
+  <div class="card-top">
+    <a class="cat-badge cat-web" href="../category/web.html">Web 安全</a>
+    <time datetime="2026-10-05">2026-10-05</time>
+  </div>
+  <h3><a href="../posts/web-an-quan-wen-jian-bao-han-php-filter-wei-xie-yi-writeup-jiang-lu.html">Web安全 · 文件包含 + php://filter 伪协议 WriteUp —「蒋璐源的秘密」</a></h3>
+  <p class="card-desc">原因：php://filter/... 是参数的值，不是路径。直接拼在 URL 路径里，nginx 会去找一个名为 php: 的目录，当然 404。</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">19 min · 7328 字</span>
+  </div>
+</article><article class="post-card" data-cat="web"
+     data-hay="web基础 · 数字的不同写法 / 通配符 / 正则表达式 这是理解全文的关键。用户输入 fla 这一串字符，它在不同环节会被不同的解释器赋予不同含义： ">
+  <div class="card-top">
+    <a class="cat-badge cat-web" href="../category/web.html">Web 安全</a>
+    <time datetime="2026-10-05">2026-10-05</time>
+  </div>
+  <h3><a href="../posts/web-ji-chu-shu-zi-de-bu-tong-xie-fa-tong-pei-fu-zheng-ze-biao-da-shi.html">Web基础 · 数字的不同写法 / 通配符 / 正则表达式</a></h3>
+  <p class="card-desc">这是理解全文的关键。用户输入 fla 这一串字符，它在不同环节会被不同的解释器赋予不同含义：</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">18 min · 6831 字</span>
+  </div>
+</article><article class="post-card" data-cat="web"
+     data-hay="web安全 · 文件上传绕过（黑名单反转 + `&lt;script&gt;` 标签）writeup —「上传头像」 首页是一个&quot;上传头像&quot;页面，表单指向 uploadfile.php： ">
+  <div class="card-top">
+    <a class="cat-badge cat-web" href="../category/web.html">Web 安全</a>
+    <time datetime="2026-10-05">2026-10-05</time>
+  </div>
+  <h3><a href="../posts/web-an-quan-wen-jian-shang-chuan-rao-guo-hei-ming-dan-fan-zhuan-scri.html">Web安全 · 文件上传绕过（黑名单反转 + `&lt;script&gt;` 标签）WriteUp —「上传头像」</a></h3>
+  <p class="card-desc">首页是一个&quot;上传头像&quot;页面，表单指向 uploadfile.php：</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">18 min · 6746 字</span>
+  </div>
+</article><article class="post-card" data-cat="web"
+     data-hay="web安全 · ping 命令注入过滤绕过 writeup（dasctf 环境） 浏览器访问直接回显 /?ip=，说明参数名是 ip。传入 ?ip=127.0.0.1 后返回 ping 结果： ">
+  <div class="card-top">
+    <a class="cat-badge cat-web" href="../category/web.html">Web 安全</a>
+    <time datetime="2026-10-05">2026-10-05</time>
+  </div>
+  <h3><a href="../posts/web-an-quan-ping-ming-ling-zhu-ru-guo-lv-rao-guo-writeup-dasctf-huan.html">Web安全 · Ping 命令注入过滤绕过 WriteUp（DASCTF 环境）</a></h3>
+  <p class="card-desc">浏览器访问直接回显 /?ip=，说明参数名是 ip。传入 ?ip=127.0.0.1 后返回 ping 结果：</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">11 min · 4130 字</span>
+  </div>
+</article><article class="post-card" data-cat="web"
+     data-hay="web安全 · 一句话木马（eval webshell）writeup —「白给的shell」 一行，完完整整的一句话木马。 没有过滤、没有鉴权、没有长度限制。 ">
+  <div class="card-top">
+    <a class="cat-badge cat-web" href="../category/web.html">Web 安全</a>
+    <time datetime="2026-10-05">2026-10-05</time>
+  </div>
+  <h3><a href="../posts/web-an-quan-yi-ju-hua-mu-ma-eval-webshell-writeup-bai-gei-de-shell.html">Web安全 · 一句话木马（eval webshell）WriteUp —「白给的shell」</a></h3>
+  <p class="card-desc">一行，完完整整的一句话木马。 没有过滤、没有鉴权、没有长度限制。</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">9 min · 3465 字</span>
+  </div>
+</article><article class="post-card" data-cat="web"
+     data-hay="web安全 · unicorn shop「单字符 &amp;&amp; 数字解析」writeup（dasctf 环境） /charge 页面是一个「独角兽商店」，列了 4 件商品，price 字段通过 post 提交： ">
+  <div class="card-top">
+    <a class="cat-badge cat-web" href="../category/web.html">Web 安全</a>
+    <time datetime="2026-10-05">2026-10-05</time>
+  </div>
+  <h3><a href="../posts/web-an-quan-unicorn-shop-dan-zi-fu-shu-zi-jie-xi-writeup-dasctf-huan.html">Web安全 · Unicorn Shop「单字符 &amp;&amp; 数字解析」WriteUp（DASCTF 环境）</a></h3>
+  <p class="card-desc">/charge 页面是一个「独角兽商店」，列了 4 件商品，price 字段通过 POST 提交：</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">9 min · 3366 字</span>
+  </div>
+</article><article class="post-card" data-cat="web"
+     data-hay="web 基础：php 打题函数速查表与伪协议全家桶 核心思路：php 函数几千个，但 ctf 高频的就几十个。遇到不认识的当场查 php.net/manual/zh/ 就行，会查比会背重要。下面按作用分组： ">
+  <div class="card-top">
+    <a class="cat-badge cat-web" href="../category/web.html">Web 安全</a>
+    <time datetime="2026-09-01">2026-09-01</time>
+  </div>
+  <h3><a href="../posts/web-ji-chu-php-da-ti-han-shu-su-cha-biao-yu-wei-xie-yi-quan-jia-tong.html">Web 基础：PHP 打题函数速查表与伪协议全家桶</a></h3>
+  <p class="card-desc">核心思路：PHP 函数几千个，但 CTF 高频的就几十个。遇到不认识的当场查 php.net/manual/zh/ 就行，会查比会背重要。下面按作用分组：</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">11 min · 4256 字</span>
+  </div>
+</article><article class="post-card" data-cat="web"
+     data-hay="web 安全：sql 盲注与 waf 绕过解题全流程（hack world 实战） 题面特征：hack world，提示&quot;flag 在表 flag 的列 flag&quot;，post 一个 id 参数。 ">
+  <div class="card-top">
+    <a class="cat-badge cat-web" href="../category/web.html">Web 安全</a>
+    <time datetime="2026-09-01">2026-09-01</time>
+  </div>
+  <h3><a href="../posts/sql-injection-waf-bypass.html">Web 安全：SQL 盲注与 WAF 绕过解题全流程（Hack World 实战）</a></h3>
+  <p class="card-desc">题面特征：Hack World，提示&quot;flag 在表 flag 的列 flag&quot;，POST 一个 id 参数。</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">8 min · 3059 字</span>
+  </div>
+</article><article class="post-card" data-cat="web"
+     data-hay="web 基础：站点搭建与 http 工作原理 www（万维网） 是构建在互联网之上、由互相链接的超文本文档组成的信息系统。1989 年蒂姆·伯纳斯-李在 cern 发明了它，并定义了三大关键技术： ">
+  <div class="card-top">
+    <a class="cat-badge cat-web" href="../category/web.html">Web 安全</a>
+    <time datetime="2026-08-28">2026-08-28</time>
+  </div>
+  <h3><a href="../posts/web-ji-chu-zhan-dian-da-jian-yu-http-gong-zuo-yuan-li.html">Web 基础：站点搭建与 HTTP 工作原理</a></h3>
+  <p class="card-desc">WWW（万维网） 是构建在互联网之上、由互相链接的超文本文档组成的信息系统。1989 年蒂姆·伯纳斯-李在 CERN 发明了它，并定义了三大关键技术：</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">17 min · 6344 字</span>
+  </div>
+</article><article class="post-card" data-cat="web"
+     data-hay="web 安全：文件上传与文件包含 一句话原理：文件上传功能把用户上传的文件直接存进 web 可访问目录，且不校验文件内容。php/jsp 等可执行文件一进入 web 目录，攻击者访问它，服务器就按&quot;程序&quot;解析执行——一个 webshell（网页后门）就此诞生。 ">
+  <div class="card-top">
+    <a class="cat-badge cat-web" href="../category/web.html">Web 安全</a>
+    <time datetime="2026-08-28">2026-08-28</time>
+  </div>
+  <h3><a href="../posts/web-an-quan-wen-jian-shang-chuan-yu-wen-jian-bao-han.html">Web 安全：文件上传与文件包含</a></h3>
+  <p class="card-desc">一句话原理：文件上传功能把用户上传的文件直接存进 Web 可访问目录，且不校验文件内容。PHP/JSP 等可执行文件一进入 Web 目录，攻击者访问它，服务器就按&quot;程序&quot;解析执行——一个 webshell（网页后门）就此诞生。</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">12 min · 4617 字</span>
+  </div>
+</article><article class="post-card" data-cat="web"
+     data-hay="web 安全：逻辑漏洞与 ssrf 一句话原理：web 安全的另一大类漏洞不是&quot;代码写得烂&quot;（如注入），而是业务逻辑设计有缺陷——校验只做了一半、信任了不该信任的假设、流程可被预测。 ">
+  <div class="card-top">
+    <a class="cat-badge cat-web" href="../category/web.html">Web 安全</a>
+    <time datetime="2026-08-28">2026-08-28</time>
+  </div>
+  <h3><a href="../posts/web-an-quan-luo-ji-lou-dong-yu-ssrf.html">Web 安全：逻辑漏洞与 SSRF</a></h3>
+  <p class="card-desc">一句话原理：Web 安全的另一大类漏洞不是&quot;代码写得烂&quot;（如注入），而是业务逻辑设计有缺陷——校验只做了一半、信任了不该信任的假设、流程可被预测。</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">12 min · 4595 字</span>
+  </div>
+</article><article class="post-card" data-cat="web"
+     data-hay="web 安全：xss 跨站脚本攻击 一句话原理：服务器把&quot;用户输入的数据&quot;和&quot;网页本身的代码&quot;不加区分地拼在一起返回给浏览器，浏览器把其中的 &lt;script&gt; 等标签当成合法程序执行——攻击者的 javascript 就在受害者的浏览器里运行了。 ">
+  <div class="card-top">
+    <a class="cat-badge cat-web" href="../category/web.html">Web 安全</a>
+    <time datetime="2026-08-28">2026-08-28</time>
+  </div>
+  <h3><a href="../posts/web-an-quan-xss-kua-zhan-jiao-ben-gong-ji.html">Web 安全：XSS 跨站脚本攻击</a></h3>
+  <p class="card-desc">一句话原理：服务器把&quot;用户输入的数据&quot;和&quot;网页本身的代码&quot;不加区分地拼在一起返回给浏览器，浏览器把其中的 &lt;script&gt; 等标签当成合法程序执行——攻击者的 JavaScript 就在受害者的浏览器里运行了。</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">11 min · 4323 字</span>
+  </div>
+</article><article class="post-card" data-cat="web"
+     data-hay="web 安全：csrf 与点击劫持及 csp 绕过 一句话原理：浏览器会自动携带目标网站的 cookie 发起请求，服务器只认&quot;这个请求带着合法 cookie&quot;，不认&quot;这个请求是谁、在哪发起的&quot;。于是攻击者构造一个页面，受害者只要访问，浏览器就替他向目标网站发出敏感操作请求。 ">
+  <div class="card-top">
+    <a class="cat-badge cat-web" href="../category/web.html">Web 安全</a>
+    <time datetime="2026-08-28">2026-08-28</time>
+  </div>
+  <h3><a href="../posts/web-an-quan-csrf-yu-dian-ji-jie-chi-ji-csp-rao-guo.html">Web 安全：CSRF 与点击劫持及 CSP 绕过</a></h3>
+  <p class="card-desc">一句话原理：浏览器会自动携带目标网站的 Cookie 发起请求，服务器只认&quot;这个请求带着合法 Cookie&quot;，不认&quot;这个请求是谁、在哪发起的&quot;。于是攻击者构造一个页面，受害者只要访问，浏览器就替他向目标网站发出敏感操作请求。</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">11 min · 4226 字</span>
+  </div>
+</article><article class="post-card" data-cat="web"
+     data-hay="web 注入攻击：sql 注入与命令注入 一句话原理：程序把用户输入直接拼进了可执行语句（sql 语句 / shell 命令），输入里的特殊字符改变了语句原本的逻辑，实现了&quot;输入即代码&quot;。 ">
+  <div class="card-top">
+    <a class="cat-badge cat-web" href="../category/web.html">Web 安全</a>
+    <time datetime="2026-08-28">2026-08-28</time>
+  </div>
+  <h3><a href="../posts/web-zhu-ru-gong-ji-sql-zhu-ru-yu-ming-ling-zhu-ru.html">Web 注入攻击：SQL 注入与命令注入</a></h3>
+  <p class="card-desc">一句话原理：程序把用户输入直接拼进了可执行语句（SQL 语句 / shell 命令），输入里的特殊字符改变了语句原本的逻辑，实现了&quot;输入即代码&quot;。</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">11 min · 4009 字</span>
+  </div>
+</article><article class="post-card" data-cat="web"
+     data-hay="web 渗透测试：dvwa 与 burp suite 与暴力破解 一句话原理：登录认证的本质是&quot;把用户输入的口令和数据库里存的比对，一样就放行&quot;。只要口令空间是有限的、可枚举的，攻击者就能逐个尝试直到撞对一个——这就是暴力破解。它不依赖任何代码漏洞，只要口令弱，协议再安全也没用。 ">
+  <div class="card-top">
+    <a class="cat-badge cat-web" href="../category/web.html">Web 安全</a>
+    <time datetime="2026-08-28">2026-08-28</time>
+  </div>
+  <h3><a href="../posts/web-shen-tou-ce-shi-dvwa-yu-burp-suite-yu-bao-li-po-jie.html">Web 渗透测试：DVWA 与 Burp Suite 与暴力破解</a></h3>
+  <p class="card-desc">一句话原理：登录认证的本质是&quot;把用户输入的口令和数据库里存的比对，一样就放行&quot;。只要口令空间是有限的、可枚举的，攻击者就能逐个尝试直到撞对一个——这就是暴力破解。它不依赖任何代码漏洞，只要口令弱，协议再安全也没用。</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">10 min · 3886 字</span>
+  </div>
+</article><article class="post-card" data-cat="web"
+     data-hay="php反序列化漏洞 反序列化漏洞 = unserialize()接收用户输入 + 可利用的类 + 用户可控序列化内容 ctf web安全 php">
+  <div class="card-top">
+    <a class="cat-badge cat-web" href="../category/web.html">Web 安全</a>
+    <time datetime="2026-07-05">2026-07-05</time>
+  </div>
+  <h3><a href="../posts/php-fan-xu-lie-hua-lou-dong.html">PHP反序列化漏洞</a></h3>
+  <p class="card-desc">反序列化漏洞 = unserialize()接收用户输入 + 可利用的类 + 用户可控序列化内容</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">CTF</span><span class="chip">Web安全</span><span class="chip">PHP</span></div>
+    <span class="reading">11 min · 4011 字</span>
+  </div>
+</article></div>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

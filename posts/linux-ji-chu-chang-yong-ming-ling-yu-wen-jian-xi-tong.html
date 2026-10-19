@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Linux 基础：常用命令与文件系统 · pressure-J</title>
+<meta name="description" content="一句话原理：Linux 遵循&quot;一切皆文件&quot;的设计思想——普通文件、目录、硬盘、键盘、网卡、进程，统统被抽象成文件，通过统一的命令进行操作。而&quot;命令行&quot;就是操作这些文件的工具箱：每个命令是一个小程序，专注做一件事；通过管道 |、重定向…">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/linux-ji-chu-chang-yong-ming-ling-yu-wen-jian-xi-tong.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Linux 基础：常用命令与文件系统 · pressure-J">
+<meta property="og:description" content="一句话原理：Linux 遵循&quot;一切皆文件&quot;的设计思想——普通文件、目录、硬盘、键盘、网卡、进程，统统被抽象成文件，通过统一的命令进行操作。而&quot;命令行&quot;就是操作这些文件的工具箱：每个命令是一个小程序，专注做一件事；通过管道 |、重定向…">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/linux.html">Linux</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>Linux 基础：常用命令与文件系统</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-linux">Linux</span>
+          <time datetime="2026-08-28">2026-08-28</time>
+          <span>5137 字</span>
+          <span>约 14 分钟</span>
+        </div>
+        
+      </header>
+      <div class="content"><blockquote>
+<p>来源：Linux操作系统课程实验《Linux操作系统基础命令》（本人实验报告 docx 整理，2025-2026 第一学期，指导老师陶小结）<br />
+定位：一切渗透、运维操作都建立在命令行之上；面试必考基础，不会 ls/cd/权限/挂载等于不会 Linux。本文按"用户与系统 → 磁盘 → 目录 → 权限 → 链接 → 压缩"主线补全每个命令的完整用法</p>
+</blockquote>
+<hr />
+<h2 id="linux">一、概述：Linux 的命令行哲学</h2>
+<p><strong>一句话原理</strong>：Linux 遵循"<strong>一切皆文件</strong>"的设计思想——普通文件、目录、硬盘、键盘、网卡、进程，统统被抽象成文件，通过统一的命令进行操作。而"命令行"就是操作这些文件的工具箱：<strong>每个命令是一个小程序，专注做一件事；通过管道 <code>|</code>、重定向 <code>&gt;</code>、通配符把小程序组合起来，就能完成任意复杂的任务</strong>。</p>
+<p>文件系统则规定了这些文件怎么摆放。Linux 采用 FHS（文件系统层次标准），几个必须记住的顶级目录：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>目录</th>
+<th>存放内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/</code></td>
+<td>根目录，一切文件的起点</td>
+</tr>
+<tr>
+<td><code>/bin</code>、<code>/sbin</code></td>
+<td>系统最基本命令（ls、cat）与系统管理命令（fdisk）</td>
+</tr>
+<tr>
+<td><code>/etc</code></td>
+<td>系统配置文件（passwd、fstab、yum.repos.d）</td>
+</tr>
+<tr>
+<td><code>/home</code></td>
+<td>普通用户的家目录（<code>/home/用户名</code>，简写 <code>~</code>）</td>
+</tr>
+<tr>
+<td><code>/root</code></td>
+<td>root 用户的家目录</td>
+</tr>
+<tr>
+<td><code>/dev</code></td>
+<td>设备文件（<code>/dev/sda</code> 硬盘、<code>/dev/sda1</code> 分区）</td>
+</tr>
+<tr>
+<td><code>/mnt</code>、<code>/media</code></td>
+<td>挂载点（临时挂载 U 盘、光盘）</td>
+</tr>
+<tr>
+<td><code>/tmp</code></td>
+<td>临时文件</td>
+</tr>
+<tr>
+<td><code>/var</code></td>
+<td>日志、缓存等易变数据（<code>/var/log</code>）</td>
+</tr>
+</tbody>
+</table></div>
+<p>理解这两件事（一切皆文件 + 目录结构），后面所有命令就只是"在哪个目录对哪个文件做什么操作"。</p>
+<hr />
+<h2 id="_1">二、核心命令速查</h2>
+<h3 id="1">1. 用户与系统命令</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>命令</th>
+<th>作用</th>
+<th>常用形式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>su</code></td>
+<td>切换用户（默认切到 root，需要目标用户密码）</td>
+<td><code>su</code>、<code>su - root</code>（<code>-</code> 加载目标用户完整环境）</td>
+</tr>
+<tr>
+<td><code>sudo</code></td>
+<td>以 root 权限执行单条命令（用自己密码授权）</td>
+<td><code>sudo apt install xxx</code></td>
+</tr>
+<tr>
+<td><code>whoami</code></td>
+<td>显示当前用户</td>
+<td><code>whoami</code></td>
+</tr>
+<tr>
+<td><code>ps</code></td>
+<td>查看进程快照</td>
+<td><code>ps -ef</code>（全格式）、<code>ps aux</code>（含 CPU/内存占比）</td>
+</tr>
+<tr>
+<td><code>kill</code></td>
+<td>给进程发信号</td>
+<td><code>kill -l</code>（列出所有信号）、<code>kill -9 PID</code>（强杀）、<code>kill PID</code>（默认 TERM 温和终止）</td>
+</tr>
+<tr>
+<td><code>df</code></td>
+<td>查看磁盘整体使用情况</td>
+<td><code>df -h</code>（人类可读 MB/GB）</td>
+</tr>
+<tr>
+<td><code>du</code></td>
+<td>查看某个目录/文件占用空间</td>
+<td><code>du -sh /var/log</code>（汇总单目录）</td>
+</tr>
+<tr>
+<td><code>uname</code></td>
+<td>查看系统内核信息</td>
+<td><code>uname -a</code></td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>实验里的现象："输入 kill -l 出现了可用信号"——<code>kill -l</code> 列出的就是 64 个标准信号，最常用的三个：<code>SIGTERM(15)</code> 默认温和终止、<code>SIGKILL(9)</code> 强制杀死、<code>SIGHUP(1)</code> 挂断（常用来让守护进程重读配置）。</p>
+</blockquote>
+<h3 id="2">2. 目录与文件操作</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>命令</th>
+<th>作用</th>
+<th>例子</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pwd</code></td>
+<td>显示当前所在路径</td>
+<td><code>pwd</code></td>
+</tr>
+<tr>
+<td><code>ls</code></td>
+<td>列出目录内容</td>
+<td><code>ls -l</code>（长格式）、<code>ls -a</code>（含隐藏文件）、<code>ls -lh</code>（人性化大小）</td>
+</tr>
+<tr>
+<td><code>cd</code></td>
+<td>切换目录</td>
+<td><code>cd /etc</code>、<code>cd ..</code>（上一级）、<code>cd ~</code>（家目录）</td>
+</tr>
+<tr>
+<td><code>mkdir</code></td>
+<td>创建目录</td>
+<td><code>mkdir -p a/b/c</code>（递归创建）</td>
+</tr>
+<tr>
+<td><code>rmdir</code></td>
+<td>删除<strong>空</strong>目录</td>
+<td><code>rmdir emptydir</code></td>
+</tr>
+<tr>
+<td><code>rm</code></td>
+<td>删除文件或目录</td>
+<td><code>rm -rf dir</code>（递归+强制，<strong>极度危险慎用</strong>）</td>
+</tr>
+<tr>
+<td><code>touch</code></td>
+<td>创建空文件/更新时间戳</td>
+<td><code>touch test.c</code></td>
+</tr>
+<tr>
+<td><code>cp</code></td>
+<td>复制</td>
+<td><code>cp -r 源目录 目标</code>（复制目录必须 <code>-r</code>）</td>
+</tr>
+<tr>
+<td><code>mv</code></td>
+<td>移动/剪切/重命名</td>
+<td><code>mv a.txt b.txt</code>（重命名）、<code>mv file /tmp/</code></td>
+</tr>
+<tr>
+<td><code>find</code></td>
+<td>按条件查找文件</td>
+<td><code>find / -name "*.conf"</code>、<code>find /home -user myth</code></td>
+</tr>
+<tr>
+<td><code>cat</code></td>
+<td>查看文件内容</td>
+<td><code>cat /etc/passwd</code></td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="3">3. 磁盘管理全流程（实验核心）</h3>
+<p>磁盘从"物理盘"到"能用"要过三关：<strong>分区 → 格式化 → 挂载</strong>。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>命令</th>
+<th>作用</th>
+<th>例子</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>fdisk</code></td>
+<td>分区工具</td>
+<td><code>fdisk /dev/sdb</code>（进入交互界面，<code>n</code> 新建分区、<code>w</code> 保存）</td>
+</tr>
+<tr>
+<td><code>mkfs</code></td>
+<td>格式化（建立文件系统）</td>
+<td><code>mkfs.ext4 /dev/sdb1</code></td>
+</tr>
+<tr>
+<td><code>mount</code></td>
+<td>挂载（把分区接到某个目录上）</td>
+<td><code>mount /dev/sdb1 /mnt/data</code></td>
+</tr>
+<tr>
+<td><code>umount</code></td>
+<td>卸载</td>
+<td><code>umount /mnt/data</code></td>
+</tr>
+<tr>
+<td><code>df</code></td>
+<td>查看已挂载磁盘用量</td>
+<td><code>df -h</code></td>
+</tr>
+<tr>
+<td><code>du</code></td>
+<td>查看目录占用</td>
+<td><code>du -sh *</code></td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>为什么要有"挂载"</strong>：磁盘分区本身只是一块"空白空间"，Linux 必须把它接到目录树的某个位置（挂载点）才能读写。挂载是临时性的，<strong>重启后会失效</strong>；要永久生效需写入 <code>/etc/fstab</code> 配置文件。</p>
+</blockquote>
+<h3 id="4">4. 权限管理</h3>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>chmod<span class="w"> </span>权限<span class="w"> </span>文件<span class="w">       </span><span class="c1"># 修改权限 rwx</span>
+chown<span class="w"> </span>用户:组<span class="w"> </span>文件<span class="w">     </span><span class="c1"># 修改文件所属用户和组</span>
+chgrp<span class="w"> </span>组<span class="w"> </span>文件<span class="w">          </span><span class="c1"># 只改所属组</span>
+</code></pre></div></div>
+
+<p>权限的三位组合：<code>-rwxr-xr--</code> 分成三段——<strong>所有者 / 所属组 / 其他人</strong>，每段 r=读(4)、w=写(2)、x=执行(1)。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>数字</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>chmod 755 file</code></td>
+<td>所有者 rwx，组 r-x，其他 r-x（脚本/程序常用）</td>
+</tr>
+<tr>
+<td><code>chmod 644 file</code></td>
+<td>所有者 rw-，组 r--，其他 r--（普通文件默认）</td>
+</tr>
+<tr>
+<td><code>chmod 777 file</code></td>
+<td>所有人全部权限（<strong>危险，慎用</strong>）</td>
+</tr>
+</tbody>
+</table></div>
+<p><code>chown myth:myth test.txt</code> 把文件所有者改成 myth、组改成 myth。</p>
+<h3 id="5-ln-vs">5. 链接：ln（软链接 vs 硬链接，高频考点）</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>ln<span class="w"> </span>源文件<span class="w"> </span>链接名<span class="w">          </span><span class="c1"># 硬链接</span>
+ln<span class="w"> </span>-s<span class="w"> </span>源文件<span class="w"> </span>链接名<span class="w">       </span><span class="c1"># 软链接（符号链接）</span>
+</code></pre></div></div>
+
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>特性</th>
+<th>硬链接</th>
+<th>软链接（符号链接）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>本质</td>
+<td>同一个 inode 的另一个名字，两个名字指向同一份数据</td>
+<td>一个记录目标路径的特殊文件（相当于快捷方式）</td>
+</tr>
+<tr>
+<td>删原文件</td>
+<td>链接仍可用（数据还在）</td>
+<td>链接失效（变成红色断链）</td>
+</tr>
+<tr>
+<td>跨文件系统</td>
+<td><strong>不可以</strong></td>
+<td>可以</td>
+</tr>
+<tr>
+<td>对目录</td>
+<td>不可以</td>
+<td>可以</td>
+</tr>
+<tr>
+<td>命令形式</td>
+<td><code>ln a b</code></td>
+<td><code>ln -s a b</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>面试一句话：<strong>硬链接共享 inode、删源文件还能用；软链接是指向路径的快捷方式、源没了就失效</strong>。</p>
+<h3 id="6">6. 压缩打包</h3>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>tar<span class="w"> </span>-czvf<span class="w"> </span>包名.tar.gz<span class="w"> </span>目录<span class="w">    </span><span class="c1"># 打包并用 gzip 压缩（c=创建 z=gzip v=显示 f=文件）</span>
+tar<span class="w"> </span>-xzvf<span class="w"> </span>包名.tar.gz<span class="w">         </span><span class="c1"># 解压</span>
+tar<span class="w"> </span>-tzvf<span class="w"> </span>包名.tar.gz<span class="w">         </span><span class="c1"># 只查看不解压</span>
+zip<span class="w"> </span>-r<span class="w"> </span>包.zip<span class="w"> </span>目录<span class="w">             </span><span class="c1"># zip 压缩</span>
+unzip<span class="w"> </span>包.zip<span class="w">                   </span><span class="c1"># zip 解压</span>
+</code></pre></div></div>
+
+<blockquote>
+<p>Linux 下最常见的 <code>.tar.gz</code> = tar 完成"打包" + gzip 完成"压缩"两步；<code>.tar</code> 本身只打包不压缩。</p>
+</blockquote>
+<hr />
+<h2 id="_2">三、实操流程（按实验主线走一遍）</h2>
+<h3 id="1_1">任务 1：用户切换与进程管理</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>whoami<span class="w">                </span><span class="c1"># 当前普通用户</span>
+su<span class="w">                    </span><span class="c1"># 输入 root 密码切换为 root</span>
+ps<span class="w"> </span>-ef<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-20<span class="w">     </span><span class="c1"># 查看进程列表（结合管道只显示前 20 行）</span>
+<span class="nb">kill</span><span class="w"> </span>-l<span class="w">               </span><span class="c1"># 查看可用信号，理解 9/15 的区别</span>
+<span class="nb">kill</span><span class="w"> </span>-9<span class="w"> </span>&lt;PID&gt;<span class="w">         </span><span class="c1"># 强制结束不听话的进程</span>
+df<span class="w"> </span>-h<span class="w">                 </span><span class="c1"># 看磁盘整体用量</span>
+du<span class="w"> </span>-sh<span class="w"> </span>~<span class="w">              </span><span class="c1"># 看自己家目录占了多少</span>
+</code></pre></div></div>
+
+<h3 id="2_1">任务 2：给系统加一块新硬盘（从裸盘到使用）</h3>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># 1. 虚拟化软件里给虚拟机"添加硬盘"（如 VMware 添加 10G SCSI 盘）</span>
+lsblk<span class="w">                 </span><span class="c1"># 发现多了 /dev/sdb（原系统盘是 sda）</span>
+fdisk<span class="w"> </span>/dev/sdb<span class="w">        </span><span class="c1"># 交互式分区：n → p → 回车默认 → w 保存，生成 /dev/sdb1</span>
+mkfs.ext4<span class="w"> </span>/dev/sdb1<span class="w">   </span><span class="c1"># 格式化 sdb1 为 ext4 文件系统</span>
+mkdir<span class="w"> </span>/mnt/data<span class="w">       </span><span class="c1"># 创建挂载点</span>
+mount<span class="w"> </span>/dev/sdb1<span class="w"> </span>/mnt/data<span class="w">   </span><span class="c1"># 挂载</span>
+<span class="nb">cd</span><span class="w"> </span>/mnt/data<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>touch<span class="w"> </span>hello.txt<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>ls<span class="w">   </span><span class="c1"># 在"新盘"上创建文件并查看</span>
+<span class="nb">cd</span><span class="w"> </span>..<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>umount<span class="w"> </span>/mnt/data<span class="w">      </span><span class="c1"># 用完卸载（文件不会丢，只是暂时不可见）</span>
+df<span class="w"> </span>-h<span class="w">                 </span><span class="c1"># df 验证：挂载时能看到 sdb1，卸载后消失</span>
+du<span class="w"> </span>-sh<span class="w"> </span>/mnt/data<span class="w">      </span><span class="c1"># 查看目录占用</span>
+</code></pre></div></div>
+
+<blockquote>
+<p>实验报告里"创建一个 initrd 并挂载"是同款操作——<code>mount</code> 把某个设备/文件系统接到目录，<code>umount</code> 摘除，<code>df/du</code> 一宏观一微观地检查空间。</p>
+</blockquote>
+<h3 id="3_1">任务 3：目录与文件操作</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>mkdir<span class="w"> </span>projects<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span>projects<span class="w">    </span><span class="c1"># 建目录进入</span>
+touch<span class="w"> </span>a.c<span class="w"> </span>b.c<span class="w">                    </span><span class="c1"># 建两个空文件</span>
+cp<span class="w"> </span>a.c<span class="w"> </span>a.c.bak<span class="w">                   </span><span class="c1"># 复制</span>
+mkdir<span class="w"> </span>backup<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>cp<span class="w"> </span>-r<span class="w"> </span>a.c.bak<span class="w"> </span>backup/<span class="w">   </span><span class="c1"># 复制到目录（注意 -r）</span>
+mv<span class="w"> </span>a.c.bak<span class="w"> </span>renamed.c<span class="w">             </span><span class="c1"># 移动=重命名</span>
+find<span class="w"> </span>/home<span class="w"> </span>-name<span class="w"> </span><span class="s2">"*.c"</span><span class="w">           </span><span class="c1"># 全盘找自己写的 C 源码</span>
+ln<span class="w"> </span>-s<span class="w"> </span>/etc/passwd<span class="w"> </span>mypasswd<span class="w">       </span><span class="c1"># 建软链接，cat mypasswd 即可读</span>
+<span class="nb">cd</span><span class="w"> </span>..<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>rmdir<span class="w"> </span>projects<span class="w">          </span><span class="c1"># 删除空目录（有内容时用 rm -rf）</span>
+</code></pre></div></div>
+
+<h3 id="4_1">任务 4：权限实验</h3>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>chmod<span class="w"> </span><span class="m">755</span><span class="w"> </span>script.sh<span class="w">      </span><span class="c1"># 让脚本可执行</span>
+chmod<span class="w"> </span><span class="m">644</span><span class="w"> </span>file.txt<span class="w">       </span><span class="c1"># 恢复普通只读权限</span>
+chown<span class="w"> </span>myth:myth<span class="w"> </span>file.txt<span class="w"> </span><span class="c1"># 改变属主属组</span>
+ls<span class="w"> </span>-l<span class="w">                    </span><span class="c1"># 查看权限位变化</span>
+<span class="c1"># 对比：所有者 rwx、组 r-x、其他 r-x，逐位对应 r=4 w=2 x=1</span>
+</code></pre></div></div>
+
+<h3 id="5">任务 5：压缩打包</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>tar<span class="w"> </span>-czvf<span class="w"> </span>mybackup.tar.gz<span class="w"> </span>/etc<span class="w">          </span><span class="c1"># 把配置目录打包压缩</span>
+tar<span class="w"> </span>-tzvf<span class="w"> </span>mybackup.tar.gz<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w">        </span><span class="c1"># 查看包内容</span>
+tar<span class="w"> </span>-xzvf<span class="w"> </span>mybackup.tar.gz<span class="w"> </span>-C<span class="w"> </span>/tmp/restore<span class="w"> </span><span class="c1"># 解压到指定目录</span>
+</code></pre></div></div>
+
+<hr />
+<h2 id="_3">四、常见问题与排查</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>现象</th>
+<th>原因</th>
+<th>解决</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>umount</code> 报 <code>device is busy</code></td>
+<td>还有进程在使用该挂载点（如 shell 的当前目录在里面）</td>
+<td><code>cd</code> 离开该目录后再卸载；<code>lsof /mnt/data</code> 看占用进程</td>
+</tr>
+<tr>
+<td>新加的磁盘在系统里看不到内容</td>
+<td>只加了盘没走完"分区→格式化→挂载"三关</td>
+<td><code>lsblk</code> 检查；分区用 <code>fdisk</code>，格式化 <code>mkfs.ext4</code>，再 <code>mount</code></td>
+</tr>
+<tr>
+<td>挂载的分区重启后又消失了</td>
+<td>mount 是临时挂载</td>
+<td>把挂载项写入 <code>/etc/fstab</code>：<code>/dev/sdb1 /mnt/data ext4 defaults 0 0</code></td>
+</tr>
+<tr>
+<td>硬链接创建报错</td>
+<td>试图跨文件系统或对目录建硬链接</td>
+<td>换软链接 <code>ln -s</code></td>
+</tr>
+<tr>
+<td><code>rm -rf</code> 删错东西</td>
+<td>手滑/路径写错——<strong>这是 Linux 最经典的翻车现场</strong></td>
+<td>无解，养成习惯：删除前先 <code>ls</code> 确认、用 <code>rm -i</code> 交互确认、重要目录先备份</td>
+</tr>
+<tr>
+<td><code>find /</code> 权限报错刷屏</td>
+<td>普通用户无权限访问其他用户目录</td>
+<td>用 <code>find / -name xxx 2&gt;/dev/null</code> 丢弃错误输出</td>
+</tr>
+<tr>
+<td><code>kill -9</code> 杀不掉进程</td>
+<td>进程处于不可中断的 D 状态（如等待 IO）</td>
+<td>等 IO 完成或重启系统；平时优先 <code>kill</code> / <code>kill -15</code></td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="_4">五、面试速答卡</h2>
+<ul>
+<li><strong>Linux 的设计哲学</strong>：一切皆文件 + 短小命令通过管道/重定向组合</li>
+<li><strong>文件权限 rwx 对应数字</strong>：r=4、w=2、x=1，<code>chmod 755</code>=所有者全权限、组和其他人只读+执行</li>
+<li><strong>硬链接和软链接区别</strong>：硬链接共享 inode 删源文件不影响；软链接是指向路径的快捷方式，源文件消失即失效；软链接可跨文件系统</li>
+<li><strong>磁盘使用四步骤</strong>：分区（fdisk）→ 格式化（mkfs.ext4）→ 挂载（mount）→ 使用；写 /etc/fstab 才永久生效</li>
+<li><strong>df 和 du 的区别</strong>：df 看整个文件系统的用量（宏观、含已删但被占用的空间），du 看具体目录文件占用（微观）</li>
+<li><strong>kill 和 kill -9 区别</strong>：kill 默认发 SIGTERM(15) 让程序自己清理退出；kill -9 发 SIGKILL 直接强杀，可能丢数据</li>
+<li><strong>tar -czvf 各字母含义</strong>：c=创建、z=gzip 压缩、v=显示过程、f=指定文件名；解压为 -xzvf</li>
+<li><strong>为什么挂载点必须是空目录</strong>：mount 会把原目录内容暂时隐藏，非空目录挂载后原文件不可见（数据不丢）</li>
+</ul></div>
+      <div class="post-nav"><a class="pn-item prev" href="linux-ji-chu-an-zhuang-yu-xi-tong-pei-zhi.html"><span>← 上一篇</span><strong>Linux 基础：安装与系统配置</strong></a><a class="pn-item next" href="linux-ji-chu-yong-hu-quan-xian-yu-ruan-jian-guan-li.html"><span>下一篇 →</span><strong>Linux 基础：用户权限与软件管理</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#linux" class="toc-lv2">一、概述：Linux 的命令行哲学</a><a href="#_1" class="toc-lv2">二、核心命令速查</a><a href="#1" class="toc-lv3">1. 用户与系统命令</a><a href="#2" class="toc-lv3">2. 目录与文件操作</a><a href="#3" class="toc-lv3">3. 磁盘管理全流程（实验核心）</a><a href="#4" class="toc-lv3">4. 权限管理</a><a href="#5-ln-vs" class="toc-lv3">5. 链接：ln（软链接 vs 硬链接，高频考点）</a><a href="#6" class="toc-lv3">6. 压缩打包</a><a href="#_2" class="toc-lv2">三、实操流程（按实验主线走一遍）</a><a href="#1_1" class="toc-lv3">任务 1：用户切换与进程管理</a><a href="#2_1" class="toc-lv3">任务 2：给系统加一块新硬盘（从裸盘到使用）</a><a href="#3_1" class="toc-lv3">任务 3：目录与文件操作</a><a href="#4_1" class="toc-lv3">任务 4：权限实验</a><a href="#5" class="toc-lv3">任务 5：压缩打包</a><a href="#_3" class="toc-lv2">四、常见问题与排查</a><a href="#_4" class="toc-lv2">五、面试速答卡</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

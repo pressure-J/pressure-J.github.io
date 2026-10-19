@@ -1,37 +1,77 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Webshell 上传与加密隧道流量分析</title>
-<meta name="description" content="还原一条完整的入侵链：端口扫描 → Web 路径探活 → 上传 Webshell → 加载 PHP 后门框架 → 添加后门用户，以及如何从加密流量中识别隧道特征。">
-<link rel="stylesheet" href="../style.css">
+<title>Webshell上传与加密隧道分析WriteUp · pressure-J</title>
+<meta name="description" content="某日凌晨，某重点单位网络安全设备突然触发告警，检测到内网流量异常。安全团队紧急响应，发现一台核心服务器疑似被攻击者横向渗透，并通过加密隧道进行通信和数据传输。安全设备完整捕获了攻击过程的流量（文件：流量分析.pcapng）。">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/webshell-encrypted-tunnel.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Webshell上传与加密隧道分析WriteUp · pressure-J">
+<meta property="og:description" content="某日凌晨，某重点单位网络安全设备突然触发告警，检测到内网流量异常。安全团队紧急响应，发现一台核心服务器疑似被攻击者横向渗透，并通过加密隧道进行通信和数据传输。安全设备完整捕获了攻击过程的流量（文件：流量分析.pcapng）。">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
 </head>
-<body>
-<header>
-  <div class="wrap">
-    <a class="logo" href="../index.html">pressure-J<span>.</span></a>
-    <nav>
-      <a href="../index.html">首页</a>
-      <a href="../posts.html">文章</a>
-      <a href="https://github.com/pressure-J">GitHub</a>
-    </nav>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
   </div>
 </header>
-
-<div class="wrap">
-  <div class="post-head">
-    <h1>Webshell 上传与加密隧道流量分析</h1>
-    <div class="meta"><span class="cat">应急响应</span>2026-07-08</div>
-  </div>
-  <div class="content">
-<h1 id="writeup">流量分析 WriteUp</h1>
-<h2 id="_1">题目信息</h2>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/ir.html">应急响应</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>Webshell上传与加密隧道分析WriteUp</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-ir">应急响应</span>
+          <time datetime="2026-07-08">2026-07-08</time>
+          <span>2892 字</span>
+          <span>约 8 分钟</span>
+        </div>
+        <div class="chips post-tags"><span class="chip">应急响应</span><span class="chip">流量分析</span><span class="chip">Webshell</span><span class="chip">WriteUp</span></div>
+      </header>
+      <div class="content"><h2 id="_1">题目信息</h2>
 <p>某日凌晨，某重点单位网络安全设备突然触发告警，检测到内网流量异常。安全团队紧急响应，发现一台核心服务器疑似被攻击者横向渗透，并通过加密隧道进行通信和数据传输。安全设备完整捕获了攻击过程的流量（文件：流量分析.pcapng）。</p>
 <p><strong>目标</strong>：找到攻击者添加的后门用户名称，flag 格式为 <code>flag{后门用户名称}</code></p>
 <hr />
 <h2 id="_2">攻击路径总览</h2>
-<div class="highlight"><pre><span></span><code>攻击者 192.168.1.100
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>攻击者 192.168.1.100
     │
     ├─ 步骤1: 端口扫描 (发现 192.168.1.200:8022)
     │
@@ -50,13 +90,13 @@
     │   └─ back.exe            ← 启动加密隧道
     │
     └─ 步骤6: 加密隧道通信 (数据传输)
-</code></pre></div>
+</code></pre></div></div>
 
 <hr />
 <h2 id="_3">详细分析过程</h2>
 <h3 id="1">1. 流量概览</h3>
 <p>使用 <code>tshark</code> 或 <code>scapy</code> 读取 pcapng 文件：</p>
-<table>
+<div class="table-wrap"><table>
 <thead>
 <tr>
 <th>统计项</th>
@@ -81,7 +121,7 @@
 <td>8022 (Apache/2.4.39 + PHP/7.3.4)</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <h3 id="2">2. 发现扫描行为</h3>
 <p>攻击者 IP <code>192.168.1.100</code> 对 <code>192.168.1.200</code> 进行了全端口扫描：</p>
 <ul>
@@ -91,14 +131,14 @@
 </ul>
 <h3 id="3-webshell">3. 定位 Webshell 上传</h3>
 <p>在 TCP Stream 中发现攻击者通过 <code>/upload.php</code> 上传了文件：</p>
-<div class="highlight"><pre><span></span><code>POST /upload.php HTTP/1.1
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>POST /upload.php HTTP/1.1
 Host: 192.168.1.200:8022
 Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryte9SAVO9MO1ENwOe
 Referer: http://192.168.1.98:8022/upload.php
-</code></pre></div>
+</code></pre></div></div>
 
 <p>上传的文件为 <strong><code>w.php</code></strong>，这是一个加密 Webshell：</p>
-<div class="highlight"><pre><span></span><code><span class="cp">&lt;?php</span>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="cp">&lt;?php</span>
 <span class="o">@</span><span class="nb">session_start</span><span class="p">();</span>
 <span class="o">@</span><span class="nb">set_time_limit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
 <span class="o">@</span><span class="nb">error_reporting</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
@@ -112,37 +152,37 @@ Referer: http://192.168.1.98:8022/upload.php
 <span class="nv">$pass</span><span class="o">=</span><span class="s1">'gg'</span><span class="p">;</span>
 <span class="nv">$payloadName</span><span class="o">=</span><span class="s1">'payload'</span><span class="p">;</span>
 <span class="nv">$key</span><span class="o">=</span><span class="s1">'3c6e0b8a9c15224a'</span><span class="p">;</span>
-</code></pre></div>
+</code></pre></div></div>
 
-<p><strong>Webshell 特征</strong>：
-- 密码：<code>gg</code>
-- 加密方式：XOR + Base64 双层加密
-- XOR 密钥：<code>3c6e0b8a9c15224a</code>
+<p><strong>Webshell 特征</strong>：<br />
+- 密码：<code>gg</code><br />
+- 加密方式：XOR + Base64 双层加密<br />
+- XOR 密钥：<code>3c6e0b8a9c15224a</code><br />
 - 上传来源 IP：<code>192.168.1.98</code>（可能是攻击者的跳板机）</p>
 <h3 id="4-webshell">4. Webshell 通信分析</h3>
 <p>上传成功后，生成的 Webshell 路径为：</p>
-<div class="highlight"><pre><span></span><code>/uploads/php_68525da04b2c37.31016234.php
-</code></pre></div>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>/uploads/php_68525da04b2c37.31016234.php
+</code></pre></div></div>
 
-<p>Webshell 通信数据流：
-1. <strong>首次请求</strong>：发送的 <code>gg=</code> 参数包含 PHP eval 框架代码（~40000 字符），存储在 Session 中
+<p>Webshell 通信数据流：<br />
+1. <strong>首次请求</strong>：发送的 <code>gg=</code> 参数包含 PHP eval 框架代码（~40000 字符），存储在 Session 中<br />
 2. <strong>后续请求</strong>：每次发送加密后的 <code>methodName</code> + 参数，服务端 eval 执行后返回 gzip 压缩结果</p>
 <p><strong>响应格式</strong>：</p>
-<div class="highlight"><pre><span></span><code>echo substr(md5($pass.$key),0,16);  // md5("gg3c6e0b8a9c15224a") 前16位 = "d5c17b7d4d3e3f71"
+<div class="code-block" data-lang="php"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>echo substr(md5($pass.$key),0,16);  // md5("gg3c6e0b8a9c15224a") 前16位 = "d5c17b7d4d3e3f71"
 echo base64_encode(encode($data,$key));
-</code></pre></div>
+</code></pre></div></div>
 
 <h3 id="5">5. 解密执行命令</h3>
 <p>使用 Python + Scapy 编写解密脚本，提取 <code>gg=</code> 参数并：</p>
-<div class="highlight"><pre><span></span><code>1. URL Decode
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>1. URL Decode
 2. 修正 Base64 填充（%4 == 1 时截断）
 3. Base64 解码
 4. XOR 解密（key = "3c6e0b8a9c15224a", 从 key[1] 开始循环）
 5. 前 2 字节为 0x1f8b 时，Gzip 解压
-</code></pre></div>
+</code></pre></div></div>
 
 <p><strong>解密后的关键命令</strong>：</p>
-<table>
+<div class="table-wrap"><table>
 <thead>
 <tr>
 <th>Stream</th>
@@ -187,17 +227,17 @@ echo base64_encode(encode($data,$key));
 <td>启动加密隧道程序</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <h3 id="6">6. 加密隧道</h3>
 <p>攻击者在创建后门用户后，运行了 <code>back.exe</code> 程序，用于建立加密隧道进行后续的数据传输。TCP Stream 中出现大量 <code>1460</code> 字节的数据包（TCP MSS 最大分段），呈现加密流量的典型特征。</p>
 <hr />
 <h2 id="flag">Flag</h2>
-<div class="highlight"><pre><span></span><code>flag{hacker-gg}
-</code></pre></div>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>flag{hacker-gg}
+</code></pre></div></div>
 
 <hr />
 <h2 id="_4">总结</h2>
-<table>
+<div class="table-wrap"><table>
 <thead>
 <tr>
 <th>攻击阶段</th>
@@ -227,16 +267,48 @@ echo base64_encode(encode($data,$key));
 <td>大量 1460 字节 TCP 数据包</td>
 </tr>
 </tbody>
-</table>
-<p><strong>关键证据链</strong>：扫描 → 上传 ➔ 命令执行 ➔ 后门创建 ➔ 加密隧道，完整还原了攻击者的整个攻击路径。</p>
+</table></div>
+<p><strong>关键证据链</strong>：扫描 → 上传 ➔ 命令执行 ➔ 后门创建 ➔ 加密隧道，完整还原了攻击者的整个攻击路径。</p></div>
+      <div class="post-nav"><a class="pn-item prev" href="sql-zhu-ru-dns-wai-dai-shu-ju-writeup.html"><span>← 上一篇</span><strong>SQL注入DNS外带数据WriteUp</strong></a><a class="pn-item next" href="windows-rdp-bruteforce-log.html"><span>下一篇 →</span><strong>Windows安全日志分析-RDP暴力破解</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
   </div>
-</div>
-
-<footer>
-  <div class="wrap">
-    <div>&copy; 2026 pressure-J · 网络安全方向</div>
-    <div><a href="https://github.com/pressure-J">GitHub</a></div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">题目信息</a><a href="#_2" class="toc-lv2">攻击路径总览</a><a href="#_3" class="toc-lv2">详细分析过程</a><a href="#1" class="toc-lv3">1. 流量概览</a><a href="#2" class="toc-lv3">2. 发现扫描行为</a><a href="#3-webshell" class="toc-lv3">3. 定位 Webshell 上传</a><a href="#4-webshell" class="toc-lv3">4. Webshell 通信分析</a><a href="#5" class="toc-lv3">5. 解密执行命令</a><a href="#6" class="toc-lv3">6. 加密隧道</a><a href="#flag" class="toc-lv2">Flag</a><a href="#_4" class="toc-lv2">总结</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
   </div>
 </footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
 </body>
 </html>

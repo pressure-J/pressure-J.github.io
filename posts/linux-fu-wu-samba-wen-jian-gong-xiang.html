@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Linux 服务：Samba 文件共享 · pressure-J</title>
+<meta name="description" content="Samba 是什么：在 Linux 上实现 SMB/CIFS 协议的开源软件，让 Linux 可以无缝参与 Windows 局域网资源共享。SMB 协议（Server Message Block）可看作局域网上共享文件和打印机的一种…">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/linux-fu-wu-samba-wen-jian-gong-xiang.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Linux 服务：Samba 文件共享 · pressure-J">
+<meta property="og:description" content="Samba 是什么：在 Linux 上实现 SMB/CIFS 协议的开源软件，让 Linux 可以无缝参与 Windows 局域网资源共享。SMB 协议（Server Message Block）可看作局域网上共享文件和打印机的一种…">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/linux.html">Linux</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>Linux 服务：Samba 文件共享</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-linux">Linux</span>
+          <time datetime="2026-08-28">2026-08-28</time>
+          <span>4697 字</span>
+          <span>约 12 分钟</span>
+        </div>
+        
+      </header>
+      <div class="content"><blockquote>
+<p>来源：课程实验（Linux操作系统，CentOS 8.3，2025-2026 第一学期），老师版PDF为底料<br />
+定位：Windows 与 Linux 混合环境下的文件/打印机共享主力服务。运维中常用于内网文件服务器的搭建；安全角度上，Samba 是内网横向渗透的高价值目标（弱口令暴破、永恒之蓝 SMB 漏洞、匿名共享数据泄露），应急响应常需排查 /etc/samba/smb.conf 是否被篡改、是否有异常共享。</p>
+</blockquote>
+<hr />
+<h2 id="_1">一、概念与原理</h2>
+<p><strong>Samba 是什么</strong>：在 Linux 上实现 SMB/CIFS 协议的开源软件，让 Linux 可以无缝参与 Windows 局域网资源共享。SMB 协议（Server Message Block）可看作局域网上共享文件和打印机的一种协议。</p>
+<p><strong>应用环境</strong>：<br />
+- 文件和打印机共享：Samba 的主要功能<br />
+- 身份验证和权限设置<br />
+- 名称解析：通过 nmbd 服务搭建 NBNS（NetBIOS Name Service）服务器<br />
+- 浏览服务：Samba 服务器可成为本地主浏览服务器（LMB）</p>
+<p><strong>两大进程</strong>：Samba 服务由 <strong>nmbd</strong>（NetBIOS 名称解析）和 <strong>smbd</strong>（文件/打印共享）两个进程组成。</p>
+<p><strong>访问的四步握手（面试常问）</strong>：<br />
+| 步骤 | 报文指令 | 说明 |<br />
+|---|---|---|<br />
+| ① 协议协商 | negprot | 客户端告知自己支持的 SMB 类型，服务器选择最优 SMB 版本回应 |<br />
+| ② 建立连接 | session setup | 客户端提交账号密码，通过验证后服务器为用户分配唯一 <strong>UID</strong> |<br />
+| ③ 访问共享 | tree connect | 服务器为每个"客户端-共享资源"连接分配 <strong>TID</strong>，客户端开始访问 |<br />
+| ④ 断开连接 | tree disconnect | 使用完毕客户端主动关闭共享连接 |</p>
+<p><strong>端口</strong>：139（SMB over NetBIOS）、445（SMB over TCP，现代 Windows 主力）、137/138（NetBIOS 名称解析）。</p>
+<p><strong>配置文件位置</strong>：主配置文件 <code>/etc/samba/smb.conf</code>（日志文件、共享定义、权限均在此），用户数据库由 tdbsam 后端管理（<code>smbpasswd</code> 命令维护）。</p>
+<p><strong>配置工作流程</strong>：编辑 smb.conf 指定共享目录及共享权限 → 指定日志文件 → 设置共享目录的<strong>本地系统权限</strong> → 重新加载/重启服务 → 放行防火墙、处理 SELinux。</p>
+<hr />
+<h2 id="_2">二、环境准备与安装</h2>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>dnf<span class="w"> </span>install<span class="w"> </span>samba<span class="w"> </span>-y<span class="w">              </span><span class="c1"># 安装</span>
+sudo<span class="w"> </span>rpm<span class="w"> </span>-qa<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>samba<span class="w">              </span><span class="c1"># 检查安装组件</span>
+sudo<span class="w"> </span>systemctl<span class="w"> </span>start<span class="w"> </span>smb<span class="w">               </span><span class="c1"># 注意服务名是 smb 不是 samba</span>
+sudo<span class="w"> </span>systemctl<span class="w"> </span><span class="nb">enable</span><span class="w"> </span>smb<span class="w">              </span><span class="c1"># 开机自启</span>
+sudo<span class="w"> </span>cp<span class="w"> </span>/etc/samba/smb.conf<span class="w"> </span>/etc/samba/smb.conf.bak<span class="w">   </span><span class="c1"># 先备份主配置文件</span>
+sudo<span class="w"> </span>cat<span class="w"> </span>/etc/samba/smb.conf<span class="w">           </span><span class="c1"># 查看默认内容（~706 字节）</span>
+</code></pre></div></div>
+
+<p>默认 smb.conf 关键内容：<code>[global]</code> 中 <code>workgroup = SAMBA</code>、<code>security = user</code>（默认用户级安全）、<code>passdb backend = tdbsam</code>，另有 <code>[homes]</code>（用户家目录共享）、<code>[printers]</code>、<code>[print$]</code> 三个内置段。</p>
+<hr />
+<h2 id="_3">三、配置详解（重点）</h2>
+<h3 id="31">3.1 匿名访问方式</h3>
+<p>需求：共享目录 /share（共享名 public），全员可下载、禁止上传。</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>mkdir<span class="w"> </span>/share
+sudo<span class="w"> </span>touch<span class="w"> </span>/share/test_share.tar
+sudo<span class="w"> </span>chmod<span class="w"> </span><span class="m">777</span><span class="w"> </span>/share<span class="w"> </span>-R<span class="w">              </span><span class="c1"># 本地系统权限也要放开</span>
+sudo<span class="w"> </span>vim<span class="w"> </span>/etc/samba/smb.conf
+</code></pre></div></div>
+
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="k">[global]</span>
+<span class="w">        </span><span class="na">map to guest</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">bad user</span><span class="w">        </span><span class="c1"># 匿名用户映射为 guest，实现匿名访问</span>
+
+<span class="k">[public]</span>
+<span class="w">        </span><span class="na">comment</span><span class="o">=</span><span class="s">public</span>
+<span class="w">        </span><span class="na">path</span><span class="o">=</span><span class="s">/share</span>
+<span class="w">        </span><span class="na">guest ok</span><span class="o">=</span><span class="s">yes</span><span class="w">                   </span><span class="c1"># 允许匿名（guest）访问</span>
+<span class="w">        </span><span class="na">browseable</span><span class="o">=</span><span class="s">yes</span><span class="w">                 </span><span class="c1"># 客户端可见该共享</span>
+<span class="w">        </span><span class="na">public</span><span class="o">=</span><span class="s">yes</span><span class="w">                     </span><span class="c1"># 等同 guest ok = yes</span>
+<span class="w">        </span><span class="na">read only</span><span class="o">=</span><span class="s">yes</span><span class="w">                  </span><span class="c1"># 只读，禁止上传</span>
+</code></pre></div></div>
+
+<h3 id="32">3.2 用户访问方式</h3>
+<p>需求：销售部资料放 /companydata/sales，仅销售组可写。要点：<strong>Samba 账号不能直接建立，必须先建立同名 Linux 系统账号</strong>。</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span>/companydata/sales
+sudo<span class="w"> </span>touch<span class="w"> </span>/companydata/sales/test_share.tar
+sudo<span class="w"> </span>groupadd<span class="w"> </span>sales<span class="w">                    </span><span class="c1"># 建立销售组</span>
+sudo<span class="w"> </span>useradd<span class="w"> </span>-g<span class="w"> </span>sales<span class="w"> </span>sale1<span class="w">            </span><span class="c1"># 用户属于 sales 组</span>
+sudo<span class="w"> </span>useradd<span class="w"> </span>-g<span class="w"> </span>sales<span class="w"> </span>sale2
+sudo<span class="w"> </span>useradd<span class="w"> </span>test_user1<span class="w">                </span><span class="c1"># 对照组：不属于 sales 组</span>
+sudo<span class="w"> </span>passwd<span class="w"> </span>sale1<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>sudo<span class="w"> </span>passwd<span class="w"> </span>sale2
+sudo<span class="w"> </span>smbpasswd<span class="w"> </span>-a<span class="w"> </span>sale1<span class="w">                </span><span class="c1"># 添加 samba 账号（smbpasswd -a）</span>
+sudo<span class="w"> </span>smbpasswd<span class="w"> </span>-a<span class="w"> </span>sale2
+sudo<span class="w"> </span>chmod<span class="w"> </span><span class="m">770</span><span class="w"> </span>/companydata/sales<span class="w"> </span>-R<span class="w">   </span><span class="c1"># 本地权限：组内可读写</span>
+sudo<span class="w"> </span>chown<span class="w"> </span>:sales<span class="w"> </span>/companydata/sales<span class="w"> </span>-R
+</code></pre></div></div>
+
+<div class="code-block" data-lang="ini"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="k">[global]</span>
+<span class="w">        </span><span class="na">workgroup</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">Workgroup</span>
+<span class="w">        </span><span class="na">server string</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">File Server</span>
+
+<span class="k">[sales]</span>
+<span class="w">        </span><span class="na">comment</span><span class="o">=</span><span class="s">sales</span>
+<span class="w">        </span><span class="na">path</span><span class="o">=</span><span class="s">/companydata/sales</span>
+<span class="w">        </span><span class="na">writable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">yes</span>
+<span class="w">        </span><span class="na">browseable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">yes</span>
+<span class="w">        </span><span class="na">valid users</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">@sales</span><span class="w">           </span><span class="c1"># @前缀表示组，仅 sales 组成员可访问</span>
+</code></pre></div></div>
+
+<h3 id="33">3.3 高级配置</h3>
+<p><strong>① 用户账号映射</strong>（虚拟账号登录，隐藏真实系统账号名）：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="k">[global]</span>
+<span class="w">        </span><span class="na">username map</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">/etc/samba/smbusers</span>
+</code></pre></div></div>
+
+<p><code>/etc/samba/smbusers</code> 写入：</p>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>sale1=suser1 myuser1
+sale2=suser2
+</code></pre></div></div>
+
+<p>客户端只需输入 suser1 即可访问，实际对应 sale1，防止真实账号泄露。</p>
+<p><strong>② 客户端访问控制</strong>（禁止 192.168.137.0/24 网段访问但放行 .1）：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="k">[sales]</span>
+<span class="w">        </span><span class="na">hosts deny</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">192.168.137.</span>
+<span class="w">        </span><span class="na">hosts allow</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">192.168.137.1</span>
+</code></pre></div></div>
+
+<p>注意：配置了访问控制后，连本机 localhost 都可能无法测试，需用同网段真实机器验证。</p>
+<p><strong>③ 打印共享</strong>（了解）：<code>[printers]</code> 段 <code>path=/var/spool/samba</code>、<code>writable=no</code>、<code>guest ok=yes</code>，并安装 CUPS（<code>dnf install cups</code>）。</p>
+<h3 id="34">3.4 放行与生效</h3>
+<div class="code-block" data-lang="ini"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>firewall-cmd<span class="w"> </span>--permanent<span class="w"> </span>--add-service<span class="o">=</span>samba<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>sudo<span class="w"> </span>firewall-cmd<span class="w"> </span>--reload
+sudo<span class="w"> </span>setenforce<span class="w"> </span><span class="m">0</span><span class="w">                      </span><span class="c1"># 实验环境关闭 SELinux（生产建议按第六节处理）</span>
+sudo<span class="w"> </span>systemctl<span class="w"> </span>restart<span class="w"> </span>smb<span class="w">             </span><span class="c1"># 或 systemctl reload smb 热加载</span>
+</code></pre></div></div>
+
+<hr />
+<h2 id="_4">四、客户端验证</h2>
+<p><strong>Windows</strong>：资源管理器地址栏输入 <code>\\192.168.137.4</code>（IP 用 <code>ip a</code> 查自己虚拟机的），匿名模式用户名填 <code>Anonymous</code>、密码留空；也可右键"添加一个网络位置"映射网络驱动器，像本地盘一样访问。</p>
+<p><strong>Linux</strong>：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>dnf<span class="w"> </span>install<span class="w"> </span>samba-client<span class="w"> </span>cifs-utils<span class="w"> </span>-y
+sudo<span class="w"> </span>smbclient<span class="w"> </span>//192.168.137.4/public<span class="w"> </span>-U<span class="w"> </span>Anonymous<span class="w">   </span><span class="c1"># 浏览测试，进入 smb: \&gt; 交互界面</span>
+sudo<span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span>/home/myth/linuxcourse/samba/public
+sudo<span class="w"> </span>mount<span class="w"> </span>-t<span class="w"> </span>cifs<span class="w"> </span>//192.168.137.4/public<span class="w"> </span>/home/myth/linuxcourse/samba/public<span class="w"> </span>-o<span class="w"> </span><span class="nv">username</span><span class="o">=</span>Anonymous
+</code></pre></div></div>
+
+<hr />
+<h2 id="pdf">五、常见问题与排查（老师PDF里的坑）</h2>
+<ol>
+<li><strong>Windows 10/11 匿名访问失败</strong>：提示"你不能访问此共享文件夹"。原因：新版 Windows 默认禁用匿名来宾访问。解决：<code>gpedit.msc</code> → 计算机配置 → 管理模板 → 网络 → Lanman 工作站 → 启用"<strong>启用不安全的来宾登录</strong>"，重启后再测。</li>
+<li><strong>多账号连接冲突</strong>：Windows 提示"不允许同一用户使用不同用户名同时连接"。解决：<code>net use</code> 查看连接，<code>net use * /delete</code> 全部断开，或用 <code>net use \\servername\sharename /delete</code> 断开指定连接后重连。</li>
+<li><strong>权限不生效</strong>：Samba 共享权限与文件系统权限是<strong>叠加关系</strong>，两边都要放开（共享里 writable=yes、系统里 chmod/chown 也要对）。</li>
+<li><strong>访问不了先查防火墙和 SELinux</strong>：<code>firewall-cmd --list-all</code> 确认 samba 服务放行；<code>getenforce</code> 查看状态。</li>
+</ol>
+<hr />
+<h2 id="_5">六、安全加固要点</h2>
+<ul>
+<li><strong>默认 <code>security = user</code></strong>，不要随意开放 guest；只有需要公开下载的目录才用匿名共享，且必须 <code>read only = yes</code>。</li>
+<li><strong>匿名共享风险</strong>：全员可读=敏感数据泄露面。生产环境把共享目录放到独立分区、按部门分割（valid users 限定组），避免 <code>chmod 777</code>，用 770 + 属组控制。</li>
+<li><strong>弱口令暴破</strong>：smbpasswd 密码独立于系统密码，复杂度要求要落地；配合 <code>fail2ban</code> 封禁反复认证失败 IP；关注永恒之蓝（MS17-010，445端口）类 SMB 漏洞补丁。</li>
+<li><strong>账号映射</strong>（username map）隐藏真实系统账号名，降低被针对性利用的风险。</li>
+<li><strong>客户端访问控制</strong>：<code>hosts allow</code> 只放行办公网段，杜绝公网直接访问 445。</li>
+<li><strong>SELinux</strong>：生产建议开启 Enforcing 并放行 <code>samba_*</code> 布尔值，而不是 <code>setenforce 0</code> 一刀切。</li>
+<li>日志审计：日志文件位置在 smb.conf 指定，常查异常登录与访问记录；应急响应时核对是否有新增的恶意共享段。</li>
+</ul>
+<hr />
+<h2 id="_6">七、面试速答卡</h2>
+<ul>
+<li><strong>Samba 是什么</strong>：Linux 上实现 SMB/CIFS 协议的开源软件，用于跨 Windows/Linux 的文件与打印机共享。</li>
+<li><strong>smbd 和 nmbd 区别</strong>：smbd 提供文件/打印共享与认证，nmbd 负责 NetBIOS 名称解析和浏览服务。</li>
+<li><strong>访问 Samba 的四步协议流程</strong>：negprot 协议协商 → session setup 建立连接（分配UID）→ tree connect 访问共享（分配TID）→ tree disconnect 断开。</li>
+<li><strong>匿名共享的关键参数</strong>：<code>map to guest = bad user</code> + <code>guest ok = yes</code>/<code>public = yes</code>，且目录文件系统权限要放开。</li>
+<li><strong>Samba 账号与系统账号关系</strong>：先建同名 Linux 系统账号，再用 <code>smbpasswd -a</code> 添加 Samba 账号，两者密码相互独立。</li>
+<li><strong>Samba 常用端口</strong>：445（SMB）、139（NetBIOS over SMB）、137/138（名称解析）。</li>
+</ul></div>
+      <div class="post-nav"><a class="pn-item prev" href="linux-jin-jie-nei-he-bian-yi-yu-nei-he-mo-kuai.html"><span>← 上一篇</span><strong>Linux 进阶：内核编译与内核模块</strong></a><a class="pn-item next" href="linux-ji-chu-an-zhuang-yu-xi-tong-pei-zhi.html"><span>下一篇 →</span><strong>Linux 基础：安装与系统配置</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">一、概念与原理</a><a href="#_2" class="toc-lv2">二、环境准备与安装</a><a href="#_3" class="toc-lv2">三、配置详解（重点）</a><a href="#31" class="toc-lv3">3.1 匿名访问方式</a><a href="#32" class="toc-lv3">3.2 用户访问方式</a><a href="#33" class="toc-lv3">3.3 高级配置</a><a href="#34" class="toc-lv3">3.4 放行与生效</a><a href="#_4" class="toc-lv2">四、客户端验证</a><a href="#pdf" class="toc-lv2">五、常见问题与排查（老师PDF里的坑）</a><a href="#_5" class="toc-lv2">六、安全加固要点</a><a href="#_6" class="toc-lv2">七、面试速答卡</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

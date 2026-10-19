@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>基础 · pressure-J</title>
+<meta name="description" content="文件格式、编码、Wireshark 与工具链这些常年要查的">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/category/base.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="基础 · pressure-J">
+<meta property="og:description" content="文件格式、编码、Wireshark 与工具链这些常年要查的">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html">文章</a><a href="../category/index.html" class="on">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap section">
+  <nav class="breadcrumb"><a href="../index.html">首页</a><span>/</span>分类</nav>
+  <header class="page-head page-head-cat">
+    <h1><span class="cat-badge cat-base">基础</span> 6 篇</h1>
+    <p>文件格式、编码、Wireshark 与工具链这些常年要查的</p>
+  </header>
+  <div class="post-list"><article class="post-card" data-cat="base"
+     data-hay="文件基础与魔术字节 文件是计算机里存储数据的基本单位,本质就是磁盘上一段带名字的字节序列。 baseknown misc">
+  <div class="card-top">
+    <a class="cat-badge cat-base" href="../category/base.html">基础</a>
+    <time datetime="2026-09-22">2026-09-22</time>
+  </div>
+  <h3><a href="../posts/wen-jian-ji-chu-yu-mo-shu-zi-jie.html">文件基础与魔术字节</a></h3>
+  <p class="card-desc">文件是计算机里存储数据的基本单位,本质就是磁盘上一段带名字的字节序列。</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">baseknown</span><span class="chip">misc</span></div>
+    <span class="reading">19 min · 7128 字</span>
+  </div>
+</article><article class="post-card" data-cat="base"
+     data-hay="文本编码与乱码 计算机只存字节(0/1),不存&quot;字符&quot;。要让计算机认识 a、中、😀,必须有一套映射规则:字符 ↔ 字节序列。这套规则就叫字符编码(character encoding)。 baseknown misc">
+  <div class="card-top">
+    <a class="cat-badge cat-base" href="../category/base.html">基础</a>
+    <time datetime="2026-09-22">2026-09-22</time>
+  </div>
+  <h3><a href="../posts/wen-ben-bian-ma-yu-luan-ma.html">文本编码与乱码</a></h3>
+  <p class="card-desc">计算机只存字节(0/1),不存&quot;字符&quot;。要让计算机认识 A、中、😀,必须有一套映射规则:字符 ↔ 字节序列。这套规则就叫字符编码(Character Encoding)。</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">baseknown</span><span class="chip">misc</span></div>
+    <span class="reading">10 min · 3889 字</span>
+  </div>
+</article><article class="post-card" data-cat="base"
+     data-hay="wireshark使用与流量包分析基础 wireshark 是一个抓取/查看网络数据包的工具。数据在网络中按数据包(packet)传输,像一封封信。wireshark 能把这些包拆开,把三层内容全展示出来。 network">
+  <div class="card-top">
+    <a class="cat-badge cat-base" href="../category/base.html">基础</a>
+    <time datetime="2026-09-09">2026-09-09</time>
+  </div>
+  <h3><a href="../posts/wireshark-shi-yong-yu-liu-liang-bao-fen-xi-ji-chu.html">Wireshark使用与流量包分析基础</a></h3>
+  <p class="card-desc">Wireshark 是一个抓取/查看网络数据包的工具。数据在网络中按数据包(packet)传输,像一封封信。Wireshark 能把这些包拆开,把三层内容全展示出来。</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">network</span></div>
+    <span class="reading">5 min · 1987 字</span>
+  </div>
+</article><article class="post-card" data-cat="base"
+     data-hay="git 和 github 基础知识 git 是一个分布式版本控制系统，用于追踪文件的变更历史，支持多人协作开发。 ">
+  <div class="card-top">
+    <a class="cat-badge cat-base" href="../category/base.html">基础</a>
+    <time datetime="2026-08-31">2026-08-31</time>
+  </div>
+  <h3><a href="../posts/git-he-github-ji-chu-zhi-shi.html">Git 和 GitHub 基础知识</a></h3>
+  <p class="card-desc">Git 是一个分布式版本控制系统，用于追踪文件的变更历史，支持多人协作开发。</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">17 min · 6287 字</span>
+  </div>
+</article><article class="post-card" data-cat="base"
+     data-hay="技术栈与项目开发基础知识 技术栈（tech stack）＝ 构建一个项目时用到的所有技术工具的集合。可以理解为&quot;这个项目是用什么做出来的&quot;完整清单——编程语言、框架、数据库、服务器、第三方服务加起来，就是它的技术栈。 ">
+  <div class="card-top">
+    <a class="cat-badge cat-base" href="../category/base.html">基础</a>
+    <time datetime="2026-08-31">2026-08-31</time>
+  </div>
+  <h3><a href="../posts/ji-shu-zhan-yu-xiang-mu-kai-fa-ji-chu-zhi-shi.html">技术栈与项目开发基础知识</a></h3>
+  <p class="card-desc">技术栈（Tech Stack）＝ 构建一个项目时用到的所有技术工具的集合。可以理解为&quot;这个项目是用什么做出来的&quot;完整清单——编程语言、框架、数据库、服务器、第三方服务加起来，就是它的技术栈。</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">6 min · 2148 字</span>
+  </div>
+</article><article class="post-card" data-cat="base"
+     data-hay="kali工具的使用 nmap -sv &lt;目标主机或目标网段&gt; 查看服务版本（如80，22，3306等信息） import-d4ea">
+  <div class="card-top">
+    <a class="cat-badge cat-base" href="../category/base.html">基础</a>
+    <time datetime="2026-07-04">2026-07-04</time>
+  </div>
+  <h3><a href="../posts/kali-gong-ju-de-shi-yong.html">kali工具的使用</a></h3>
+  <p class="card-desc">nmap -sV &lt;目标主机或目标网段&gt; 查看服务版本（如80，22，3306等信息）</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">Import-d4ea</span></div>
+    <span class="reading">5 min · 1755 字</span>
+  </div>
+</article></div>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

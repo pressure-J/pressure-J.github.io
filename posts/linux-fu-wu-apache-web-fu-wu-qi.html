@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Linux 服务：Apache Web 服务器 · pressure-J</title>
+<meta name="description" content="WWW 与 HTTP：WWW 采用客户/服务器结构，浏览器（Chrome/Firefox 等）是 HTTP 客户端，Apache/IIS 是 HTTP 服务器软件。HTTP 默认端口 80（默认可省略），改其他端口（如 8080）必…">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/linux-fu-wu-apache-web-fu-wu-qi.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Linux 服务：Apache Web 服务器 · pressure-J">
+<meta property="og:description" content="WWW 与 HTTP：WWW 采用客户/服务器结构，浏览器（Chrome/Firefox 等）是 HTTP 客户端，Apache/IIS 是 HTTP 服务器软件。HTTP 默认端口 80（默认可省略），改其他端口（如 8080）必…">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/linux.html">Linux</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>Linux 服务：Apache Web 服务器</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-linux">Linux</span>
+          <time datetime="2026-08-28">2026-08-28</time>
+          <span>5568 字</span>
+          <span>约 15 分钟</span>
+        </div>
+        
+      </header>
+      <div class="content"><blockquote>
+<p>来源：课程实验（Linux操作系统，CentOS 8.3，2025-2026 第一学期，含 LAMP 与 WordPress 部署），老师版PDF为底料<br />
+定位：全球使用最广的开源 Web 服务器，运维中承载企业官网/业务系统，常与 PHP+MySQL 组成 LAMP 架构；安全角度上 Web 服务器是攻击面最大的入口，目录权限、虚拟主机隔离、上传漏洞、WebShell 都是笔试面试高频点。</p>
+</blockquote>
+<hr />
+<h2 id="_1">一、概念与原理</h2>
+<p><strong>WWW 与 HTTP</strong>：WWW 采用客户/服务器结构，浏览器（Chrome/Firefox 等）是 HTTP 客户端，Apache/IIS 是 HTTP 服务器软件。HTTP 默认端口 <strong>80</strong>（默认可省略），改其他端口（如 8080）必须写明：<code>http://www.smile.com:8080/</code>。</p>
+<p><strong>Apache HTTP Server</strong>：Apache 软件基金会维护的开源网页服务器，牢靠、可信，曾占据绝大多数热门站点。CentOS/RHEL 的服务名是 <strong>httpd</strong>，Ubuntu/Debian 是 apache2。</p>
+<p><strong>LAMP 架构</strong>：Linux + Apache + MySQL/MariaDB + PHP，Web 动态网站（如 WordPress 博客）的经典组合。Apache 负责接收 HTTP 请求，PHP 处理动态逻辑，MariaDB 存数据。</p>
+<p><strong>关键文件位置表</strong>：<br />
+| 内容 | 位置 |<br />
+|---|---|<br />
+| 服务目录 | /etc/httpd |<br />
+| 主配置文件 | /etc/httpd/conf/httpd.conf |<br />
+| 网站数据目录 | /var/www/html |<br />
+| 访问日志 | /var/log/httpd/access_log |<br />
+| 错误日志 | /var/log/httpd/error_log |</p>
+<p><strong>主配置常用参数</strong>：ServerRoot（服务目录）、ServerAdmin（管理员邮箱）、User/Group（运行服务用户/组）、ServerName（服务器域名）、<strong>DocumentRoot</strong>（文档根目录，默认 /var/www/html）、<strong>Directory</strong>（目录权限）、<strong>Listen</strong>（监听 IP:端口）、<strong>DirectoryIndex</strong>（默认首页，默认 index.html）、ErrorLog/CustomLog（错误/访问日志）、Timeout（超时，默认 300s）。</p>
+<hr />
+<h2 id="_2">二、环境准备与安装</h2>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>dnf<span class="w"> </span>install<span class="w"> </span>httpd<span class="w"> </span>-y
+sudo<span class="w"> </span>rpm<span class="w"> </span>-qa<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>httpd
+sudo<span class="w"> </span>systemctl<span class="w"> </span>start<span class="w"> </span>httpd<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>sudo<span class="w"> </span>systemctl<span class="w"> </span><span class="nb">enable</span><span class="w"> </span>httpd
+sudo<span class="w"> </span>firewall-cmd<span class="w"> </span>--permanent<span class="w"> </span>--add-service<span class="o">=</span>http<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>sudo<span class="w"> </span>firewall-cmd<span class="w"> </span>--reload
+sudo<span class="w"> </span>setenforce<span class="w"> </span><span class="m">0</span><span class="w">                </span><span class="c1"># 或 Permissive</span>
+</code></pre></div></div>
+
+<p>验证：浏览器访问虚拟机 IP（本机可 http://127.0.0.1），看到 Apache 测试页即成功。⚠️ <strong>setenforce 是临时的，重启后失效</strong>；想长期生效就改 <code>/etc/sysconfig/selinux</code>（SELINUX=Permissive 或 Enforcing）。</p>
+<p>默认首页替换（立即生效）：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>sh<span class="w"> </span>-c<span class="w"> </span><span class="s1">'echo "Welcome To MyWebSite" &gt; /var/www/html/index.html'</span>
+</code></pre></div></div>
+
+<hr />
+<h2 id="_3">三、配置详解（六大实例）</h2>
+<h3 id="31-1">3.1 实例1：设置文档根目录和首页</h3>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>mkdir<span class="w"> </span>/home/www
+sudo<span class="w"> </span>sh<span class="w"> </span>-c<span class="w"> </span><span class="s1">'echo "The Web'</span><span class="s2">"'"</span><span class="s1">'s DocumentRoot Test" &gt; /home/www/myweb.html'</span>
+sudo<span class="w"> </span>cp<span class="w"> </span>/etc/httpd/conf/httpd.conf<span class="w"> </span>/etc/httpd/conf/httpd.conf.bak
+</code></pre></div></div>
+
+<p>改 httpd.conf 三处：<code>DocumentRoot "/home/www"</code>、<code>&lt;Directory "/home/www"&gt;</code>、<code>DirectoryIndex index.html myweb.html</code>（注意实例里顺序是 <code>index.html myweb.html</code>）。重启并浏览器访问测试。</p>
+<h3 id="32-2username">3.2 实例2：用户个人主页（/~username）</h3>
+<p>URL 格式 <code>http://域名/~用户名</code>，用户名必须是 Linux 合法用户。</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>useradd<span class="w"> </span>long<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>sudo<span class="w"> </span>passwd<span class="w"> </span>long
+sudo<span class="w"> </span>chmod<span class="w"> </span><span class="m">705</span><span class="w"> </span>/home/long<span class="w">            </span><span class="c1"># 家目录给其他用户读+执行权限</span>
+sudo<span class="w"> </span>mkdir<span class="w"> </span>/home/long/public_html
+sudo<span class="w"> </span>sh<span class="w"> </span>-c<span class="w"> </span><span class="s1">'echo "Welcome To Long WebSite" &gt; /home/long/public_html/index.html'</span>
+</code></pre></div></div>
+
+<p>编辑 <code>/etc/httpd/conf.d/userdir.conf</code>：把 <code>UserDir disabled</code> 注释掉（#），去掉 <code>UserDir public_html</code> 的注释（指定个人主页目录名）。访问 <code>http://127.0.0.1/~long</code>。</p>
+<h3 id="33-3alias">3.3 实例3：虚拟目录（Alias 别名）</h3>
+<p>虚拟目录 = 位于主目录之外、但看起来像主目录下子目录的目录，通过别名访问。</p>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span>/virdir
+sudo<span class="w"> </span>sh<span class="w"> </span>-c<span class="w"> </span><span class="s1">'echo "This Is Virtual Directory Sample" &gt; /virdir/index.html'</span>
+sudo<span class="w"> </span>chmod<span class="w"> </span><span class="m">705</span><span class="w"> </span>/virdir<span class="w"> </span>-R
+</code></pre></div></div>
+
+<p>httpd.conf 添加：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>Alias /test "/virdir"
+&lt;Directory "/virdir"&gt;
+   AllowOverride None
+   Require all granted
+&lt;/Directory&gt;
+</code></pre></div></div>
+
+<p>访问 <code>http://127.0.0.1/test</code>。</p>
+<h3 id="34-4-ip-ip">3.4 实例4：基于 IP 的虚拟主机（多个 IP 多个站）</h3>
+<p>服务器绑两个 IP（192.168.137.4 与 .5，图形界面网络设置里加第二个 IP），建目录 /var/www/ip1、/var/www/ip2 及首页，编辑 <code>/etc/httpd/conf.d/vhost.conf</code>：</p>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>&lt;Virtualhost 192.168.137.4&gt;
+    DocumentRoot /var/www/ip1
+&lt;/Virtualhost&gt;
+&lt;Virtualhost 192.168.137.5&gt;
+    DocumentRoot /var/www/ip2
+&lt;/Virtualhost&gt;
+</code></pre></div></div>
+
+<p>并在 httpd.conf 中为两个目录加 <code>&lt;Directory&gt;</code> 权限块（AllowOverride None + Require all granted）。访问不同 IP 看到不同站点。</p>
+<h3 id="35-5-ip">3.5 实例5：基于域名的虚拟主机（一个 IP 多个站，主流方式）</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>vim<span class="w"> </span>/etc/hosts<span class="w">     </span><span class="c1"># 加：192.168.137.4 www.mywebsite1.com / 192.168.137.4 www.mywebsite2.com</span>
+sudo<span class="w"> </span>mkdir<span class="w"> </span>/var/www/www1<span class="w"> </span>/var/www/www2<span class="w">   </span><span class="c1"># 各自写不同首页</span>
+</code></pre></div></div>
+
+<p>vhost.conf 中 <strong>ServerName</strong> 区分：</p>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>&lt;Virtualhost 192.168.137.4&gt;
+    DocumentRoot /var/www/www1
+    ServerName www.mywebsite1.com
+&lt;/Virtualhost&gt;
+&lt;Virtualhost 192.168.137.4&gt;
+    DocumentRoot /var/www/www2
+    ServerName www.mywebsite2.com
+&lt;/Virtualhost&gt;
+</code></pre></div></div>
+
+<p>浏览器分别访问两个域名，看到不同页面。生产环境用 DNS 解析，测试用 hosts 文件。</p>
+<h3 id="36-6">3.6 实例6：基于端口的虚拟主机</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>mkdir<span class="w"> </span>/var/www/8088<span class="w"> </span>/var/www/8089<span class="w">   </span><span class="c1"># 各写首页</span>
+</code></pre></div></div>
+
+<p>httpd.conf 加 <code>Listen 8088</code>、<code>Listen 8089</code>；vhost.conf 用 <code>&lt;Virtualhost 192.168.137.4:8088&gt;</code> 区分。<strong>坑</strong>：防火墙默认只放行 80，访问 <code>http://IP:8088</code> 会失败 → 手动放行端口：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>firewall-cmd<span class="w"> </span>--permanent<span class="w"> </span>--zone<span class="o">=</span>public<span class="w"> </span>--add-port<span class="o">=</span><span class="m">8088</span>/tcp
+sudo<span class="w"> </span>firewall-cmd<span class="w"> </span>--permanent<span class="w"> </span>--zone<span class="o">=</span>public<span class="w"> </span>--add-port<span class="o">=</span><span class="m">8089</span>/tcp
+sudo<span class="w"> </span>firewall-cmd<span class="w"> </span>--reload
+</code></pre></div></div>
+
+<h3 id="37-php-mariadblamp">3.7 安装 PHP 与 MariaDB（LAMP 完整体）</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>dnf<span class="w"> </span>install<span class="w"> </span>php<span class="w">                  </span><span class="c1"># PHP 7.2</span>
+php<span class="w"> </span>-version
+sudo<span class="w"> </span>vim<span class="w"> </span>/var/www/html/info.php<span class="w">       </span><span class="c1"># &lt;?php phpinfo(); ?&gt;</span>
+<span class="c1"># 注意：先按实例1把 DocumentRoot 改回 /var/www/html 才能访问</span>
+sudo<span class="w"> </span>dnf<span class="w"> </span>install<span class="w"> </span>php-mysqlnd<span class="w"> </span>mariadb-server<span class="w"> </span>mariadb
+sudo<span class="w"> </span>systemctl<span class="w"> </span>start<span class="w"> </span>mariadb<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>sudo<span class="w"> </span>systemctl<span class="w"> </span><span class="nb">enable</span><span class="w"> </span>mariadb
+sudo<span class="w"> </span>mysql_secure_installation<span class="w">         </span><span class="c1"># 设 root 密码、删除匿名用户、移除 test 库</span>
+sudo<span class="w"> </span>mysql<span class="w"> </span>-u<span class="w"> </span>root<span class="w"> </span>-p
+</code></pre></div></div>
+
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="k">CREATE</span><span class="w"> </span><span class="k">DATABASE</span><span class="w"> </span><span class="n">webdb</span><span class="p">;</span>
+<span class="k">CREATE</span><span class="w"> </span><span class="k">USER</span><span class="w"> </span><span class="s1">'webuser'</span><span class="o">@</span><span class="s1">'localhost'</span><span class="w"> </span><span class="n">IDENTIFIED</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="s1">'password'</span><span class="p">;</span>
+<span class="k">GRANT</span><span class="w"> </span><span class="k">ALL</span><span class="w"> </span><span class="k">PRIVILEGES</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="n">webdb</span><span class="p">.</span><span class="o">*</span><span class="w"> </span><span class="k">TO</span><span class="w"> </span><span class="s1">'webuser'</span><span class="o">@</span><span class="s1">'localhost'</span><span class="p">;</span>
+<span class="n">FLUSH</span><span class="w"> </span><span class="k">PRIVILEGES</span><span class="p">;</span>
+</code></pre></div></div>
+
+<p>建 testdb.php 用 mysqli 连接测试（"Connected successfully"）。<strong>WordPress 部署</strong>：下载 wordpress-5.0.18-zh_CN.tar.gz 解压到 /var/www/html、<code>chmod 777 wordpress</code>、建 wordpress 库与 wpuser 用户，浏览器访问 <code>http://IP/wordpress</code> 图形化安装，后台 <code>wp-login.php</code>。</p>
+<hr />
+<h2 id="_4">四、客户端验证与排错</h2>
+<ul>
+<li>浏览器/curl 访问 <code>http://IP</code>、<code>http://IP:8088</code>、<code>http://域名</code> 看各自首页；</li>
+<li><strong>服务起不来第一反应</strong>：<code>sudo systemctl status httpd</code> + <code>sudo journalctl -xe</code>，例：<code>Invalid command 'this'</code> → httpd.conf 第 1 行附近有写错的指令，vim 里 <code>:set nu</code> 看行号改掉即可；</li>
+<li>访问不了：先查 <code>firewall-cmd --list-all</code>（80/8088/8089 是否放行）和 SELinux。</li>
+</ul>
+<hr />
+<h2 id="_5">五、安全加固要点</h2>
+<ul>
+<li><strong>目录权限最小化</strong>：只给需要 Web 服务的目录 <code>Require all granted</code>（如 /var/www），其他目录默认拒绝；主目录下<strong>别开写权限</strong>（防上传 WebShell）。</li>
+<li><strong>用户隔离</strong>：Apache 以低权限用户（apache）运行；虚拟主机之间互不可读写；个人主页权限 705（别人只能进 public_html）。</li>
+<li><strong>中间件加固</strong>：隐藏版本号（ServerTokens Prod/ServerSignature Off）；删除默认测试页；限制 HTTP 方法；上传目录禁止执行 PHP（php_admin_flag engine off 或禁用 CGI）。</li>
+<li><strong>LAMP 安全</strong>：数据库账号最小权限（webuser 只授权 webdb.*，不用 root 连库）；MariaDB root 禁止远程登录（mysql_secure_installation 时选禁远程）；wpx 类 CMS 及时更新、别用弱口令 admin/123456，禁用危险插件。</li>
+<li><strong>日志与 WAF</strong>：access_log/error_log 常查异常扫描与注入请求；有条件上 ModSecurity/WAF。</li>
+<li><strong>SELinux 与防火墙</strong>：生产环境按布尔值精确放行（httpd_* ），端口只开需要的；<code>setenforce 0</code> 只用于实验。</li>
+</ul>
+<hr />
+<h2 id="_6">六、面试速答卡</h2>
+<ul>
+<li><strong>Apache 默认端口与配置文件</strong>：80；CentOS 主配置 /etc/httpd/conf/httpd.conf，网站根目录 /var/www/html，首页 DirectoryIndex index.html。</li>
+<li><strong>DocumentRoot 与 Directory 关系</strong>：DocumentRoot 定义网站数据路径，Directory 定义该路径的访问权限（AllowOverride、Require all granted）。</li>
+<li><strong>三种虚拟主机</strong>：基于 IP（多 IP 多站）、基于域名（同 IP 靠 ServerName 区分，主流）、基于端口（Listen 不同端口 + Virtualhost IP:端口）。</li>
+<li><strong>用户个人主页</strong>：/~用户名，靠 /etc/httpd/conf.d/userdir.conf 开启，家目录 public_html 放网页。</li>
+<li><strong>LAMP 是什么</strong>：Linux+Apache+MySQL/MariaDB+PHP 的 Web 架构组合。</li>
+<li><strong>服务起不来怎么排查</strong>：systemctl status httpd + journalctl -xe，多半是配置文件语法错误或防火墙未放行端口。</li>
+</ul></div>
+      <div class="post-nav"><a class="pn-item prev" href="linux-fu-wu-ftp-wen-jian-chuan-shu.html"><span>← 上一篇</span><strong>Linux 服务：FTP 文件传输</strong></a><a class="pn-item next" href="web-ji-chu-zhan-dian-da-jian-yu-http-gong-zuo-yuan-li.html"><span>下一篇 →</span><strong>Web 基础：站点搭建与 HTTP 工作原理</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">一、概念与原理</a><a href="#_2" class="toc-lv2">二、环境准备与安装</a><a href="#_3" class="toc-lv2">三、配置详解（六大实例）</a><a href="#31-1" class="toc-lv3">3.1 实例1：设置文档根目录和首页</a><a href="#32-2username" class="toc-lv3">3.2 实例2：用户个人主页（/~username）</a><a href="#33-3alias" class="toc-lv3">3.3 实例3：虚拟目录（Alias 别名）</a><a href="#34-4-ip-ip" class="toc-lv3">3.4 实例4：基于 IP 的虚拟主机（多个 IP 多个站）</a><a href="#35-5-ip" class="toc-lv3">3.5 实例5：基于域名的虚拟主机（一个 IP 多个站，主流方式）</a><a href="#36-6" class="toc-lv3">3.6 实例6：基于端口的虚拟主机</a><a href="#37-php-mariadblamp" class="toc-lv3">3.7 安装 PHP 与 MariaDB（LAMP 完整体）</a><a href="#_4" class="toc-lv2">四、客户端验证与排错</a><a href="#_5" class="toc-lv2">五、安全加固要点</a><a href="#_6" class="toc-lv2">六、面试速答卡</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

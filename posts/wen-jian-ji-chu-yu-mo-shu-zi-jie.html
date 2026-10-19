@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>文件基础与魔术字节 · pressure-J</title>
+<meta name="description" content="文件是计算机里存储数据的基本单位,本质就是磁盘上一段带名字的字节序列。">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/wen-jian-ji-chu-yu-mo-shu-zi-jie.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="文件基础与魔术字节 · pressure-J">
+<meta property="og:description" content="文件是计算机里存储数据的基本单位,本质就是磁盘上一段带名字的字节序列。">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/base.html">基础</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>文件基础与魔术字节</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-base">基础</span>
+          <time datetime="2026-09-22">2026-09-22</time>
+          <span>7128 字</span>
+          <span>约 19 分钟</span>
+        </div>
+        <div class="chips post-tags"><span class="chip">baseknown</span><span class="chip">misc</span></div>
+      </header>
+      <div class="content"><h2 id="_1">一、什么是文件</h2>
+<p>文件是计算机里<strong>存储数据的基本单位</strong>,本质就是<strong>磁盘上一段带名字的字节序列</strong>。</p>
+<ul>
+<li><strong>内容</strong>:一堆字节(0/1),用十六进制看最直观。</li>
+<li><strong>元数据</strong>:文件名、大小、修改时间、权限等,存在文件系统里。</li>
+<li>文件系统(如 NTFS)负责把这些字节组织成"文件",否则磁盘只是一大坨原始空间。</li>
+</ul>
+<p><strong>文件与内存的区别</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th>文件</th>
+<th>内存</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>存放</td>
+<td>磁盘(持久)</td>
+<td>RAM(断电丢失)</td>
+</tr>
+<tr>
+<td>速度</td>
+<td>慢</td>
+<td>快</td>
+</tr>
+<tr>
+<td>目的</td>
+<td>长期保存</td>
+<td>程序运行时临时用</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>文件本质上是一个"流"</strong>:程序读文件就是从头到尾顺序读字节(或随机跳位置读),读到 EOF(文件尾)结束。所以 Python 里 <code>open()</code> 后能 <code>.read()</code>、<code>.seek()</code>。</p>
+<hr />
+<h2 id="_2">二、文件类型由"魔数"决定,不是扩展名</h2>
+<p>扩展名(<code>.txt</code> / <code>.png</code> / <code>.exe</code>)只是给人和系统看的标签,<strong>真正决定类型的是文件开头的几个字节,叫魔数(Magic Bytes / Magic Number)</strong>。</p>
+<p>CTF 里"扩展名骗人、按魔数判类型"就是这个原因。</p>
+<p><strong>为什么同类型魔数相同?</strong> 因为每个格式都有一份官方<strong>规范(specification)</strong>,明确规定了"本格式前 N 字节必须是 XXX"。写文件的程序和读文件的程序都遵守同一份规范,所以头必然相同——这是<strong>人为约定</strong>,和网络协议同一种精神。</p>
+<p><strong>魔数怎么选出来的</strong></p>
+<ol>
+<li><strong>尽量独特、不易撞车</strong>:ZIP 的 <code>50 4B</code> 是 <code>PK</code>,取自作者 <strong>P</strong>hillip <strong>K</strong>atz 的名字缩写。</li>
+<li><strong>有时故意加入容错设计</strong>:PNG 的头 <code>89 50 4E 47 0D 0A 1A 0A</code> 里,<code>0x89</code> 检测 7-bit 通道丢高位、<code>0D 0A</code> 检测 CR/LF 被转换、<code>1A</code> 是 DOS 的 EOF 字符——一个头塞了好几种容错机制。</li>
+</ol>
+<p><strong>注意:魔数不一定在开头</strong><br />
+- TAR:在<strong>偏移 257</strong> 处才有 <code>ustar</code><br />
+- MP4:在<strong>偏移 4</strong> 处是 <code>ftyp</code>(前 4 字节是长度)<br />
+- 所以"只看前 4 字节"是简化说法,严格要按规范看指定偏移。</p>
+<p><strong>魔数只是签名,不是校验</strong>:它只说明"像是这个格式",不保证完整,可以只贴个头来伪造。</p>
+<h3 id="_3">三种状态其实是同一个东西</h3>
+<p>图片(或任何文件)本质上就是一串字节,二进制、十六进制、base64 只是<strong>同一串字节的三种写法</strong>:</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>PNG 文件头
+  hex     89 50 4E 47
+  base64  iVBORw0KGgo
+  二进制  1000 1001 0101 0000 ...
+</code></pre></div></div>
+
+<p>所以看到 base64 以 <code>iVBOR</code> 开头,就能断定:解码后是 PNG 图片,只是还没落盘成文件。</p>
+<blockquote>
+<p>一句话:图片是"内容",二进制 / base64 是"运输形式"。只要字节流符合文件头 + 结构,它就是图片。</p>
+</blockquote>
+<h3 id="_4">为什么不用记"三种状态"</h3>
+<p>三种状态是同一个字节串的不同写法,会了 hex ↔ base64 ↔ 二进制互转,就能任意推导。实际只需要记住 <strong>hex 魔数</strong>,其余用工具转。</p>
+<hr />
+<h2 id="hex">三、常见文件魔术字节速查表(hex)</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>文件类型</th>
+<th>hex 魔数</th>
+<th>base64 前缀</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PNG 图片</td>
+<td><code>89 50 4E 47 0D 0A 1A 0A</code></td>
+<td><code>iVBORw0KGgo</code></td>
+<td>完整头含换行</td>
+</tr>
+<tr>
+<td>JPEG 图片</td>
+<td><code>FF D8 FF</code></td>
+<td><code>/9j/</code></td>
+<td>结尾 <code>FF D9</code></td>
+</tr>
+<tr>
+<td>GIF 图片</td>
+<td><code>47 49 46 38</code> (<code>GIF8</code>)</td>
+<td><code>R0lGOD</code></td>
+<td>87a / 89a</td>
+</tr>
+<tr>
+<td>BMP 图片</td>
+<td><code>42 4D</code> (<code>BM</code>)</td>
+<td><code>Qk</code></td>
+<td></td>
+</tr>
+<tr>
+<td>WEBP 图片</td>
+<td><code>52 49 46 46</code> (<code>RIFF</code>)</td>
+<td><code>UklGR</code></td>
+<td>第 9-12 字节为 <code>WEBP</code></td>
+</tr>
+<tr>
+<td>ZIP 压缩包</td>
+<td><code>50 4B 03 04</code> (<code>PK..</code>)</td>
+<td><code>UEsDBA</code></td>
+<td>docx/xlsx/apk/jar 也是它</td>
+</tr>
+<tr>
+<td>RAR 压缩包</td>
+<td><code>52 61 72 21 1A 07</code> (<code>Rar!..</code>)</td>
+<td><code>UmFyIRoH</code></td>
+<td></td>
+</tr>
+<tr>
+<td>7z 压缩包</td>
+<td><code>37 7A BC AF 27 1C</code> (<code>7z..'.</code>)</td>
+<td><code>N3q8rycc</code></td>
+<td></td>
+</tr>
+<tr>
+<td>GZIP 压缩包</td>
+<td><code>1F 8B</code></td>
+<td><code>H4sI</code></td>
+<td>.gz / .tar.gz</td>
+</tr>
+<tr>
+<td>TAR 归档</td>
+<td>偏移 257 处 <code>75 73 74 61 72</code> (<code>ustar</code>)</td>
+<td>—</td>
+<td></td>
+</tr>
+<tr>
+<td>PDF 文档</td>
+<td><code>25 50 44 46</code> (<code>%PDF</code>)</td>
+<td><code>JVBER</code></td>
+<td></td>
+</tr>
+<tr>
+<td>exe / MZ 程序</td>
+<td><code>4D 5A</code> (<code>MZ</code>)</td>
+<td><code>TVqQ</code></td>
+<td>PE 文件</td>
+</tr>
+<tr>
+<td>ELF 程序(Linux)</td>
+<td><code>7F 45 4C 46</code> (<code>\x7fELF</code>)</td>
+<td><code>f0VM</code></td>
+<td></td>
+</tr>
+<tr>
+<td>Office(旧版)</td>
+<td><code>D0 CF 11 E0 A1 B1 1A E1</code></td>
+<td><code>0M8R4KGxGuE</code></td>
+<td>OLE 复合文档</td>
+</tr>
+<tr>
+<td>SQLite 数据库</td>
+<td><code>53 51 4C 69 74 65</code> (<code>SQLite</code>)</td>
+<td><code>U1FMaXRl</code></td>
+<td></td>
+</tr>
+<tr>
+<td>WAV 音频</td>
+<td><code>52 49 46 46</code> (<code>RIFF</code>)</td>
+<td><code>UklGR</code></td>
+<td>与 WEBP 同头,看后续</td>
+</tr>
+<tr>
+<td>MP3 音频</td>
+<td><code>49 44 33</code> (<code>ID3</code>)</td>
+<td><code>SUQz</code></td>
+<td>或 <code>FF FB</code></td>
+</tr>
+<tr>
+<td>FLAC 音频</td>
+<td><code>66 4C 61 43</code> (<code>fLaC</code>)</td>
+<td><code>ZkxhQw</code></td>
+<td></td>
+</tr>
+<tr>
+<td>OGG 音频</td>
+<td><code>4F 67 67 53</code> (<code>OggS</code>)</td>
+<td><code>T2dnUw</code></td>
+<td></td>
+</tr>
+<tr>
+<td>MP4 视频</td>
+<td>偏移 4 处 <code>66 74 79 70</code> (<code>ftyp</code>)</td>
+<td>—</td>
+<td></td>
+</tr>
+<tr>
+<td>PCAP 流量包</td>
+<td><code>D4 C3 B2 A1</code> / <code>A1 B2 C3 D4</code></td>
+<td><code>1MOyoQ</code></td>
+<td>小端/大端</td>
+</tr>
+<tr>
+<td>base64 文本</td>
+<td>—</td>
+<td>本身无魔数</td>
+<td>解码后再判</td>
+</tr>
+<tr>
+<td>纯文本</td>
+<td>可打印 ASCII</td>
+<td>—</td>
+<td></td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>高频必记:<code>PNG 89 50 4E 47</code> / <code>JPEG FF D8 FF</code> / <code>ZIP 50 4B 03 04</code> / <code>GIF 47 49 46 38</code> / <code>PDF 25 50 44 46</code> / <code>MZ 4D 5A</code>。</p>
+</blockquote>
+<hr />
+<h2 id="_5">四、文件是怎么被读取的</h2>
+<p>读文件不是"看魔数符合就读",而是分<strong>两层</strong>:</p>
+<h3 id="_6">第一层:决定"该交给哪个解码器"</h3>
+<p>系统/软件要先知道这是什么格式,依据优先级通常是:</p>
+<ol>
+<li><strong>扩展名</strong>(最常用):<code>.png</code> → 交给 PNG 解码器</li>
+<li><strong>MIME 类型</strong>(浏览器/网络):<code>image/png</code></li>
+<li><strong>魔数嗅探</strong>(拿不准时):读开头几个字节猜格式</li>
+</ol>
+<p><strong>魔数不是唯一入口</strong>,很多时候软件直接信扩展名;只有扩展名缺失/可疑时才靠魔数嗅探。<code>file</code> 命令、上传校验就是干这个的。</p>
+<h3 id="_7">第二层:解码器按规范逐块解析</h3>
+<p>选定解码器后,它严格按该格式规范一步步走。以 <strong>PNG</strong> 为例:</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>1. 读前 8 字节签名 → 检查 = 89 50 4E 47 0D 0A 1A 0A
+        不对 → 报错 "not a PNG"
+2. 读 IHDR 块 → 拿宽、高、位深、颜色类型
+3. 读 IDAT 块 → zlib 解压出像素数据(可能多个)
+4. 读 IEND 块 → 结束
+   每块还要校验长度和 CRC
+</code></pre></div></div>
+
+<p>音频同理:<br />
+- <strong>WAV</strong>:读 <code>RIFF</code> 头 → <code>fmt</code> 块拿采样率/声道 → <code>data</code> 块拿 PCM 数据<br />
+- <strong>MP3</strong>:没有固定头,靠<strong>逐帧同步</strong>(找 <code>FF FB</code> 等帧头)或开头 <code>ID3</code> 标签<br />
+- <strong>FLAC</strong>:检查 <code>fLaC</code> → 读 <code>STREAMINFO</code> 元数据块 → 帧数据</p>
+<h3 id="_8">是"符合就读、否则报错"吗?</h3>
+<p>大致对,但要注意三点:</p>
+<ol>
+<li><strong>魔数只是入场券</strong>,不是充分条件;后面每块坏了照样可能报错。</li>
+<li><strong>解码器分严格/宽容两种</strong>:<br />
+   - 宽容(多数看图软件/浏览器):不认识的块<strong>跳过</strong>,尾部多余数据<strong>忽略</strong><br />
+   - 严格(专业工具/校验脚本):CRC 不对、有多余数据都可能报错</li>
+<li><strong>报错表现不同</strong>:硬报错 / 部分渲染(花屏不报错) / 静默忽略。</li>
+</ol>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>拿到文件
+   ↓
+选解码器(扩展名 / MIME / 魔数嗅探)
+   ↓
+解码器按规范解析:
+   ① 查魔数/签名 ── 不对 → 报错
+   ② 逐块读结构 ── 坏块 → 报错 or 跳过
+   ③ 校验(CRC/长度) ── 失败 → 报错 or 宽容忽略
+   ↓
+输出像素 / 音频样本
+   (结束标记之后的数据 = 没人读,可藏文件)
+</code></pre></div></div>
+
+<p><strong>关键结论</strong>:解码器是<strong>格式专属</strong>的。PNG 解码器只走 PNG 规则,MP4 解码器只走 MP4 规则——运行时没有"该用哪套规则"的犹豫,格式在第一步就定死了。</p>
+<hr />
+<h2 id="vs">五、长度标志 vs 结束标志</h2>
+<p>不是所有文件都有"签名 + 结构 + 校验 + 结束标志"这四样,它们是<strong>常见套路而非统一法则</strong>。其中"怎么标记结束"有两种设计思路,<strong>选一个就够</strong>:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>思路</th>
+<th>做法</th>
+<th>例子</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>长度前缀</strong></td>
+<td>段开头写"我有多长",读完就结束</td>
+<td>MP4 的 box、PNG 的块内</td>
+</tr>
+<tr>
+<td><strong>结束标志</strong></td>
+<td>末尾放特殊字节表示"到此为止"</td>
+<td>JPEG <code>FF D9</code>、PNG <code>IEND</code>、GIF <code>3B</code></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>各格式实际用的方式</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>文件</th>
+<th>签名</th>
+<th>结构</th>
+<th>校验</th>
+<th>结束方式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PNG</td>
+<td>有</td>
+<td>分块</td>
+<td>有 CRC</td>
+<td>块内用长度,IEND 收尾(两者都用)</td>
+</tr>
+<tr>
+<td>JPEG</td>
+<td>有</td>
+<td>分段</td>
+<td>无</td>
+<td><code>FF D9</code></td>
+</tr>
+<tr>
+<td>GIF</td>
+<td>有</td>
+<td>分块</td>
+<td>无</td>
+<td><code>3B</code></td>
+</tr>
+<tr>
+<td>ZIP</td>
+<td>有</td>
+<td>目录+条目</td>
+<td>有 CRC32</td>
+<td>EOCD(在文件末尾)</td>
+</tr>
+<tr>
+<td>MP4</td>
+<td>有(偏移4)</td>
+<td>box</td>
+<td>无</td>
+<td>无标记,读到字节用尽</td>
+</tr>
+<tr>
+<td>ELF</td>
+<td>有</td>
+<td>段/节表</td>
+<td>无</td>
+<td>无</td>
+</tr>
+<tr>
+<td>纯文本</td>
+<td>无</td>
+<td>极简</td>
+<td>无</td>
+<td>无,靠 OS 的 EOF</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>两种整体结束方式对比</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th>段内定位</th>
+<th>整体结束</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PNG</td>
+<td>每块长度</td>
+<td>IEND 块</td>
+</tr>
+<tr>
+<td>MP4</td>
+<td>每 box 大小</td>
+<td>字节读尽(无标记)</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>冷知识:同一格式可能两种都用。PNG 每块用长度字段,整体用 IEND;MP4 只有长度,没有结束块(大小字段为 <code>0</code> 表示"一直到文件尾")。</p>
+</blockquote>
+<hr />
+<h2 id="_9">六、合并文件 / 藏文件的处理</h2>
+<p>合并分两种情况:<strong>尾部追加</strong>(A 后面接 B)和<strong>头部前置</strong>(B 前面塞 A)。核心还是一句:<strong>每个解析器只读自己的部分,读到自己的结束点就停,后面数据"看不见"。</strong></p>
+<h3 id="a-a">尾部追加:A 解析器读到 A 结束就停</h3>
+<p><code>A.jpg + B.zip</code> 拼一起,用图片软件打开:</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>JPEG 解码器:
+  读 FFD8 → 解析各段 → 读到 FF D9(结束标志) → 停!
+  FF D9 之后的所有字节(B.zip) → 完全不读,当不存在
+</code></pre></div></div>
+
+<ul>
+<li>PNG 读到 <code>IEND</code> 停;GIF 读到 <code>3B</code> 停</li>
+<li>MP4 读到字节用尽,后面的 B 会被当"下一个 box",可能报错也可能被跳过</li>
+</ul>
+<p><strong>所以图片软件照样能正常显示 A</strong>,根本不知道后面还有 B。这就是"图片里藏压缩包"最常见的做法。</p>
+<h3 id="b-a">头部前置:B 前面塞 A(更麻烦)</h3>
+<p>用 B 的解析器打开:</p>
+<ul>
+<li><strong>多数解析器从第 0 字节读签名</strong>,前面有垃圾 → 签名对不上 → <strong>报错</strong></li>
+<li>有些解析器会<strong>向后扫描</strong>找自己的签名,就能跳过前面的 A</li>
+</ul>
+<p><strong>ZIP 是最典型的特例(重要):</strong> ZIP 的总目录 EOCD 在<strong>文件末尾</strong>,解压工具从尾部往回找 <code>50 4B 05 06</code>:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>操作</th>
+<th>对 ZIP 的影响</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>zip <strong>后面</strong>追加数据</td>
+<td>EOCD 不在真正末尾 → 可能解不开(一般只在末尾 64KB 内找)</td>
+</tr>
+<tr>
+<td>zip <strong>前面</strong>前置数据</td>
+<td>EOCD 还在末尾,工具找到它再用偏移定位 → 常照样能解</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="_10">同类型合并</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>格式</th>
+<th>拼接后行为</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>JPEG</td>
+<td>多数只显示第一张(读到第一个 FFD9 停)</td>
+</tr>
+<tr>
+<td>MP3 / MPEG</td>
+<td>通常<strong>依次播放</strong>,天然支持流式拼接</td>
+</tr>
+<tr>
+<td>GIF</td>
+<td>可能只显示第一帧动画</td>
+</tr>
+<tr>
+<td>TAR</td>
+<td><strong>设计上支持</strong>连读,靠两个全零块当结束标志</td>
+</tr>
+<tr>
+<td>MPEG-TS</td>
+<td>天然是连续流,拼接无感</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="polyglot">Polyglot(一文件多格式)</h3>
+<p>一个文件<strong>同时是合法 A 又是合法 B</strong>(如 GIFAR:GIF + ZIP/JAR):<br />
+- 用图片软件打开 → 走 A 解码器<br />
+- 用解压工具打开 → 走 B 解码器<br />
+- <strong>谁打开就用谁的规则</strong>,各读各的,互不干扰</p>
+<h3 id="_11">怎么提取</h3>
+<p>解析器"看不见"后面数据,但提取工具是主动去找的:</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>binwalk<span class="w"> </span>-e<span class="w"> </span>合并文件<span class="w">      </span><span class="c1"># 扫全文件所有签名,逐个提取</span>
+foremost<span class="w"> </span>-i<span class="w"> </span>合并文件<span class="w">     </span><span class="c1"># 按类型恢复</span>
+</code></pre></div></div>
+
+<p>手动提取要<strong>把解析器指向正确偏移</strong>:</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">d</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s1">'merged.bin'</span><span class="p">,</span><span class="s1">'rb'</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+<span class="n">i</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="sa">b</span><span class="s1">'PK</span><span class="se">\x03\x04</span><span class="s1">'</span><span class="p">)</span>        <span class="c1"># 找 B 的签名偏移</span>
+<span class="nb">open</span><span class="p">(</span><span class="s1">'B.zip'</span><span class="p">,</span><span class="s1">'wb'</span><span class="p">)</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="n">i</span><span class="p">:])</span>  <span class="c1"># 从该偏移切出来</span>
+</code></pre></div></div>
+
+<p><strong>扫描文件里所有已知魔数偏移</strong>:</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">sigs</span> <span class="o">=</span> <span class="p">{</span><span class="sa">b</span><span class="s1">'</span><span class="se">\x89</span><span class="s1">PNG'</span><span class="p">:</span><span class="s1">'png'</span><span class="p">,</span> <span class="sa">b</span><span class="s1">'</span><span class="se">\xff\xd8\xff</span><span class="s1">'</span><span class="p">:</span><span class="s1">'jpg'</span><span class="p">,</span> <span class="sa">b</span><span class="s1">'PK</span><span class="se">\x03\x04</span><span class="s1">'</span><span class="p">:</span><span class="s1">'zip'</span><span class="p">,</span>
+        <span class="sa">b</span><span class="s1">'GIF8'</span><span class="p">:</span><span class="s1">'gif'</span><span class="p">,</span> <span class="sa">b</span><span class="s1">'%PDF'</span><span class="p">:</span><span class="s1">'pdf'</span><span class="p">,</span> <span class="sa">b</span><span class="s1">'Rar!'</span><span class="p">:</span><span class="s1">'rar'</span><span class="p">}</span>
+<span class="n">d</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s1">'suspect.bin'</span><span class="p">,</span><span class="s1">'rb'</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+<span class="k">for</span> <span class="n">s</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">sigs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+    <span class="k">while</span> <span class="n">i</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1"> @ </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s1"> (0x</span><span class="si">{</span><span class="n">i</span><span class="si">:</span><span class="s1">x</span><span class="si">}</span><span class="s1">)'</span><span class="p">)</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+</code></pre></div></div>
+
+<h3 id="_12">其他藏法(结构冗余 / 隐写)</h3>
+<ul>
+<li><strong>结构冗余</strong>:PNG 的 <code>tEXt</code>/<code>zTXt</code> 块、JPEG 的 EXIF 注释、ZIP 注释字段、PDF 附件——都是规范允许的"合法藏法",<code>exiftool</code> 可看</li>
+<li><strong>LSB 隐写</strong>:把信息编码进像素最低位,藏的是"数据"不是"文件"(PNG 用 <code>zsteg</code>)</li>
+</ul>
+<hr />
+<h2 id="base64">七、拿到 base64 / 二进制后怎么判断</h2>
+<p><strong>不用每次都转十六进制</strong>,分三层,越靠前越省事:</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>拿到 base64 / 二进制
+   │
+   ├─ 第一层:直接认前缀(3 秒)
+   │     base64 看开头: iVBOR→PNG  /9j/→JPEG  UEsD→ZIP  R0lG→GIF
+   │     二进制看开头: 1000 1001 0101 0000 → PNG
+   │
+   ├─ 第二层:转成 hex 看文件头(确认)
+   │     不确定就解码成字节 → 查 hex 魔数(查上表)
+   │
+   └─ 第三层:按魔数 + 结构验证(最严谨)
+         只开头对不够,还要检查结构(尺寸/CRC/数据块)
+         有些题只贴了个魔数开头、后面全乱 → 是伪造的
+</code></pre></div></div>
+
+<p><strong>实操建议</strong></p>
+<ol>
+<li>直接看前缀认魔数;</li>
+<li>不确定就解码成字节,查文件头 + <code>strings</code> 看可疑字符串;</li>
+<li>确认是图片就保存成文件,用图片查看器 / <code>xxd</code> 验证能否正常打开。</li>
+</ol>
+<p><strong>把文本转回文件</strong>(核心:解码成字节,用 <code>wb</code> 写盘)</p>
+<div class="code-block" data-lang="sh"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c"># base64 → 文件</span>
+<span class="n">py</span> <span class="n">-c</span> <span class="s2">"import base64;open('out.png','wb').write(base64.b64decode(open('data.txt').read()))"</span>
+<span class="c"># hex → 文件(bytes.fromhex 自动忽略空格换行)</span>
+<span class="n">py</span> <span class="n">-c</span> <span class="s2">"open('out.bin','wb').write(bytes.fromhex('89 50 4E 47'))"</span>
+<span class="c"># 二进制字符串 → 文件</span>
+<span class="n">py</span> <span class="n">-c</span> <span class="s2">"s='01001000 01101001'.replace(' ','');open('o.bin','wb').write(int(s,2).to_bytes(len(s)//8,'big'))"</span>
+</code></pre></div></div>
+
+<p>坑:① 二进制文件必须用 <code>'wb'</code>,用 <code>'w'</code> 会按文本编码处理弄坏;② 命令行约 8K 长度上限,内容长就存 txt 再读;③ 存完按魔数核对,别信原扩展名。</p>
+<hr />
+<h2 id="_13">八、容易混淆的"签名"</h2>
+<p>"签名"一词在不同语境下指三个完全不同的东西:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>名称</th>
+<th>是什么</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>魔数签名</strong></td>
+<td>文件开头的几个固定字节</td>
+<td>快速识别格式</td>
+</tr>
+<tr>
+<td><strong>数字签名</strong></td>
+<td>用私钥对文件内容做的加密校验</td>
+<td>防篡改、验证来源(exe 的 Authenticode)</td>
+</tr>
+<tr>
+<td><strong>哈希值</strong></td>
+<td>文件内容的指纹(MD5/SHA)</td>
+<td>完整性校验、证据固定、秒传</td>
+</tr>
+</tbody>
+</table></div>
+<p>三者不是一回事:魔数在文件<strong>开头且固定</strong>;数字签名和哈希都<strong>依赖文件全部内容</strong>,内容变一点就全变。</p>
+<hr />
+<h2 id="_14">九、常用工具</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>场景</th>
+<th>工具</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>编码识别</td>
+<td>工具箱 <code>misc/01编码识别</code></td>
+</tr>
+<tr>
+<td>hex 互转</td>
+<td>工具箱 <code>misc/02hex互转</code></td>
+</tr>
+<tr>
+<td>文件识别与 strings</td>
+<td>工具箱 <code>misc/03文件识别与strings</code></td>
+</tr>
+<tr>
+<td>PNG 结构分析</td>
+<td>工具箱 <code>misc/04PNG结构</code></td>
+</tr>
+<tr>
+<td>LSB 隐写</td>
+<td>工具箱 <code>misc/06像素取色与LSB</code></td>
+</tr>
+<tr>
+<td>data URI 还原图片</td>
+<td>工具箱 <code>misc/07-dataURI还原图片</code></td>
+</tr>
+<tr>
+<td>命令行识别类型</td>
+<td><code>file &lt;文件&gt;</code>(Linux / Kali)</td>
+</tr>
+<tr>
+<td>命令行看 hex</td>
+<td><code>xxd &lt;文件&gt;</code> / <code>hexdump -C &lt;文件&gt;</code></td>
+</tr>
+<tr>
+<td>自动分离合并文件</td>
+<td><code>binwalk -e</code> / <code>foremost</code></td>
+</tr>
+<tr>
+<td>看元数据/EXIF</td>
+<td><code>exiftool &lt;文件&gt;</code></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>data URI 伪装题示例</strong></p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>data:image/png;base64,iVBORw0KGgo...
+</code></pre></div></div>
+
+<p><code>data:image/png;base64,</code> 表示"下面这段 base64 解码后是一张 PNG",去掉前缀 base64 解码即得图。注意声明格式可能骗人,按魔数判。</p>
+<hr />
+<h2 id="_15">十、要点总结</h2>
+<ol>
+<li>文件 = 数据 + 元数据,本质是磁盘上一段带名字的字节序列。</li>
+<li>文件类型由<strong>魔数</strong>决定,扩展名只是标签;魔数来自格式规范,是人为主导的约定。</li>
+<li>二进制 / hex / base64 是同一串字节的三种写法,记 hex 就够。</li>
+<li>读文件两层:<strong>先选解码器</strong>(扩展名/MIME/魔数嗅探),再<strong>按规范逐块解析</strong>;解码器是格式专属的。</li>
+<li>魔数只是入场券,结构/校验还要过;宽容解析器会忽略多余数据。</li>
+<li>结束方式两种:<strong>长度前缀</strong> 或 <strong>结束标志</strong>,二选一;有的格式两者都用。</li>
+<li>合并文件:A 的解析器读到 A 结束就停,后面看不见;ZIP 因 EOCD 在末尾而特殊。</li>
+<li>提取靠扫签名 + 按偏移切片(<code>binwalk -e</code> / 手动 <code>find</code>)。</li>
+<li>"签名"三义:魔数签名、数字签名、哈希值,别混。</li>
+<li>记不住冷门类型没关系,交给 <code>file</code> / 工具箱。</li>
+</ol></div>
+      <div class="post-nav"><a class="pn-item prev" href="wen-ben-bian-ma-yu-luan-ma.html"><span>← 上一篇</span><strong>文本编码与乱码</strong></a><a class="pn-item next" href="schnorr-xie-yi.html"><span>下一篇 →</span><strong>Schnorr协议</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">一、什么是文件</a><a href="#_2" class="toc-lv2">二、文件类型由&quot;魔数&quot;决定,不是扩展名</a><a href="#_3" class="toc-lv3">三种状态其实是同一个东西</a><a href="#_4" class="toc-lv3">为什么不用记&quot;三种状态&quot;</a><a href="#hex" class="toc-lv2">三、常见文件魔术字节速查表(hex)</a><a href="#_5" class="toc-lv2">四、文件是怎么被读取的</a><a href="#_6" class="toc-lv3">第一层:决定&quot;该交给哪个解码器&quot;</a><a href="#_7" class="toc-lv3">第二层:解码器按规范逐块解析</a><a href="#_8" class="toc-lv3">是&quot;符合就读、否则报错&quot;吗?</a><a href="#vs" class="toc-lv2">五、长度标志 vs 结束标志</a><a href="#_9" class="toc-lv2">六、合并文件 / 藏文件的处理</a><a href="#a-a" class="toc-lv3">尾部追加:A 解析器读到 A 结束就停</a><a href="#b-a" class="toc-lv3">头部前置:B 前面塞 A(更麻烦)</a><a href="#_10" class="toc-lv3">同类型合并</a><a href="#polyglot" class="toc-lv3">Polyglot(一文件多格式)</a><a href="#_11" class="toc-lv3">怎么提取</a><a href="#_12" class="toc-lv3">其他藏法(结构冗余 / 隐写)</a><a href="#base64" class="toc-lv2">七、拿到 base64 / 二进制后怎么判断</a><a href="#_13" class="toc-lv2">八、容易混淆的&quot;签名&quot;</a><a href="#_14" class="toc-lv2">九、常用工具</a><a href="#_15" class="toc-lv2">十、要点总结</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

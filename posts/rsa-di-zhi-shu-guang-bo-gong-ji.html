@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RSA低指数广播攻击 · pressure-J</title>
+<meta name="description" content="题目给 多对 (N, c)（常见三对），且都是同一明文、同一个小的公钥指数 e 加密：">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/rsa-di-zhi-shu-guang-bo-gong-ji.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="RSA低指数广播攻击 · pressure-J">
+<meta property="og:description" content="题目给 多对 (N, c)（常见三对），且都是同一明文、同一个小的公钥指数 e 加密：">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/crypto.html">密码学</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>RSA低指数广播攻击</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-crypto">密码学</span>
+          <time datetime="2026-09-08">2026-09-08</time>
+          <span>1688 字</span>
+          <span>约 4 分钟</span>
+        </div>
+        <div class="chips post-tags"><span class="chip">crypto</span></div>
+      </header>
+      <div class="content"><h2 id="_1">题型识别（一眼看出）</h2>
+<p>题目给 <strong>多对 <code>(N, c)</code></strong>（常见三对），且都是同一明文、同一个小的公钥指数 e 加密：</p>
+<ul>
+<li>给了三组 <code>N1/c1, N2/c2, N3/c3</code>（也可能更多），<code>N</code> 两两不同且互素</li>
+<li>出题脚本形如：</li>
+</ul>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">c1</span> <span class="o">=</span> <span class="nb">pow</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">e</span><span class="p">,</span> <span class="n">N1</span><span class="p">)</span>
+<span class="n">c2</span> <span class="o">=</span> <span class="nb">pow</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">e</span><span class="p">,</span> <span class="n">N2</span><span class="p">)</span>
+<span class="n">c3</span> <span class="o">=</span> <span class="nb">pow</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">e</span><span class="p">,</span> <span class="n">N3</span><span class="p">)</span>   <span class="c1"># 同一个 m、同一个 e</span>
+</code></pre></div></div>
+
+<p><strong>本质</strong>：明文太短，<code>m^e</code> 没有触到任何一个 N，于是跨模数之间<strong>没有"模"截断</strong>——中国剩余定理能把它们精确拼回 <code>m^e</code>，再开 e 次方即得明文。</p>
+<h2 id="_2">攻击条件</h2>
+<ul>
+<li>拿到 e 组 <code>(N, c)</code>，且这些 N 两两互素</li>
+<li>要求 <code>m^e &lt; N1*N2*...*Ne</code>（明文足够小、e 足够小才满足，一般 e=3 配三组即可）</li>
+</ul>
+<h2 id="_3">原理推导</h2>
+<p>若直接开根，<code>m^e</code> 每次都被 <code>mod Ni</code> 破坏。但由加密关系：<br />
+$$c_i \equiv m^e \pmod{N_i}$$</p>
+<p>按中国剩余定理构造唯一的 <code>M</code>：<br />
+$$M \equiv c_i \pmod{N_i},\quad M = m^e$$</p>
+<p><strong>因为 <code>m^e &lt; N1*N2*N3</code>，CRT 解出的 M 就是没有取模的真值</strong>，直接整数开 e 次根：<br />
+$$m = \sqrt[e]{M}$$</p>
+<h2 id="python">解题脚本（纯 Python，无第三方依赖）</h2>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">reduce</span>
+
+<span class="c1"># ① 先还原进制：本题数字只含 0-4 → 其实是 5 进制，int(s, 5) 转回十进制</span>
+<span class="n">N1</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="s1">'33131032...'</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>   <span class="c1"># 每串 441 位 5 进制 ≈ 1024 bit</span>
+<span class="n">c1</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="s1">'31002000...'</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
+<span class="n">N2</span><span class="p">,</span> <span class="n">c2</span><span class="p">,</span> <span class="n">N3</span><span class="p">,</span> <span class="n">c3</span> <span class="o">=</span> <span class="o">...</span>
+<span class="c1"># 若本来就是十进制大整数，直接 int(...) 即可</span>
+
+<span class="c1"># ② 中国剩余定理合并</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">crt</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">m</span><span class="p">):</span>
+    <span class="n">M</span> <span class="o">=</span> <span class="n">reduce</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span> <span class="o">*</span> <span class="n">y</span><span class="p">,</span> <span class="n">m</span><span class="p">)</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">ai</span><span class="p">,</span> <span class="n">mi</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">m</span><span class="p">):</span>
+        <span class="n">Mi</span> <span class="o">=</span> <span class="n">M</span> <span class="o">//</span> <span class="n">mi</span>
+        <span class="n">s</span> <span class="o">+=</span> <span class="n">ai</span> <span class="o">*</span> <span class="n">Mi</span> <span class="o">*</span> <span class="nb">pow</span><span class="p">(</span><span class="n">Mi</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">mi</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">s</span> <span class="o">%</span> <span class="n">M</span>
+
+<span class="n">M</span> <span class="o">=</span> <span class="n">crt</span><span class="p">([</span><span class="n">c1</span><span class="p">,</span> <span class="n">c2</span><span class="p">,</span> <span class="n">c3</span><span class="p">],</span> <span class="p">[</span><span class="n">N1</span><span class="p">,</span> <span class="n">N2</span><span class="p">,</span> <span class="n">N3</span><span class="p">])</span>
+
+<span class="c1"># ③ 整数开 e 次方（牛顿迭代，纯整数，不溢出）</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">iroot</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">n</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span> <span class="k">return</span> <span class="mi">0</span><span class="p">,</span> <span class="kc">True</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="p">((</span><span class="n">n</span><span class="o">.</span><span class="n">bit_length</span><span class="p">()</span> <span class="o">+</span> <span class="n">k</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="n">k</span><span class="p">)</span>   <span class="c1"># 初始估计 x ≈ n^(1/k)</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="p">((</span><span class="n">k</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="n">n</span> <span class="o">//</span> <span class="n">x</span> <span class="o">**</span> <span class="p">(</span><span class="n">k</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span> <span class="o">//</span> <span class="n">k</span>
+        <span class="k">if</span> <span class="n">y</span> <span class="o">&gt;=</span> <span class="n">x</span><span class="p">:</span> <span class="k">break</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">y</span>
+    <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">x</span> <span class="o">**</span> <span class="n">k</span> <span class="o">==</span> <span class="n">n</span>
+
+<span class="n">m</span><span class="p">,</span> <span class="n">ok</span> <span class="o">=</span> <span class="n">iroot</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">ok</span><span class="p">,</span> <span class="s2">"不是整立方 → 攻击条件不满足或 e 猜错"</span>
+<span class="n">flag</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">to_bytes</span><span class="p">((</span><span class="n">m</span><span class="o">.</span><span class="n">bit_length</span><span class="p">()</span> <span class="o">+</span> <span class="mi">7</span><span class="p">)</span> <span class="o">//</span> <span class="mi">8</span><span class="p">,</span> <span class="s1">'big'</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">flag</span><span class="p">)</span>
+</code></pre></div></div>
+
+<h2 id="_4">易错点</h2>
+<ol>
+<li><strong>进制陷阱</strong>：题面数字只含 0-4/0-7 等小集合时，先怀疑是 5/8 进制（本题 441 位"5 进制"还原后恰是 1024 bit 标准 RSA，长度对上是强信号）。直接按十进制解读会全错</li>
+<li><strong>开方溢出</strong>：几百上千位大数用 <code>x ** (1/3)</code> 会 <code>OverflowError: int too large to convert to float</code>，必须用<strong>纯整数牛顿迭代</strong>（初始估计用 <code>1 &lt;&lt; (bit_length/k)</code>）</li>
+<li><strong>e 不一定给明</strong>：先试 3，不行试 5/7；若 M 开根余数不为 0 说明 e 猜错</li>
+<li><strong>易与共模攻击混淆</strong>：共模是"多 e 单 n"；广播是"多 n 单 e"。看给的是<strong>多个模数</strong>还是<strong>多个指数</strong></li>
+<li><strong>gcd(Ni,Nj) ≠ 1 时的另一路</strong>：若 N 间有公因子，优先走"共素数"分解而非广播，先跑一遍两两 gcd 再决定</li>
+</ol>
+<h2 id="_5">实战记录</h2>
+<ul>
+<li>来源：noxCTF（flag 格式 <code>noxCTF{...}</code>）</li>
+<li>本题三串数字全由 0-4 构成，为 5 进制；<code>int(s, 5)</code> 后 N 均为 1024 bit</li>
+<li>三 N 两两 gcd = 1（无公因子），e=3 成立，CRT 后 M ≈ 1101 bit</li>
+<li>结果：<code>noxCTF{D4mn_y0u_h4s74d_wh47_4_b100dy_b4s74rd!}</code></li>
+</ul>
+<p><em>最后更新：2026年9月8日</em></p></div>
+      <div class="post-nav"><a class="pn-item prev" href="rsa-gou-zao-a-fan-tui-can-shu.html"><span>← 上一篇</span><strong>RSA-构造A反推参数</strong></a><a class="pn-item next" href="ha-xi-ming-wen-bao-po-md5-sha-qiong-ju.html"><span>下一篇 →</span><strong>哈希明文爆破（MD5/SHA 穷举）</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">题型识别（一眼看出）</a><a href="#_2" class="toc-lv2">攻击条件</a><a href="#_3" class="toc-lv2">原理推导</a><a href="#python" class="toc-lv2">解题脚本（纯 Python，无第三方依赖）</a><a href="#_4" class="toc-lv2">易错点</a><a href="#_5" class="toc-lv2">实战记录</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

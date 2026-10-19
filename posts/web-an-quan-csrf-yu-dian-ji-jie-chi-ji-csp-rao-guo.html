@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Web 安全：CSRF 与点击劫持及 CSP 绕过 · pressure-J</title>
+<meta name="description" content="一句话原理：浏览器会自动携带目标网站的 Cookie 发起请求，服务器只认&quot;这个请求带着合法 Cookie&quot;，不认&quot;这个请求是谁、在哪发起的&quot;。于是攻击者构造一个页面，受害者只要访问，浏览器就替他向目标网站发出敏感操作请求。">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/web-an-quan-csrf-yu-dian-ji-jie-chi-ji-csp-rao-guo.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Web 安全：CSRF 与点击劫持及 CSP 绕过 · pressure-J">
+<meta property="og:description" content="一句话原理：浏览器会自动携带目标网站的 Cookie 发起请求，服务器只认&quot;这个请求带着合法 Cookie&quot;，不认&quot;这个请求是谁、在哪发起的&quot;。于是攻击者构造一个页面，受害者只要访问，浏览器就替他向目标网站发出敏感操作请求。">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/web.html">Web 安全</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>Web 安全：CSRF 与点击劫持及 CSP 绕过</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-web">Web 安全</span>
+          <time datetime="2026-08-28">2026-08-28</time>
+          <span>4226 字</span>
+          <span>约 11 分钟</span>
+        </div>
+        
+      </header>
+      <div class="content"><blockquote>
+<p>来源：课程实验《CSP绕过攻击、CSRF攻击与点击劫持攻击》（DVWA 平台 + Burp Suite，2025-2026 第二学期）<br />
+定位：三类"信任型/旁路型"攻击——浏览器自动携带身份、浏览器被 UI 欺骗、浏览器策略被绕过；一线安全面试高频<br />
+实战场景：改密码、转账、发帖等一切"带 Cookie 的敏感操作"；任何靠 CSP 兜底 XSS 的站点</p>
+</blockquote>
+<hr />
+<h2 id="csrf">一、CSRF 原理（跨站请求伪造）</h2>
+<p><strong>一句话原理</strong>：浏览器会自动携带目标网站的 Cookie 发起请求，服务器只认"这个请求带着合法 Cookie"，不认"这个请求是谁、在哪发起的"。于是攻击者构造一个页面，受害者<strong>只要访问</strong>，浏览器就替他向目标网站发出敏感操作请求。</p>
+<p><strong>为什么能成功，三个条件缺一不可</strong>：<br />
+1. 受害者已登录目标站点（浏览器里存着有效 Cookie）<br />
+2. 攻击者知道目标操作对应的 URL 结构（改密、转账等）<br />
+3. 目标站点的敏感操作<strong>没有做额外验证</strong>（无 token、无二次确认），或验证可被绕过</p>
+<p><strong>与 XSS 的本质区别</strong>（面试必问）：<br />
+- XSS 是攻击者在<strong>受害者的浏览器里执行代码</strong>（破坏的是"代码信任"）<br />
+- CSRF 是攻击者<strong>借用受害者的身份发出请求</strong>（破坏的是"请求来源信任"）——攻击者页面里只是放了一个请求，代码根本没在目标域执行</p>
+<p><strong>危害</strong>：改密码、转账、发表内容、修改资料——<strong>一切受害者能做的操作，攻击者都能替他做</strong>。GET 请求型 CSRF 尤其危险，因为 <code>&lt;img&gt;</code> 标签就能自动触发。</p>
+<hr />
+<h2 id="_1">二、核心知识</h2>
+<h3 id="_2">攻击载荷三件套</h3>
+<div class="code-block" data-lang="html"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="cm">&lt;!-- 1. GET 型：img 标签自动触发（杀伤力最大，无需用户交互） --&gt;</span>
+<span class="p">&lt;</span><span class="nt">img</span> <span class="na">src</span><span class="o">=</span><span class="s">"http://目标站/vulnerabilities/csrf/?password_new=hack&amp;password_conf=hack&amp;Change=Change"</span><span class="p">&gt;</span>
+
+<span class="cm">&lt;!-- 2. POST 型：隐藏表单 + JS 自动提交 --&gt;</span>
+<span class="p">&lt;</span><span class="nt">form</span> <span class="na">action</span><span class="o">=</span><span class="s">"http://目标站/change.php"</span> <span class="na">method</span><span class="o">=</span><span class="s">"POST"</span> <span class="na">id</span><span class="o">=</span><span class="s">"f"</span><span class="p">&gt;</span>
+  <span class="p">&lt;</span><span class="nt">input</span> <span class="na">type</span><span class="o">=</span><span class="s">"hidden"</span> <span class="na">name</span><span class="o">=</span><span class="s">"password"</span> <span class="na">value</span><span class="o">=</span><span class="s">"hack"</span><span class="p">&gt;</span>
+<span class="p">&lt;/</span><span class="nt">form</span><span class="p">&gt;</span>
+<span class="p">&lt;</span><span class="nt">script</span><span class="p">&gt;</span><span class="nb">document</span><span class="p">.</span><span class="nx">getElementById</span><span class="p">(</span><span class="s1">'f'</span><span class="p">).</span><span class="nx">submit</span><span class="p">();&lt;/</span><span class="nt">script</span><span class="p">&gt;</span>
+
+<span class="cm">&lt;!-- 3. 诱惑点击：短链接/钓鱼页包装 --&gt;</span>
+<span class="p">&lt;</span><span class="nt">a</span> <span class="na">href</span><span class="o">=</span><span class="s">"http://短链"</span><span class="p">&gt;</span>点我领福利<span class="p">&lt;/</span><span class="nt">a</span><span class="p">&gt;</span>
+</code></pre></div></div>
+
+<h3 id="get-dvwa-low">实验中的 GET 型实例（DVWA Low）</h3>
+<p>修改密码后观察 URL：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>http://192.168.164.130/DVWA/vulnerabilities/csrf/?password_new=12341234&amp;password_conf=12341234&amp;Change=Change#
+</code></pre></div></div>
+
+<p><strong>改密码的全部参数都在 URL 里</strong>——把这个 URL 发给受害者，他一旦点击，密码就被改了。实战中没人会点一长串可疑链接，所以要配合<strong>短链接服务</strong>或<strong>HTML 钓鱼页面</strong>包装。教训：<strong>GET 请求绝不应该承载"修改类"操作</strong>。</p>
+<hr />
+<h2 id="_3">三、实操/利用流程（方法论）</h2>
+<ol>
+<li><strong>分析目标操作</strong>：用 Burp 抓包看敏感操作的请求方法、参数结构（GET/POST、改密/转账的参数名）</li>
+<li><strong>判断可行性</strong>：请求是否只靠 Cookie 认证？有没有 token / Referer 校验 / 二次确认？</li>
+<li><strong>选择载荷形态</strong>：GET 请求用 <code>&lt;img&gt;</code>；POST 请求用隐藏表单自动提交；需要点击的用短链接+诱饵文案</li>
+<li><strong>投放诱饵</strong>：论坛发帖、聊天软件发链接、邮件钓鱼——受害者访问即中招</li>
+<li><strong>验证效果</strong>：用受害者 Cookie 确认操作已生效</li>
+</ol>
+<hr />
+<h2 id="dvwa">四、绕过与进阶（DVWA 各难度）</h2>
+<h3 id="mediumreferer">Medium：Referer 校验的绕过</h3>
+<p>后端校验请求头 <code>Referer</code> 必须来自本站。绕过思路：</p>
+<ul>
+<li><strong>把攻击文件放到目标站点服务器上</strong>（如本实验：攻击 HTML 放 192.168.164.130 下），Referer 天然合法</li>
+<li>程序直接访问（地址栏输入）时 Referer 为空——很多实现"空 Referer 直接放行"</li>
+<li>部分实现只做"包含域名片段"的前缀匹配，构造 <code>http://target.com.attacker.com</code> 可绕过</li>
+</ul>
+<p><strong>为什么 Referer 校验不可靠</strong>：Referer 是客户端可自行设置的请求头，浏览器扩展/代理/脚本能随意伪造；且空 Referer、同源判断不严谨都会漏。</p>
+<h3 id="highanti-csrf-token">High：Anti-CSRF Token 的绕过</h3>
+<p>后端引入 token 机制：每次访问改密页面，服务器返回随机 <code>user_token</code>，提交时必须带上且必须正确。</p>
+<ul>
+<li><strong>关键突破口</strong>：token 在响应页面里，攻击者必须先<strong>发起一次合法请求拿到 token</strong>，再连同 token 一起提交攻击请求</li>
+<li>工具化：安装 <strong>Burp Suite 的 CSRF Token Tracker 插件</strong>——抓包重放时插件自动从响应中提取新 token 并替换请求中的旧 token，循环往复即可打穿"token 每次失效"的防线</li>
+<li>失败根源：<strong>token 与用户会话绑定不牢 / token 可预测 / token 在 URL 或响应中泄露</strong>，或服务器"先生效后校验"（先改密后验 token）</li>
+</ul>
+<h3 id="csp">CSP 绕过（实验第二部分）</h3>
+<p><strong>CSP 是什么</strong>：服务器通过 <code>Content-Security-Policy</code> 响应头告诉浏览器"脚本只能从哪些源加载"。它是 XSS 的<strong>兜底防线</strong>——XSS 注入了，但脚本不是白名单源，浏览器拒绝执行。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>级别</th>
+<th>CSP 策略</th>
+<th>绕过手法</th>
+<th>原理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Low</td>
+<td>允许列表含外部可信域名</td>
+<td>到被允许的域名上放 JS（文本分享网站）+ JSONP 端点</td>
+<td>CSP 只限制"脚本从哪来"，不限制"脚本内容"；被信任的域名上能放任意内容 = 变成攻击者的脚本托管站</td>
+</tr>
+<tr>
+<td>Medium</td>
+<td><code>script-src 'nonce-xxx'</code></td>
+<td>把响应里明文的 nonce 抄进自己的 <code>&lt;script nonce="TmV2ZXIgZ29pbmcgdG8gZ2l2ZSB5b3UgdXA="&gt;alert(/xss/)</code></td>
+<td>nonce 每次请求都由服务端生成并<strong>原样出现在页面里</strong>，且未设置过期/绑定，等于白送</td>
+</tr>
+<tr>
+<td>High</td>
+<td><code>script-src 'self'</code>（只信自己域名）</td>
+<td>利用同域有漏洞的 JSONP 端点：<code>source/jsonp.php?callback=solveNum</code> 未过滤回调参数，返回 <code>callback(...)</code> 形式的 JS</td>
+<td>自己的域名是白名单，在自己的域名上找到一个能"产出可控脚本"的接口，就借到了执行权</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>CSP 绕过核心思想</strong>：CSP 画了一个"可信源的圈"，攻击者要做的不是打破这个圈，而是<strong>在圈内找到能让自己代码落地的点</strong>——JSONP（回调可控）、开放 API、可上传内容的域名、可注入但无 CSP 覆盖的端点。面试说"CSP 不是万能的"时，就举 JSONP 和 nonce 泄露这两个例子。</p>
+<h3 id="clickjacking">点击劫持（ClickJacking）</h3>
+<p><strong>一句话原理</strong>：攻击页面用 CSS 把目标网站包进一个<strong>透明 iframe</strong>，叠在诱饵按钮上；受害者看到的按钮是假的，实际点下去点中的是 iframe 里目标网站的按钮。</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="cm">&lt;!-- 攻击者页面（重叠+透明） --&gt;</span>
+<span class="p">&lt;</span><span class="nt">iframe</span> <span class="na">src</span><span class="o">=</span><span class="s">"http://目标站/转账页"</span> <span class="na">style</span><span class="o">=</span><span class="s">"opacity:0; position:absolute; top:0; left:0;"</span><span class="p">&gt;&lt;/</span><span class="nt">iframe</span><span class="p">&gt;</span>
+<span class="p">&lt;</span><span class="nt">button</span> <span class="na">style</span><span class="o">=</span><span class="s">"position:absolute; top:10px; left:10px;"</span><span class="p">&gt;</span>点我抽奖!<span class="p">&lt;/</span><span class="nt">button</span><span class="p">&gt;</span>
+</code></pre></div></div>
+
+<ul>
+<li>与 CSRF 区别：CSRF 是"浏览器自动帮我发请求"；点击劫持是"骗受害者亲手点击"（UI 层攻击，无法用 token 防住——token 是受害者自己带上的）</li>
+<li>防御（面试必答）：响应头 <strong><code>X-Frame-Options: DENY / SAMEORIGIN</code></strong>；或 CSP 的 <strong><code>frame-ancestors 'none'/'self'</code></strong>；两者同时设置兼容新旧浏览器</li>
+</ul>
+<hr />
+<h2 id="_4">五、防御（面试必答，对应原理）</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>攻击</th>
+<th>防御</th>
+<th>对应原理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CSRF</td>
+<td><strong>Anti-CSRF Token</strong>：每个敏感操作带随机 token，且 token 与 session 强绑定、一次性</td>
+<td>攻击者页面无法预知受害者会话的 token，请求带不齐</td>
+</tr>
+<tr>
+<td>CSRF</td>
+<td><strong>SameSite Cookie 属性</strong>（<code>Lax</code>/<code>Strict</code>）</td>
+<td>跨站请求不再自动携带 Cookie，从浏览器层断根</td>
+</tr>
+<tr>
+<td>CSRF</td>
+<td>敏感操作只用 POST + 校验 <code>Content-Type</code>/自定义请求头</td>
+<td>增加攻击者构造跨站表单的难度</td>
+</tr>
+<tr>
+<td>CSRF</td>
+<td>二次验证（改密需旧密码、转账需短信码）</td>
+<td>即使请求伪造成功，缺少人类确认信息</td>
+</tr>
+<tr>
+<td>Referer 类</td>
+<td>不依赖 Referer，或用精确同源匹配 + 空 Referer 拒绝</td>
+<td>Referer 可伪造、可缺失</td>
+</tr>
+<tr>
+<td>点击劫持</td>
+<td><code>X-Frame-Options</code> + <code>frame-ancestors</code> 双重设置</td>
+<td>禁止页面被嵌入第三方 iframe</td>
+</tr>
+<tr>
+<td>CSP 被绕</td>
+<td>nonce 每次刷新 + 与请求绑定；JSONP 接口过滤回调白名单；收紧可信域名列表</td>
+<td>堵死"圈内落点"</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="_5">六、面试速答卡</h2>
+<ul>
+<li><strong>CSRF 三条件</strong>：受害者已登录、知道请求结构、无额外验证</li>
+<li><strong>CSRF 和 XSS 区别</strong>：XSS 偷身份在受害者浏览器跑代码；CSRF 借 Cookie 替他发请求</li>
+<li><strong>为什么不建议 GET 改数据</strong>：<code>&lt;img&gt;</code> 自动发 GET，零交互触发 CSRF</li>
+<li><strong>token 防 CSRF 的原理</strong>：攻击者拿不到受害者会话对应的随机 token</li>
+<li><strong>Referer 校验为什么不可靠</strong>：请求头可伪造；空 Referer 常被放行；前缀匹配可绕过</li>
+<li><strong>CSP 绕过思路</strong>：在可信源圈内找落点——JSONP 回调可控、nonce 泄露、可信域名可上传内容</li>
+<li><strong>点击劫持防御</strong>：<code>X-Frame-Options: DENY</code> / CSP <code>frame-ancestors</code></li>
+<li><strong>CSRF 最完整防线</strong>：SameSite Cookie + token + 自定义头 + 二次验证的组合</li>
+</ul></div>
+      <div class="post-nav"><a class="pn-item prev" href="web-zhu-ru-gong-ji-sql-zhu-ru-yu-ming-ling-zhu-ru.html"><span>← 上一篇</span><strong>Web 注入攻击：SQL 注入与命令注入</strong></a><a class="pn-item next" href="linux-fu-wu-dhcp-di-zhi-fen-pei.html"><span>下一篇 →</span><strong>Linux 服务：DHCP 地址分配</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#csrf" class="toc-lv2">一、CSRF 原理（跨站请求伪造）</a><a href="#_1" class="toc-lv2">二、核心知识</a><a href="#_2" class="toc-lv3">攻击载荷三件套</a><a href="#get-dvwa-low" class="toc-lv3">实验中的 GET 型实例（DVWA Low）</a><a href="#_3" class="toc-lv2">三、实操/利用流程（方法论）</a><a href="#dvwa" class="toc-lv2">四、绕过与进阶（DVWA 各难度）</a><a href="#mediumreferer" class="toc-lv3">Medium：Referer 校验的绕过</a><a href="#highanti-csrf-token" class="toc-lv3">High：Anti-CSRF Token 的绕过</a><a href="#csp" class="toc-lv3">CSP 绕过（实验第二部分）</a><a href="#clickjacking" class="toc-lv3">点击劫持（ClickJacking）</a><a href="#_4" class="toc-lv2">五、防御（面试必答，对应原理）</a><a href="#_5" class="toc-lv2">六、面试速答卡</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

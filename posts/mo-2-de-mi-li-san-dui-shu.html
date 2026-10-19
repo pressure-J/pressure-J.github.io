@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>模2的幂-离散对数 · pressure-J</title>
+<meta name="description" content="⟨5⟩ 是阶为 2 的幂的循环群 → 指数部分可用 Pohlig–Hellman 按位求离散对数">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/mo-2-de-mi-li-san-dui-shu.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="模2的幂-离散对数 · pressure-J">
+<meta property="og:description" content="⟨5⟩ 是阶为 2 的幂的循环群 → 指数部分可用 Pohlig–Hellman 按位求离散对数">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/crypto.html">密码学</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>模2的幂-离散对数</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-crypto">密码学</span>
+          <time datetime="2026-09-13">2026-09-13</time>
+          <span>1438 字</span>
+          <span>约 4 分钟</span>
+        </div>
+        <div class="chips post-tags"><span class="chip">crypto</span></div>
+      </header>
+      <div class="content"><h2 id="_1">题型识别（一眼看出）</h2>
+<ul>
+<li>出题脚本形如：</li>
+</ul>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">n</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">**</span> <span class="mi">256</span>
+<span class="n">c</span> <span class="o">=</span> <span class="nb">pow</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">flaglong</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>   <span class="c1"># m 是随机奇数，flaglong 就是 flag 的整数</span>
+</code></pre></div></div>
+
+<ul>
+<li>特征：<strong>模数是 2 的幂</strong>（<code>2**k</code>）、底数 m 是奇数、要还原指数 flag</li>
+<li>本质：<code>(Z/2^k)^*</code> 上的<strong>离散对数</strong>问题，但模 2 的幂群结构特殊，可秒解</li>
+</ul>
+<h2 id="_2">核心原理：群分解</h2>
+<p>奇数乘法群可以拆成两半：<br />
+$$(\mathbb{Z}/2^k)^* \cong {\pm1} \times \langle 5 \rangle, \quad #\langle5\rangle = 2^{k-2}$$</p>
+<p>即任意奇数都能唯一写成 <code>m = ±5^b</code>：<br />
+- <code>5^b ≡ 1 (mod 4)</code> 恒成立 → <strong>符号看 mod 4</strong>：<code>m%4==1</code> 取 <code>+</code>，<code>m%4==3</code> 取 <code>-</code><br />
+- <code>⟨5⟩</code> 是阶为 2 的幂的<strong>循环群</strong> → 指数部分可用 Pohlig–Hellman 按位求离散对数</p>
+<h2 id="_3">解题步骤</h2>
+<ol>
+<li><strong>剥符号</strong>：<code>m' = m if m%4==1 else -m (mod 2^k)</code>，同理 <code>c' = c if c%4==1 else -c</code><br />
+   → 剥掉后 <code>m' = 5^b</code>、<code>c' = 5^{b·e}</code>，且都满足 <code>≡ 1 mod 4</code></li>
+<li><strong>求离散对数</strong>：<code>B = dlog₅(m') = b</code>，<code>D = dlog₅(c') = b·e (mod 2^{k-2})</code></li>
+<li><strong>解出 e</strong>：令 <code>t = v₂(B)</code>（B 的 2 因子个数），则<br />
+   $$e = (D \gg t) \cdot (B \gg t)^{-1} \pmod{2^{k-2-t}}$$<br />
+   flag 一般只有 ~200 位，只要 <code>t</code> 不太大（本题 t=0）就能完整还原</li>
+<li><code>long_to_bytes(e)</code> 得 flag</li>
+</ol>
+<h2 id="dlog5pohlighellman">离散对数 dlog₅（Pohlig–Hellman 二进制版）</h2>
+<p><code>⟨5⟩</code> 的阶是 <code>2^{k-2}</code>，逐位求指数 d（d ∈ [0, 2^{k-2})）：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">dlog5</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">256</span><span class="p">):</span>
+    <span class="c1"># 解 5^d = h (mod 2^k)，要求 h≡1 mod 4</span>
+    <span class="n">N</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="n">k</span><span class="p">;</span> <span class="n">m_exp</span> <span class="o">=</span> <span class="n">k</span> <span class="o">-</span> <span class="mi">2</span>
+    <span class="n">g</span> <span class="o">=</span> <span class="mi">5</span><span class="p">;</span> <span class="n">g_inv</span> <span class="o">=</span> <span class="nb">pow</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">N</span><span class="p">)</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">r</span> <span class="o">=</span> <span class="n">h</span> <span class="o">%</span> <span class="n">N</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">m_exp</span><span class="p">):</span>
+        <span class="n">val</span> <span class="o">=</span> <span class="nb">pow</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="p">(</span><span class="n">m_exp</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">i</span><span class="p">),</span> <span class="n">N</span><span class="p">)</span>   <span class="c1"># 剩最后"一半"指数，得到阶2元素的幂</span>
+        <span class="k">if</span> <span class="n">val</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>                              <span class="c1"># 该位为 1</span>
+            <span class="n">d</span> <span class="o">|=</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="n">i</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="p">(</span><span class="n">r</span> <span class="o">*</span> <span class="nb">pow</span><span class="p">(</span><span class="n">g_inv</span><span class="p">,</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="n">i</span><span class="p">,</span> <span class="n">N</span><span class="p">))</span> <span class="o">%</span> <span class="n">N</span>  <span class="c1"># 减掉已确定的低位</span>
+    <span class="k">return</span> <span class="n">d</span>
+</code></pre></div></div>
+
+<p>复杂度 O(k²) 次大数乘法，254 位模数秒出。</p>
+<h2 id="_4">解题脚本</h2>
+<p>见同目录 <code>模2的幂-离散对数-solve.py</code>，换题只改 <code>m</code>/<code>c</code> 两个数据，<code>py</code> 直接跑。</p>
+<h2 id="_5">易错点</h2>
+<ol>
+<li><strong>不是普通 dlog</strong>：<code>(Z/2^k)^*</code> 不是循环群（有 3 个阶 2 的元素），不能直接拿 m 当生成元做 PH；必须先分解成 <code>±5^b</code></li>
+<li><strong>符号处理</strong>：m 或 c 是 <code>3 mod 4</code> 时取负值再算，否则 dlog5 会失败</li>
+<li><strong>v₂(B) 影响精度</strong>：B 是偶数时只能解出 <code>e mod 2^{k-2-t}</code>；flag 很短（&lt;2^200）时一般够用，若 t 太大可结合 flag 格式猜补</li>
+</ol>
+<h2 id="_6">实战记录</h2>
+<ul>
+<li>来源：DASCTF 题，<code>k=256</code>，<code>m</code> 为随机奇数，<code>c = pow(m, flag, 2**256)</code></li>
+<li>本题 <code>v₂(B)=0</code>，直接 <code>e = D * B^{-1} mod 2^254</code></li>
+<li>flag：<code>flag{DASCTF_zjut}</code></li>
+<li>难度评估：中等偏简单——认出群结构即秒解，属于"见过就会"类题型</li>
+</ul>
+<p><em>最后更新：2026年9月13日</em></p></div>
+      <div class="post-nav"><a class="pn-item prev" href="misc-tu-pian-ti-jie-ti-bu-zhou.html"><span>← 上一篇</span><strong>Misc图片题解题步骤</strong></a><a class="pn-item next" href="rsa-coppersmith-gao-wei-gong-ji.html"><span>下一篇 →</span><strong>RSA-Coppersmith高位攻击</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">题型识别（一眼看出）</a><a href="#_2" class="toc-lv2">核心原理：群分解</a><a href="#_3" class="toc-lv2">解题步骤</a><a href="#dlog5pohlighellman" class="toc-lv2">离散对数 dlog₅（Pohlig–Hellman 二进制版）</a><a href="#_4" class="toc-lv2">解题脚本</a><a href="#_5" class="toc-lv2">易错点</a><a href="#_6" class="toc-lv2">实战记录</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

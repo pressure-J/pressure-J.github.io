@@ -1,37 +1,77 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Shiro RememberMe 反序列化 RCE 流量分析</title>
-<meta name="description" content="从抓包流量中定位 Shiro 默认密钥攻击：指纹识别（rememberMe=deleteMe）、AES-CBC 解密 Cookie、Java 序列化魔数识别，到通过 CAFEBABE 字节码提取恶意类名。">
-<link rel="stylesheet" href="../style.css">
+<title>Shiro反序列化RCE流量分析WriteUp · pressure-J</title>
+<meta name="description" content="企业服务器被入侵，安全团队抓取了攻击流量。开发人员确认系统使用了 Shiro 框架的默认密钥 90F1FE6C8C64E43D9D799888C5C69A68。分析攻击流量包，确认攻击者攻击时用的恶意类的名称。">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/shiro-deserialization-traffic.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Shiro反序列化RCE流量分析WriteUp · pressure-J">
+<meta property="og:description" content="企业服务器被入侵，安全团队抓取了攻击流量。开发人员确认系统使用了 Shiro 框架的默认密钥 90F1FE6C8C64E43D9D799888C5C69A68。分析攻击流量包，确认攻击者攻击时用的恶意类的名称。">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
 </head>
-<body>
-<header>
-  <div class="wrap">
-    <a class="logo" href="../index.html">pressure-J<span>.</span></a>
-    <nav>
-      <a href="../index.html">首页</a>
-      <a href="../posts.html">文章</a>
-      <a href="https://github.com/pressure-J">GitHub</a>
-    </nav>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
   </div>
 </header>
-
-<div class="wrap">
-  <div class="post-head">
-    <h1>Shiro RememberMe 反序列化 RCE 流量分析</h1>
-    <div class="meta"><span class="cat">应急响应</span>2026-07-10</div>
-  </div>
-  <div class="content">
-<h1 id="shiro-rememberme-rce-writeup">Shiro RememberMe 反序列化 RCE 流量分析 WriteUp</h1>
-<h2 id="_1">题目信息</h2>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/ir.html">应急响应</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>Shiro反序列化RCE流量分析WriteUp</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-ir">应急响应</span>
+          <time datetime="2026-07-10">2026-07-10</time>
+          <span>5006 字</span>
+          <span>约 13 分钟</span>
+        </div>
+        <div class="chips post-tags"><span class="chip">应急响应</span><span class="chip">流量分析</span><span class="chip">Shiro</span><span class="chip">反序列化</span><span class="chip">WriteUp</span></div>
+      </header>
+      <div class="content"><h2 id="_1">题目信息</h2>
 <p>企业服务器被入侵，安全团队抓取了攻击流量。开发人员确认系统使用了 Shiro 框架的默认密钥 <code>90F1FE6C8C64E43D9D799888C5C69A68</code>。分析攻击流量包，确认攻击者攻击时用的恶意类的名称。</p>
 <p><strong>flag 格式</strong>: <code>flag{恶意类名称}</code></p>
 <hr />
 <h2 id="_2">日志概况</h2>
-<table>
+<div class="table-wrap"><table>
 <thead>
 <tr>
 <th>统计项</th>
@@ -60,10 +100,10 @@
 <td><code>flag{Test105692713192100}</code></td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <hr />
 <h2 id="_3">攻击路径总览</h2>
-<div class="highlight"><pre><span></span><code>Phase 1: 指纹探测 (0s)
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>Phase 1: 指纹探测 (0s)
   └─ 发送 rememberMe=1 → 确认 Shiro 框架
   └─ 服务器返回 deleteMe → 验证成功
 
@@ -74,39 +114,39 @@ Phase 2: 反序列化攻击 (4.7s)
 Phase 3: 命令执行 (16.2s ~ 45.1s)
   └─ POST / 提交表单 → 执行系统命令
   └─ 通过反序列化通道持续控制服务器
-</code></pre></div>
+</code></pre></div></div>
 
 <hr />
 <h2 id="_4">详细分析过程</h2>
 <h3 id="phase-1shiro">Phase 1：Shiro 框架指纹探测</h3>
 <p>在 Wireshark 中过滤 HTTP 请求：</p>
-<div class="highlight"><pre><span></span><code>http.request
-</code></pre></div>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>http.request
+</code></pre></div></div>
 
 <p>攻击者 <code>192.168.103.251</code> 发第一个请求：</p>
-<div class="highlight"><pre><span></span><code><span class="nf">GET</span> <span class="nn">/</span> <span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="nf">GET</span> <span class="nn">/</span> <span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span>
 <span class="na">Cookie</span><span class="o">:</span> <span class="l">rememberMe=1</span>
-</code></pre></div>
+</code></pre></div></div>
 
 <p>服务器返回 <code>302</code>，响应头包含关键特征：</p>
-<div class="highlight"><pre><span></span><code><span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span> <span class="m">302</span>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span> <span class="m">302</span>
 <span class="na">Set-Cookie</span><span class="o">:</span> <span class="l">rememberMe=deleteMe; Path=/; Max-Age=0; ...</span>
 <span class="na">Set-Cookie</span><span class="o">:</span> <span class="l">JSESSIONID=DE74E79A10104F065CC7D04AE9407800; Path=/; HttpOnly</span>
-</code></pre></div>
+</code></pre></div></div>
 
 <blockquote>
 <p><strong>Shiro 指纹特征</strong>：当 <code>rememberMe</code> Cookie 值无法解密时，Shiro 会自动设置 <code>rememberMe=deleteMe</code>。这是 Apache Shiro 框架的<strong>独有特征</strong>。</p>
 </blockquote>
 <p><strong>Wireshark 过滤方法</strong>：</p>
-<div class="highlight"><pre><span></span><code># 过滤 Shiro 指纹
+<div class="code-block" data-lang="http"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code># 过滤 Shiro 指纹
 http.response &amp;&amp; http contains "rememberMe=deleteMe"
-</code></pre></div>
+</code></pre></div></div>
 
 <h3 id="phase-2-rememberme-cookie">Phase 2：构造恶意 RememberMe Cookie</h3>
 <p>确认 Shiro 框架后，攻击者发送带恶意序列化 payload 的 Cookie：</p>
-<div class="highlight"><pre><span></span><code><span class="nf">GET</span> <span class="nn">/</span> <span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="nf">GET</span> <span class="nn">/</span> <span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span>
 <span class="na">Cookie</span><span class="o">:</span> <span class="l">rememberMe=[超长 Base64 编码字符串]</span>
-</code></pre></div>
+</code></pre></div></div>
 
 <p><strong>定位方法</strong>：在 Wireshark 中找到 <code>HTTP</code> 请求中 Cookie 值特别长的几个请求（帧 115-120、129-136 等），它们的 <code>rememberMe</code> Cookie 值超过 <strong>900 字节</strong>。</p>
 <h3 id="phase-3">Phase 3：命令执行</h3>
@@ -116,29 +156,29 @@ http.response &amp;&amp; http contains "rememberMe=deleteMe"
 <p>本题最关键的一步是 <strong>解密 rememberMe Cookie</strong>，提取其中的 Java 序列化数据，找到攻击者嵌入的恶意类名。</p>
 <h3 id="_5">加密原理</h3>
 <p>Shiro 的 RememberMe 功能使用 AES-CBC 加密：</p>
-<div class="highlight"><pre><span></span><code>明文 (Java 序列化数据)
+<div class="code-block" data-lang="http"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>明文 (Java 序列化数据)
   → AES/CBC/PKCS5Padding 加密
   → 将 IV(16字节) + 密文 拼接
   → Base64 编码
   → 放入 Cookie: rememberMe=&lt;Base64&gt;
-</code></pre></div>
+</code></pre></div></div>
 
 <p>Cookie 结构：</p>
-<div class="highlight"><pre><span></span><code>Cookie: rememberMe = Base64( IV(16字节) || AES-密文 )
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>Cookie: rememberMe = Base64( IV(16字节) || AES-密文 )
                      ├───── 前32位十六进制 = IV ─────┤
-</code></pre></div>
+</code></pre></div></div>
 
 <h3 id="_6">解密步骤</h3>
 <h4 id="1-wireshark-cookie">1. 从 Wireshark 提取 Cookie 值</h4>
 <p>定位到帧 119（或 125、133），查看 HTTP 请求的 Cookie 值。</p>
-<div class="highlight"><pre><span></span><code>Wireshark 操作：
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>Wireshark 操作：
 1. 找到帧 119 → Follow HTTP Stream
 2. 复制 Cookie: rememberMe= 后面的完整 Base64 字符串
-</code></pre></div>
+</code></pre></div></div>
 
 <h4 id="2-python">2. 编写 Python 解密脚本</h4>
 <p>使用 Shiro 默认密钥进行 AES-CBC 解密：</p>
-<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">base64</span>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">base64</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">Crypto.Cipher</span><span class="w"> </span><span class="kn">import</span> <span class="n">AES</span>
 
 <span class="n">KEY_HEX</span> <span class="o">=</span> <span class="s2">"90F1FE6C8C64E43D9D799888C5C69A68"</span>
@@ -159,12 +199,12 @@ http.response &amp;&amp; http contains "rememberMe=deleteMe"
 <span class="n">decrypted</span> <span class="o">=</span> <span class="n">decrypted</span><span class="p">[:</span><span class="o">-</span><span class="n">pad_len</span><span class="p">]</span>
 
 <span class="nb">print</span><span class="p">(</span><span class="n">decrypted</span><span class="o">.</span><span class="n">hex</span><span class="p">()</span><span class="o">.</span><span class="n">upper</span><span class="p">())</span>
-</code></pre></div>
+</code></pre></div></div>
 
 <h4 id="3">3. 分析解密结果</h4>
 <p>解密后的数据以 <code>AC ED 00 05</code> 开头，这是 <strong>Java 序列化</strong> 的标准魔数。</p>
 <p><strong>Hex dump 分析</strong>：</p>
-<div class="highlight"><pre><span></span><code>ACED 0005 7372 0017 6A61 7661 2E75 7469
+<div class="code-block" data-lang="http"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>ACED 0005 7372 0017 6A61 7661 2E75 7469
 6C2E 5072 696F 7269 7479 5175 6575 6594
 DA30 B4FB 3F82 B103 0002 4900 0473 697A
 654C 000A 636F 6D70 6172 6174 6F72 7400
@@ -173,13 +213,13 @@ DA30 B4FB 3F82 B103 0002 4900 0473 697A
 2B6F 7267 2E61 7061 6368 652E 636F 6D6D
 6F6E 732E 6265 616E 7574 696C 732E 4265
 616E 436F 6D70 6172 6174 6F72           ← org.apache.commons.beanutils.BeanComparator
-</code></pre></div>
+</code></pre></div></div>
 
 <p><strong>关键类名提取</strong>：</p>
 <p>在解密后的数据中搜索类名字符串，找到各节点的完整类名。</p>
 <h4 id="4">4. 定位恶意字节码中的类名</h4>
 <p>解密后的序列化数据中嵌入了完整的 Java Class 文件字节码（位于 <code>TemplatesImpl._bytecodes</code> 字段）。字节码以 <code>CAFEBABE</code> 开头，从中可以提取真正的恶意类名：</p>
-<div class="highlight"><pre><span></span><code>Hex dump 中的关键位置：
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>Hex dump 中的关键位置：
 
 ...7000001004CAFEBABE                    ← Java Class 文件魔数
               00000033                   ← Java 7 编译版本
@@ -187,11 +227,11 @@ DA30 B4FB 3F82 B103 0002 4900 0473 697A
               01                        ← CONSTANT_Utf8
               0015                      ← 类名长度 = 21
               2F54657374313035363932...  ← "/Test105692713192100"
-</code></pre></div>
+</code></pre></div></div>
 
 <h3 id="_7">提取到的类名</h3>
 <h4 id="payload-119125133">攻击 payload（帧 119/125/133）</h4>
-<table>
+<div class="table-wrap"><table>
 <thead>
 <tr>
 <th>组件</th>
@@ -221,13 +261,13 @@ DA30 B4FB 3F82 B103 0002 4900 0473 697A
 <td><strong>字节码中定义的恶意类，加载后执行命令</strong></td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <h4 id="payload-150">第二段 payload（帧 150）</h4>
 <p>第二段 payload 包含不同的字节码，类名为 <code>Test105714876940900</code>，包含 <code>getFV</code>、<code>getClass</code> 等方法，疑似用于反射获取 Shiro 密钥或其他敏感信息。</p>
 <hr />
 <h2 id="gadget-chain">Gadget Chain 分析</h2>
 <p>本题攻击者使用 <strong>CommonsBeanutils1</strong> 链（ysoserial 项目中的标准链）：</p>
-<div class="highlight"><pre><span></span><code>PriorityQueue
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>PriorityQueue
   └─ siftDownUsingComparator()
       └─ BeanComparator.compare()
           └─ PropertyUtils.getProperty()
@@ -237,14 +277,14 @@ DA30 B4FB 3F82 B103 0002 4900 0473 697A
                           └─ ClassLoader.defineClass()
                               └─ Test105692713192100.&lt;init&gt;()
                                   └─ Runtime.exec("cmd /c echo ...")
-</code></pre></div>
+</code></pre></div></div>
 
 <blockquote>
 <p>注意：<code>CommonsBeanutils1</code> 是 ysoserial 的 <strong>gadget chain 名称</strong>，不是本题要求的"恶意类的名称"。恶意类的名称是字节码中定义的 <strong><code>Test105692713192100</code></strong>。</p>
 </blockquote>
 <hr />
 <h2 id="_8">攻击者时间线</h2>
-<div class="highlight"><pre><span></span><code>时间戳      动作                         帧号
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>时间戳      动作                         帧号
 0.000s      GET / → rememberMe=1        帧1-2     ← 指纹探测
 0.006s      GET /login → 200 (登录页)    帧3-6
 ...
@@ -253,11 +293,11 @@ DA30 B4FB 3F82 B103 0002 4900 0473 697A
 16.243s     GET / → 恶意 rememberMe     帧129-136 ← 第二段恶意 payload
 26.740s     POST / → 表单提交            帧137-152 ← 命令执行
 45.119s     POST / → 表单提交            帧163-178 ← 持续控制
-</code></pre></div>
+</code></pre></div></div>
 
 <hr />
 <h2 id="wireshark-shiro">在 Wireshark 中定位 Shiro 攻击的方法</h2>
-<div class="highlight"><pre><span></span><code>方法 1：搜索 Shiro 指纹
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>方法 1：搜索 Shiro 指纹
   http.response &amp;&amp; http contains "rememberMe=deleteMe"
 
 方法 2：筛选超长 Cookie 请求
@@ -265,11 +305,11 @@ DA30 B4FB 3F82 B103 0002 4900 0473 697A
 
 方法 3：Follow TCP Stream 看完整内容
   找到可疑请求 → 右键 → Follow → TCP Stream
-</code></pre></div>
+</code></pre></div></div>
 
 <hr />
 <h2 id="shiro">Shiro 漏洞流量特征总结</h2>
-<table>
+<div class="table-wrap"><table>
 <thead>
 <tr>
 <th>特征</th>
@@ -294,7 +334,7 @@ DA30 B4FB 3F82 B103 0002 4900 0473 697A
 <td>每次攻击会先发 GET <code>/</code> 触发反序列化，再跳转到 <code>/login</code></td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <hr />
 <h2 id="_9">防御建议</h2>
 <ol>
@@ -303,15 +343,47 @@ DA30 B4FB 3F82 B103 0002 4900 0473 697A
 <li><strong>WAF 规则</strong>：拦截过长的 <code>rememberMe</code> Cookie 值</li>
 <li><strong>出站流量监控</strong>：关注异常的 DNS 查询（Shiro 常配合 DNSLog 使用）</li>
 <li><strong>最小化 RememberMe 功能</strong>：非必要场景禁用 RememberMe</li>
-</ol>
+</ol></div>
+      <div class="post-nav"><a class="pn-item prev" href="bla-ri-zhi-fen-xi-gong-ju-shi-yong-zhi-nan.html"><span>← 上一篇</span><strong>BLA日志分析工具使用指南</strong></a><a class="pn-item next" href="windows-ri-zhi-fen-xi-ji-chu.html"><span>下一篇 →</span><strong>Windows 日志分析基础</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
   </div>
-</div>
-
-<footer>
-  <div class="wrap">
-    <div>&copy; 2026 pressure-J · 网络安全方向</div>
-    <div><a href="https://github.com/pressure-J">GitHub</a></div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">题目信息</a><a href="#_2" class="toc-lv2">日志概况</a><a href="#_3" class="toc-lv2">攻击路径总览</a><a href="#_4" class="toc-lv2">详细分析过程</a><a href="#phase-1shiro" class="toc-lv3">Phase 1：Shiro 框架指纹探测</a><a href="#phase-2-rememberme-cookie" class="toc-lv3">Phase 2：构造恶意 RememberMe Cookie</a><a href="#phase-3" class="toc-lv3">Phase 3：命令执行</a><a href="#rememberme-cookie" class="toc-lv2">核心：解密 RememberMe Cookie 提取恶意类名</a><a href="#_5" class="toc-lv3">加密原理</a><a href="#_6" class="toc-lv3">解密步骤</a><a href="#_7" class="toc-lv3">提取到的类名</a><a href="#gadget-chain" class="toc-lv2">Gadget Chain 分析</a><a href="#_8" class="toc-lv2">攻击者时间线</a><a href="#wireshark-shiro" class="toc-lv2">在 Wireshark 中定位 Shiro 攻击的方法</a><a href="#shiro" class="toc-lv2">Shiro 漏洞流量特征总结</a><a href="#_9" class="toc-lv2">防御建议</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
   </div>
 </footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
 </body>
 </html>

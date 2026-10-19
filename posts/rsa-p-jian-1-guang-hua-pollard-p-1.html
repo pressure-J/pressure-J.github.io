@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RSA-p减1光滑-Pollard p-1 · pressure-J</title>
+<meta name="description" content="素数不是随机生成的，而是「小素数连乘 + 1」 → p−1 / q−1 的所有素因子都很小（光滑 / smooth）">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/rsa-p-jian-1-guang-hua-pollard-p-1.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="RSA-p减1光滑-Pollard p-1 · pressure-J">
+<meta property="og:description" content="素数不是随机生成的，而是「小素数连乘 + 1」 → p−1 / q−1 的所有素因子都很小（光滑 / smooth）">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/crypto.html">密码学</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>RSA-p减1光滑-Pollard p-1</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-crypto">密码学</span>
+          <time datetime="2026-09-17">2026-09-17</time>
+          <span>1368 字</span>
+          <span>约 4 分钟</span>
+        </div>
+        <div class="chips post-tags"><span class="chip">crypto</span></div>
+      </header>
+      <div class="content"><h2 id="_1">题型识别</h2>
+<p>出题脚本形如：</p>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">random</span><span class="w"> </span><span class="kn">import</span> <span class="n">choice</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">Crypto.Util.number</span><span class="w"> </span><span class="kn">import</span> <span class="n">isPrime</span><span class="p">,</span> <span class="n">sieve_base</span> <span class="k">as</span> <span class="n">primes</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">getPrime</span><span class="p">(</span><span class="n">bits</span><span class="p">):</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="mi">2</span>
+        <span class="k">while</span> <span class="n">n</span><span class="o">.</span><span class="n">bit_length</span><span class="p">()</span> <span class="o">&lt;</span> <span class="n">bits</span><span class="p">:</span>
+            <span class="n">n</span> <span class="o">*=</span> <span class="n">choice</span><span class="p">(</span><span class="n">primes</span><span class="p">)</span>      <span class="c1"># 反复乘"小素数"</span>
+        <span class="k">if</span> <span class="n">isPrime</span><span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">n</span> <span class="o">+</span> <span class="mi">1</span>             <span class="c1"># p = n + 1  =&gt;  p-1 = 小素数之积</span>
+</code></pre></div></div>
+
+<p>特征：<br />
+- 素数不是随机生成的，而是**「小素数连乘 + 1」** → <strong>p−1 / q−1 的所有素因子都很小（光滑 / smooth）</strong><br />
+- 小素数取自 <code>sieve_base</code>（本机实测 10000 个，最大 <strong>104729</strong>）<br />
+- n 很大（本题 4096 位），普通分解 / 共模 / 低指数 / Wiener 全部无效<br />
+- 关键点：<strong>n 大 ≠ 安全，p−1 光滑就完蛋</strong></p>
+<h2 id="pollard-p1">攻击核心：Pollard p−1</h2>
+<p>原理（两行数学）：<br />
+若 p−1 的所有素因子 ≤ B（即 p−1 是 B-smooth），取指数 $M$ 使 $p-1 \mid M$，则对任意与 p 互素的 $a$：</p>
+<p>$$a^{M} \equiv 1 \pmod p \;\Longrightarrow\; p \mid (a^{M}-1) \;\Longrightarrow\; \gcd(a^{M}-1,\; n) \text{ 得到 } p$$</p>
+<p>$M$ 的取法：$M = \prod_{p_i \le B} p_i^{e_i}$，其中 $e_i \ge p_i$ 在 p−1 中的重数。</p>
+<p><strong>实现要点（增量法）</strong>：<br />
+- p−1、q−1 都在<strong>同一批</strong>小素数上光滑 → 若一把算 $a^M$，可能 p、q 同时整除 → <code>gcd = n</code> 失败<br />
+- 所以<strong>逐个素数累乘</strong>，每步检查：<br />
+<code>a ← a^(p_i^E) mod n
+  g = gcd(a - 1, n)
+  1 &lt; g &lt; n  →  命中</code><br />
+- 谁的小素因子先被凑齐，就先套出谁</p>
+<h2 id="_2">关键坑（实测踩过）</h2>
+<ol>
+<li><strong>指数别取满！</strong> 若按 $p_i^{\lceil 2048/\log_2 p_i \rceil}$ 去覆盖"最大可能重数"，每次 modexp 指数都 ~2048 位，1 万次 → <strong>10 分钟都跑不完</strong>（我第一次就这么超时）。<br />
+   正解：p−1 是<strong>随机取</strong> ~130 个素数连乘，同一素数几乎不重复，取 $p_i^{8}$ 足够 → 指数仅 ~128 位 → <strong>秒级</strong>。</li>
+<li><code>gcd == n</code>（两因子同时完成）时，<strong>换底数</strong> <code>a = 3, 5, 7...</code> 重试即可。</li>
+<li>要跑到<strong>最大素因子</strong>处才命中：本题在第 9838 个素数（102797）才套出 p —— 别以为跑一半没结果就是方向错。</li>
+<li>运行环境：只需 <code>pycryptodome</code>（系统 <code>py</code> 即可），不必上 gmpy2 / ECM。</li>
+</ol>
+<h2 id="_3">解题脚本</h2>
+<p>见同目录 <code>RSA-p减1光滑-Pollardp-1-solve.py</code>，换题只改 <code>n / e / c</code> 三行。</p>
+<h2 id="_4">实战记录</h2>
+<ul>
+<li>来源：NCTF 类题；n 4096 位，p / q 各 2048 位</li>
+<li>p−1 = 若干 ≤ 104729 小素数之积</li>
+<li>命中：<code>base=2</code>，第 9838 个素数（102797）</li>
+<li>FLAG：<code>NCTF{Th3r3_ar3_1ns3cure_RSA_m0duli_7hat_at_f1rst_gl4nce_appe4r_t0_be_s3cur3}</code></li>
+</ul>
+<p><em>最后更新：2026年9月17日</em></p></div>
+      <div class="post-nav"><a class="pn-item prev" href="rsa-coppersmith-gao-wei-gong-ji.html"><span>← 上一篇</span><strong>RSA-Coppersmith高位攻击</strong></a><a class="pn-item next" href="wen-ben-bian-ma-yu-luan-ma.html"><span>下一篇 →</span><strong>文本编码与乱码</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">题型识别</a><a href="#pollard-p1" class="toc-lv2">攻击核心：Pollard p−1</a><a href="#_2" class="toc-lv2">关键坑（实测踩过）</a><a href="#_3" class="toc-lv2">解题脚本</a><a href="#_4" class="toc-lv2">实战记录</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

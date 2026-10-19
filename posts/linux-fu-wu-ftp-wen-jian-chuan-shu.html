@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Linux 服务：FTP 文件传输 · pressure-J</title>
+<meta name="description" content="FTP（File Transfer Protocol）：文件传输协议，可靠性强、传输效率高，采用 C/S 结构，默认控制端口 21，数据通道端口为 20（主动模式）。">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/linux-fu-wu-ftp-wen-jian-chuan-shu.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Linux 服务：FTP 文件传输 · pressure-J">
+<meta property="og:description" content="FTP（File Transfer Protocol）：文件传输协议，可靠性强、传输效率高，采用 C/S 结构，默认控制端口 21，数据通道端口为 20（主动模式）。">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/linux.html">Linux</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>Linux 服务：FTP 文件传输</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-linux">Linux</span>
+          <time datetime="2026-08-28">2026-08-28</time>
+          <span>5316 字</span>
+          <span>约 14 分钟</span>
+        </div>
+        
+      </header>
+      <div class="content"><blockquote>
+<p>来源：课程实验（Linux操作系统，CentOS 8.3，2025-2026 第一学期），老师版PDF为底料<br />
+定位：最常见的文件传输服务之一，运维中用于软件分发、网站内容上传维护、数据备份交换；安全角度上 FTP 明文传输密码+三种认证模式权限配置是高频考点，vsftpd 也是应急响应中排查后门上传/弱口令暴破的重点服务。</p>
+</blockquote>
+<hr />
+<h2 id="_1">一、概念与原理</h2>
+<p><strong>FTP（File Transfer Protocol）</strong>：文件传输协议，可靠性强、传输效率高，采用 <strong>C/S 结构</strong>，默认控制端口 <strong>21</strong>，数据通道端口为 <strong>20（主动模式）</strong>。</p>
+<p><strong>工作原理（双通道）</strong>：<br />
+1. 客户端动态打开一个大于 1024 的端口（如 1031），向服务器 21 端口发起连接请求，建立 FTP 会话连接（控制连接）。<br />
+2. 传输数据时，客户端再动态打开一个大于 1024 的端口（如 1032），与服务器 <strong>20</strong> 端口建立数据连接传输数据，传完即关闭。<br />
+3. 数据传输完毕如果不发拆除连接请求，则连接保持；客户端发送拆除请求并确认后断开，动态端口自动释放。</p>
+<p><strong>两种工作模式（面试必问）</strong>：<br />
+| 模式 | 数据连接方向 | 特点 |<br />
+|---|---|---|<br />
+| 主动模式 Active | 服务器 20 端口主动连客户端的高端口 | 客户端被防火墙/NAT 挡住时常失败 |<br />
+| 被动模式 Passive | 服务器开放一个随机端口，客户端主动连接 | 能穿透大多数防火墙，现代客户端默认 |</p>
+<p><strong>匿名用户</strong>：用统一用户名 <code>anonymous</code>（密码任意，惯例填邮箱格式），方便公开软件下载站点即开即用。</p>
+<p><strong>本实验使用 vsftpd（Very Secure FTP Daemon）</strong>，号称"非常安全的 FTP 守护进程"。三种认证模式：<br />
+1. <strong>匿名开放模式</strong>：最不安全，无须密码直接登录；<br />
+2. <strong>本地用户模式</strong>：用 Linux 系统账户密码认证，比匿名安全；但一旦账号泄露可登录远程终端，完全控制服务器；<br />
+3. <strong>虚拟用户模式</strong>：最安全。为 FTP 单独建立用户数据库，虚拟账号<strong>在系统中不存在</strong>，仅作认证用；即使泄露也无法登录系统终端，破坏范围最小。</p>
+<hr />
+<h2 id="_2">二、环境准备与安装</h2>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>dnf<span class="w"> </span>install<span class="w"> </span>vsftpd<span class="w"> </span>ftp<span class="w"> </span>-y<span class="w">         </span><span class="c1"># ftp 是客户端命令</span>
+sudo<span class="w"> </span>rpm<span class="w"> </span>-qa<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>vsftpd<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>sudo<span class="w"> </span>rpm<span class="w"> </span>-qa<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>ftp
+sudo<span class="w"> </span>systemctl<span class="w"> </span>start<span class="w"> </span>vsftpd
+sudo<span class="w"> </span>systemctl<span class="w"> </span><span class="nb">enable</span><span class="w"> </span>vsftpd
+sudo<span class="w"> </span>firewall-cmd<span class="w"> </span>--permanent<span class="w"> </span>--add-service<span class="o">=</span>ftp<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>sudo<span class="w"> </span>firewall-cmd<span class="w"> </span>--reload
+sudo<span class="w"> </span>setsebool<span class="w"> </span>-P<span class="w"> </span><span class="nv">ftpd_full_access</span><span class="o">=</span>on<span class="w">  </span><span class="c1"># 或 sudo setenforce 0</span>
+</code></pre></div></div>
+
+<p><strong>配置文件族</strong>：<br />
+- 主配置文件：<code>/etc/vsftpd/vsftpd.conf</code>（127 行，多数是注释；可用 <code>grep -v "#"</code> 过滤出有效参数）<br />
+- PAM 认证配置：<code>/etc/pam.d/vsftpd</code><br />
+- <strong>ftpusers 黑名单</strong>：文件内用户一律禁止访问（默认含 root、bin、daemon 等系统账号）<br />
+- <strong>user_list</strong>：配合 <code>userlist_deny</code> 决定是白名单还是黑名单（userlist_deny=NO 仅允许列表用户；=YES 默认值，拒绝列表用户）<br />
+- 服务目录：<code>/var/ftp</code>（含 pub 子目录，默认只读，仅 root 可写）</p>
+<p><strong>常用参数速查</strong>：<code>listen/listen_address/listen_port</code>（监听方式与端口）、<code>download_enable</code>、<code>userlist_enable/userlist_deny</code>、<code>max_clients</code>（最大连接数，0 不限）、<code>max_per_ip</code>（同 IP 最大连接数）、<code>anon_umask=022</code>、<code>anon_root=/var/ftp</code>（匿名根目录）、<code>anon_max_rate</code>（限速）、<code>local_root</code>、<code>chroot_local_user</code>（禁锢用户在 FTP 目录内）、<code>local_max_rate</code>。</p>
+<hr />
+<h2 id="_3">三、配置详解（三种模式的完整实例）</h2>
+<h3 id="31">3.1 匿名用户方式</h3>
+<p>需求：允许匿名上传下载，根目录 /var/ftp。</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>touch<span class="w"> </span>/var/ftp/pub/sample.tar
+sudo<span class="w"> </span>vim<span class="w"> </span>/etc/vsftpd/vsftpd.conf
+</code></pre></div></div>
+
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>anonymous_enable=YES              # 允许匿名登录
+anon_root=/var/ftp                # 匿名根目录
+anon_upload_enable=YES            # 允许上传
+anon_mkdir_write_enable=YES       # 允许建目录
+#anon_other_write_enable=YES      # 删除/重命名权限，本实例不开
+</code></pre></div></div>
+
+<p>⚠️ <strong>语句前后不能有空格</strong>，重复语句直接修改不要追加。重启后 Windows 资源管理器访问 <code>ftp://192.168.137.4</code> 能进 pub 但<strong>无法新建文件夹</strong>——原因是文件系统权限没放开：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>chmod<span class="w"> </span>o+w<span class="w"> </span>/var/ftp/pub<span class="w">       </span><span class="c1"># 给其他用户写权限</span>
+sudo<span class="w"> </span>systemctl<span class="w"> </span>restart<span class="w"> </span>vsftpd
+</code></pre></div></div>
+
+<h3 id="32">3.2 本地用户方式</h3>
+<p>需求：team1/team2 维护网站内容，仅限登录 FTP、不能登录本地系统，根目录锁定在 /web/www/html。</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>useradd<span class="w"> </span>team1<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>sudo<span class="w"> </span>useradd<span class="w"> </span>team2
+sudo<span class="w"> </span>passwd<span class="w"> </span>team1<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>sudo<span class="w"> </span>passwd<span class="w"> </span>team2
+sudo<span class="w"> </span>cp<span class="w"> </span>/etc/vsftpd/vsftpd.conf<span class="w"> </span>/etc/vsftpd/vsftpd.conf.bak1<span class="w">   </span><span class="c1"># 备份</span>
+sudo<span class="w"> </span>sh<span class="w"> </span>-c<span class="w"> </span><span class="s1">'grep -v "#" /etc/vsftpd/vsftpd.conf.bak &gt; /etc/vsftpd/vsftpd.conf'</span><span class="w">  </span><span class="c1"># 恢复干净配置</span>
+sudo<span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span>/web/www/html<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>sudo<span class="w"> </span>touch<span class="w"> </span>/web/www/html/test.sample
+sudo<span class="w"> </span>chmod<span class="w"> </span>-R<span class="w"> </span>o+w<span class="w"> </span>/web/www/html
+</code></pre></div></div>
+
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>local_enable=YES
+local_root=/web/www/html
+chroot_local_user=NO              # 采用"列表内受限"方案（默认值）
+chroot_list_enable=YES            # 激活 chroot 例外列表
+chroot_list_file=/etc/vsftpd/chroot_list
+allow_writeable_chroot=YES        # 启用 chroot 必须加，否则报错
+</code></pre></div></div>
+
+<p><code>/etc/vsftpd/chroot_list</code> 文件写入 team1、team2（列表内用户被禁锢在根目录）。<strong>chroot 两种实现</strong>：① <code>chroot_local_user=YES</code>（列表内自由、列表外受限）；② <code>chroot_local_user=NO</code>（列表内受限、列表外自由）——本例用②。</p>
+<h3 id="33">3.3 虚拟用户方式（最安全）</h3>
+<p>需求：虚拟账号 user2/user3 登录，仅可查看 /var/ftp/vuser，禁止上传修改。</p>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>mkdir<span class="w"> </span>/vftp<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>sudo<span class="w"> </span>vim<span class="w"> </span>/vftp/vuser.txt<span class="w">     </span><span class="c1"># 每行"用户名/密码"：user2/12345678、user3/12345678</span>
+sudo<span class="w"> </span>db_load<span class="w"> </span>-T<span class="w"> </span>-t<span class="w"> </span><span class="nb">hash</span><span class="w"> </span>-f<span class="w"> </span>/vftp/vuser.txt<span class="w"> </span>/vftp/vuser.db<span class="w">   </span><span class="c1"># 明文文件转 db 数据库</span>
+sudo<span class="w"> </span>chmod<span class="w"> </span><span class="m">700</span><span class="w"> </span>/vftp/vuser.db
+</code></pre></div></div>
+
+<p><strong>配置 PAM</strong>（/etc/pam.d/vsftpd，把原有内容全部 # 注释）：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>auth    required    pam_userdb.so   db=/vftp/vuser
+account required    pam_userdb.so   db=/vftp/vuser
+</code></pre></div></div>
+
+<p><strong>创建映射的系统用户</strong>：</p>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>useradd<span class="w"> </span>-d<span class="w"> </span>/var/ftp/vuser<span class="w"> </span>vuser
+sudo<span class="w"> </span>chown<span class="w"> </span>vuser.vuser<span class="w"> </span>/var/ftp/vuser
+sudo<span class="w"> </span>chmod<span class="w"> </span><span class="m">555</span><span class="w"> </span>/var/ftp/vuser
+sudo<span class="w"> </span>touch<span class="w"> </span>/var/ftp/vuser/file1<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>sudo<span class="w"> </span>mkdir<span class="w"> </span>/var/ftp/vuser/dir1
+</code></pre></div></div>
+
+<p><strong>vsftpd.conf 要点</strong>：<code>anonymous_enable=NO</code>（关匿名）、<code>local_enable=YES</code>、<code>chroot_local_user=YES</code>、<code>allow_writeable_chroot=YES</code>、<code>write_enable=NO</code>（禁写入）、<code>guest_enable=YES</code>、<code>guest_username=vuser</code>（虚拟账号统一映射到 vuser）、<code>pam_service_name=vsftpd</code>。</p>
+<hr />
+<h2 id="_4">四、客户端验证</h2>
+<p><strong>Windows</strong>：资源管理器输入 <code>ftp://192.168.137.4</code>，直接浏览/上传下载（匿名需先 <code>chmod o+w</code>）。</p>
+<p><strong>Linux</strong>：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>ftp<span class="w"> </span><span class="m">192</span>.168.137.4
+Name:<span class="w"> </span>team1<span class="w"> </span>/<span class="w"> </span>Password:<span class="w"> </span>****<span class="w">   </span><span class="c1"># 230 Login successful</span>
+ftp&gt;<span class="w"> </span><span class="nb">pwd</span><span class="w">                        </span><span class="c1"># 显示 "/"，实际是 /web/www/html</span>
+ftp&gt;<span class="w"> </span>mkdir<span class="w"> </span>testteam1<span class="w">            </span><span class="c1"># 建目录（本地用户可写）</span>
+ftp&gt;<span class="w"> </span>get<span class="w"> </span>test.sample<span class="w"> </span>test1111.sample<span class="w">   </span><span class="c1"># 下载并改名</span>
+ftp&gt;<span class="w"> </span>put<span class="w"> </span>test1111.sample<span class="w"> </span>test00.sample<span class="w"> </span><span class="c1"># 上传并改名</span>
+</code></pre></div></div>
+
+<hr />
+<h2 id="pdf">五、常见问题与排查（老师PDF里的坑）</h2>
+<ol>
+<li><strong>匿名用户无法新建文件夹</strong>：文件系统权限不足 → <code>chmod o+w /var/ftp/pub</code> 后重启。</li>
+<li><strong>chroot 报错</strong>：<code>500 OOPS: vsftpd: refusing to run with writable root inside chroot()</code> → 在配置中加入 <code>allow_writeable_chroot=YES</code>（只要启用 chroot 就必须加）。</li>
+<li><strong>配置不生效/服务异常</strong>：检查语句前后是否误带空格、是否有重复参数（重复项删除或覆盖，不要追加多份）；<code>grep -v "#"</code> 恢复干净配置后从零改。</li>
+<li><strong>用户能访问系统其他目录</strong>：确认 chroot 生效路径（chroot_list 文件写对用户、对应 chroot_local_user 取值方案）。</li>
+<li>排错命令：<code>sudo journalctl -xe</code>、<code>ss -tlnp | grep 21</code>、<code>tail -f /var/log/vsftpd.log</code>。</li>
+</ol>
+<hr />
+<h2 id="_5">六、安全加固要点</h2>
+<ul>
+<li><strong>优先虚拟用户模式</strong>：虚拟账号不映射系统用户，即使密码泄露也无法登录服务器终端——这是三种模式里安全设计的关键。</li>
+<li><strong>禁止匿名写</strong>：匿名模式只用于公开下载，<code>anon_upload_enable</code>、<code>anon_mkdir_write_enable</code>、<code>anon_other_write_enable</code> 默认不开放；确需上传的目录单独隔离并限速（<code>anon_max_rate</code>/<code>local_max_rate</code>）。</li>
+<li><strong>chroot 禁锢</strong>：所有本地用户 <code>chroot_local_user=YES</code> 锁在 home 或指定目录，防止越权浏览系统文件。</li>
+<li><strong>系统账号保护</strong>：把 root、bin 等留在 /etc/vsftpd/ftpusers；用 user_list 白名单（userlist_deny=NO）只放行业务账号。</li>
+<li><strong>最小权限</strong>：只读优先；<code>write_enable</code> 按需开关；上传目录禁止执行（配合 httpd 时防 WebShell 上传执行链）。</li>
+<li><strong>网络层</strong>：控制端口 21+被动端口范围用防火墙精确放行来源 IP；FTP 明文传输密码，重要场景建议改 FTPS（TLS）或 SFTP。</li>
+<li>日志常查：<code>/var/log/vsftpd.log</code> 记录登录与传输，应急响应时核对异常登录 IP 与上传文件。</li>
+</ul>
+<hr />
+<h2 id="_6">七、面试速答卡</h2>
+<ul>
+<li><strong>FTP 端口</strong>：控制连接 21，数据连接主动模式 20（被动模式随机端口）。</li>
+<li><strong>主动/被动模式区别</strong>：主动是服务器连客户端数据端口，被动是客户端连服务器开放的随机端口；NAT/防火墙环境下被动模式更可靠。</li>
+<li><strong>vsftpd 三种认证模式</strong>：匿名（最不安全）、本地用户（系统账号）、虚拟用户（独立用户库，最安全）。</li>
+<li><strong>chroot 的作用与两种实现</strong>：把用户禁锢在指定目录；chroot_local_user=YES 时列表内自由/列表外受限，=NO 时列表内受限/列表外自由。</li>
+<li><strong>为什么虚拟用户最安全</strong>：虚拟账号在系统中不存在，即使密码泄露也无法登录服务器终端。</li>
+<li><strong>ftpusers 与 user_list 区别</strong>：ftpusers 是硬黑名单；user_list 由 userlist_deny 决定是黑名单还是白名单。</li>
+</ul></div>
+      <div class="post-nav"><a class="pn-item prev" href="linux-fu-wu-dns-yu-ming-jie-xi.html"><span>← 上一篇</span><strong>Linux 服务：DNS 域名解析</strong></a><a class="pn-item next" href="linux-fu-wu-apache-web-fu-wu-qi.html"><span>下一篇 →</span><strong>Linux 服务：Apache Web 服务器</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">一、概念与原理</a><a href="#_2" class="toc-lv2">二、环境准备与安装</a><a href="#_3" class="toc-lv2">三、配置详解（三种模式的完整实例）</a><a href="#31" class="toc-lv3">3.1 匿名用户方式</a><a href="#32" class="toc-lv3">3.2 本地用户方式</a><a href="#33" class="toc-lv3">3.3 虚拟用户方式（最安全）</a><a href="#_4" class="toc-lv2">四、客户端验证</a><a href="#pdf" class="toc-lv2">五、常见问题与排查（老师PDF里的坑）</a><a href="#_5" class="toc-lv2">六、安全加固要点</a><a href="#_6" class="toc-lv2">七、面试速答卡</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

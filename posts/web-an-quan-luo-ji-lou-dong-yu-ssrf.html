@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Web 安全：逻辑漏洞与 SSRF · pressure-J</title>
+<meta name="description" content="一句话原理：Web 安全的另一大类漏洞不是&quot;代码写得烂&quot;（如注入），而是业务逻辑设计有缺陷——校验只做了一半、信任了不该信任的假设、流程可被预测。">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/web-an-quan-luo-ji-lou-dong-yu-ssrf.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Web 安全：逻辑漏洞与 SSRF · pressure-J">
+<meta property="og:description" content="一句话原理：Web 安全的另一大类漏洞不是&quot;代码写得烂&quot;（如注入），而是业务逻辑设计有缺陷——校验只做了一半、信任了不该信任的假设、流程可被预测。">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/web.html">Web 安全</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>Web 安全：逻辑漏洞与 SSRF</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-web">Web 安全</span>
+          <time datetime="2026-08-28">2026-08-28</time>
+          <span>4595 字</span>
+          <span>约 12 分钟</span>
+        </div>
+        
+      </header>
+      <div class="content"><blockquote>
+<p>来源：课程实验《逻辑漏洞与SSRF攻击》（DVWA 平台 + Burp Suite，2025-2026 第二学期）<br />
+定位：业务逻辑漏洞是护网/众测的拿分大头，越权、SSRF、弱会话是面试的高频考题<br />
+实战场景：登录/注册/改密/找回密码等业务功能；一切让服务器请求 URL 的功能（图片代理、导入、网页截图）</p>
+</blockquote>
+<hr />
+<h2 id="_1">一、原理概述</h2>
+<p><strong>一句话原理</strong>：Web 安全的另一大类漏洞不是"代码写得烂"（如注入），而是<strong>业务逻辑设计有缺陷</strong>——校验只做了一半、信任了不该信任的假设、流程可被预测。</p>
+<p><strong>与注入类漏洞的本质区别</strong>：注入是"输入没过滤"；逻辑漏洞是"<strong>该想没想到</strong>"。比如：<br />
+- 前端把管理按钮藏起来，但后端接口照样能访问——"隐藏 ≠ 鉴权"<br />
+- 验证码校验只做在前端/第一步，第二步直接跳过——"流程只走了一半"<br />
+- 会话 ID 用自增数字——"标识符可预测，伪造身份"</p>
+<p><strong>共同点</strong>：攻击者不做任何"技术暴力"，只是<strong>顺着业务规则的漏洞走</strong>，所以常规 WAF、代码扫描器很难发现，全靠人肉手工测试。</p>
+<hr />
+<h2 id="authorisation-bypass-idor">二、越权攻击（Authorisation Bypass / IDOR）</h2>
+<h3 id="_2">原理</h3>
+<p>服务器只在"界面层"做了限制（非管理员看不到管理入口），但<strong>后端接口本身没有鉴权</strong>——任何持有合法会话的人直接请求接口 URL，就能执行管理操作。常见的资源型越权（IDOR）则是：查询接口用 <code>id</code> 参数定位资源（如用户信息），却<strong>不校验这个 id 是不是自己的</strong>，把 id 改成别人的就能读到/改到别人的数据。</p>
+<h3 id="_3">实操方法论（实验提炼）</h3>
+<ol>
+<li><strong>用普通账号登录</strong>，访问越权目标 URL —— Low 级别甚至给了一个隐藏的管理页面 URL，直接访问即可进入并修改他人数据</li>
+<li><strong>观察接口</strong>：打开开发者工具看页面发起的 AJAX 请求，找到 <code>change_user_details.php</code>、<code>get_user_data.php</code> 这类<strong>未在界面上暴露的接口</strong>——前端没界面 ≠ 后端没接口</li>
+<li><strong>直接调接口</strong>：用 curl 带上自己的会话 Cookie 调接口，改 JSON 里的 <code>id</code> 字段：</li>
+</ol>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>curl<span class="w"> </span><span class="s1">'http://192.168.164.130/DVWA/vulnerabilities/authbypass/change_user_details.php'</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-H<span class="w"> </span><span class="s1">'Content-Type: application/json'</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-H<span class="w"> </span><span class="s1">'Cookie: PHPSESSID=9c68eab46b52f412b7eb3e1e6ee70cdb; security=medium'</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--data-raw<span class="w"> </span><span class="s1">'{"id":5,"first_name":"Bob_New_New","surname":"Smith_New_New"}'</span>
+</code></pre></div></div>
+
+<p>返回 <code>{"result":"ok"}</code> 即修改成功；<code>get_user_data.php</code> 则可拉出全部用户数据。</p>
+<h3 id="_4">为什么会有这个洞（面试说清）</h3>
+<p><strong>授权（Authorization）校验缺位</strong>——接口只验证了"你登录了吗"（认证 Authentication），没验证"你有权做这件事吗"（授权）。水平越权 = 只能操作同级别人的数据（改 id）；垂直越权 = 普通用户操作管理员功能（Low 的隐藏管理页）。</p>
+<hr />
+<h2 id="insecure-captcha">三、Insecure CAPTCHA（不安全的验证码）</h2>
+<h3 id="_5">原理</h3>
+<p>验证码用来拦截自动化攻击，但实现时<strong>只在前端显示、后端校验逻辑有洞</strong>（可跳过、可预测、硬编码）。DVWA 改密流程分两步：第一步输验证码，第二步输新密码——后端却<strong>没有真正校验验证码</strong>。</p>
+<h3 id="_6">各难度绕过</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>难度</th>
+<th>后端逻辑</th>
+<th>绕过</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Low</td>
+<td>两步都只是前端页面</td>
+<td>抓包把两步请求合并/改参直接提交即可完成改密</td>
+</tr>
+<tr>
+<td>Medium</td>
+<td>加了 <code>if(!$_POST['passed_captcha'])</code></td>
+<td>BP 抓包给请求体添加 <code>passed_captcha=true</code> 即通过——只判断"参数在不在"，不判断"值对不对"</td>
+</tr>
+<tr>
+<td>High</td>
+<td>校验：<code>g-recaptcha-response == 'hidd3n_valu3'</code> 且 <code>User-Agent == 'reCAPTCHA'</code></td>
+<td>抓包改两个地方：UA 改成 <code>reCAPTCHA</code> + 请求体加 <code>&amp;g-recaptcha-response=hidd3n_valu3</code> —— <strong>密钥/判断条件硬编码在源码里，等于白送</strong></td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="_7">方法论要点</h3>
+<ul>
+<li>验证码攻击三步：<strong>界面看流程 → 抓包拆步骤 → 逐请求观察"哪一步真的校验了"</strong></li>
+<li>凡是"验证码结果藏在响应、页面、源码里"或"判断条件是固定字符串"的实现，都可直接构造绕过</li>
+<li>终极信任链：验证码校验必须发生在<strong>服务端的业务处理请求上</strong>，且结果不可预测、一次性</li>
+</ul>
+<hr />
+<h2 id="open-http-redirect">四、Open HTTP Redirect（开放重定向）</h2>
+<h3 id="_8">原理</h3>
+<p>后端把用户可控的 <code>redirect</code> 参数直接用作跳转目标（<code>header("Location: " . $_GET['redirect'])</code>），不校验目标是否合法。攻击者制造"合法域名上的链接，跳转到钓鱼站"——<strong>用户信任域名，被骗走了身份</strong>。</p>
+<h3 id="_9">各难度绕过（重点记忆）</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>难度</th>
+<th>校验逻辑</th>
+<th>绕过 Payload</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Low</td>
+<td>无校验</td>
+<td><code>?redirect=https://钓鱼站</code></td>
+</tr>
+<tr>
+<td>Medium</td>
+<td>拒绝包含 <code>http://</code> 或 <code>https://</code> 的目标（报 500 "Absolute URLs not allowed"）</td>
+<td><code>?redirect=//钓鱼站</code> —— <strong>协议相对 URL</strong>：以 <code>//</code> 开头时浏览器自动按当前页面的协议（http/https）补齐，成功跳转</td>
+</tr>
+<tr>
+<td>High</td>
+<td>目标必须包含子串 <code>info.php</code></td>
+<td><code>?redirect=https://钓鱼站?a=info.php</code> —— 把 <code>info.php</code> 塞进一个<strong>无害的查询参数</strong>里，满足子串判断又不影响跳转</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="_10">危害与进阶</h3>
+<ul>
+<li>钓鱼：配合短链接包装，点击"官方链接"进钓鱼站；OAuth/SSO 场景下 redirect_uri 可控可<strong>窃取授权码/token</strong></li>
+<li>方法论：发现跳转参数 → 测试过滤规则（字符串黑名单还是白名单）→ 读绕过滤则 → 包装投放</li>
+</ul>
+<hr />
+<h2 id="ssrf">五、SSRF（服务端请求伪造）</h2>
+<h3 id="_11">原理</h3>
+<p><strong>一句话</strong>：某些功能需要"服务器代替用户去请求一个 URL"（图片代理、网页转码、URL 检测），而<strong>目标 URL 由用户控制且未过滤</strong>——服务器变成了攻击者的跳板，把攻击流量伪装成"服务器发出的合法流量"。</p>
+<p><strong>危害分级（面试要背）</strong>：<br />
+1. <strong>读本地文件</strong>：<code>file://</code> 协议 → 读服务器任意文件（<code>file:///etc/passwd</code>、代码源码）<br />
+2. <strong>内网探测</strong>：<code>http://192.168.x.x:port</code> → 用响应差异（超时/报错/内容）当扫描器，摸清内网拓扑和存活主机<br />
+3. <strong>攻击内网服务</strong>：Redis 未授权、Memcached、内部管理后台——利用"内网互信"打穿隔离<br />
+4. <strong>云环境打元数据</strong>：<code>http://169.254.169.254/latest/meta-data/</code> 偷云服务器临时凭证（阿里云/aws 经典技）</p>
+<h3 id="_12">实验中的两种触发函数</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="x">// 方式一：curl 类（实验 URL 形如 url=http://127.0.0.1/ssrf/info1.php）</span>
+<span class="x">// 方式二：file_get_contents()（实验 URL 形如 file=http://127.0.0.1/ssrf/info2.php）</span>
+</code></pre></div></div>
+
+<p><code>file_get_contents()</code> 是 PHP 内置读内容函数——<strong>它既能读本地文件也能发 HTTP 请求</strong>，无过滤时：<code>php://</code> 伪协议读源码、<code>file://</code> 读系统文件、<code>http://</code>/<code>dict://</code> 探测内网端口。</p>
+<h3 id="_13">实操方法论（四步）</h3>
+<ol>
+<li><strong>找发起请求的参数</strong>：URL 里有 <code>url=</code>、<code>file=</code>、<code>img=</code>、<code>fetch=</code>、<code>redirect=</code> 且页面内容受该参数影响</li>
+<li><strong>先测本地</strong>：<code>file:///etc/passwd</code> 能读 → 直接读源码（<code>php://filter</code>）找更多信息</li>
+<li><strong>再测内网</strong>：<code>http://127.0.0.1:port</code> → 用响应差异探测本机、<code>http://内网IP段</code> 探测内网</li>
+<li><strong>最后利用</strong>：dict 协议扫端口、打 Redis/数据库等内网应用、云上偷元数据</li>
+</ol>
+<hr />
+<h2 id="weak-session-ids">六、Weak Session IDs（弱会话标识）</h2>
+<h3 id="_14">原理</h3>
+<p>会话 ID（Cookie）的作用是"告诉服务器我是谁"，<strong>如果 ID 可预测，攻击者就能算出/猜出别人的会话</strong>，直接冒充。实验三级别展示了三种"可预测性"：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>级别</th>
+<th>生成规则</th>
+<th>破解</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Low</td>
+<td>自增数字（1、2、3...）</td>
+<td>观察规律，把 <code>dvwaSession=2</code> 改成 3 即可成为下一个用户的会话</td>
+</tr>
+<tr>
+<td>Medium</td>
+<td>基于<strong>当前时间戳</strong></td>
+<td>抓包看值 → 时间戳转换工具确认格式 → 自己生成"当前时间"的合法值伪造</td>
+</tr>
+<tr>
+<td>High</td>
+<td><code>md5(自增序号)</code></td>
+<td>拿到的值 MD5 解密 → +1 → 再 MD5 加密 → 预测下一个会话</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>核心思想</strong>：会话标识必须是<strong>高熵随机数</strong>（足够长的真随机），任何"可枚举、可推算、基于时间的规律"都是漏洞。这类漏洞配合会话固定（Session Fixation，服务端不更换登录后的 session ID）危害翻倍。</p>
+<hr />
+<h2 id="_15">七、防御（面试必答）</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>漏洞</th>
+<th>防御</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>越权</td>
+<td>每次请求做<strong>授权校验</strong>（对象级权限检查）；接口与 UI 一视同仁；资源 ID 用不可枚举的 UUID 并校验归属</td>
+</tr>
+<tr>
+<td>CAPTCHA</td>
+<td>验证码校验必须在服务端业务请求上、结果一次性随机；硬编码判断条件禁止；用正规 reCAPTCHA 服务端验证</td>
+</tr>
+<tr>
+<td>开放重定向</td>
+<td>跳转目标<strong>白名单校验</strong>（只允许站内路径/固定域名集合）；禁止用户参数直接进 Location</td>
+</tr>
+<tr>
+<td>SSRF</td>
+<td>URL 白名单/协议白名单（只允许 http/https）；解析后校验目标 IP 非内网/非回环/DNS rebinding 防护；出网流量经代理并审计；禁用 file/dict/gopher 伪协议</td>
+</tr>
+<tr>
+<td>弱会话</td>
+<td>session ID 用 CSPRNG 生成、长度足够；登录后<strong>更换</strong> session ID（防固定）；HttpOnly + Secure 标志</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="_16">八、面试速答卡</h2>
+<ul>
+<li><strong>逻辑漏洞和注入的区别</strong>：注入是输入没过滤；逻辑漏洞是业务设计缺校验/流程可预测，工具难扫全靠人测</li>
+<li><strong>水平/垂直越权</strong>：平级改别人数据（改 id） vs 普通用户干管理员的事</li>
+<li><strong>越权为什么测接口</strong>：前端藏了 UI 不等于后端鉴了权，接口直接可调</li>
+<li><strong>CAPTCHA 绕过套路</strong>：抓包拆流程找"没真正校验"的那步，或利用硬编码的判断条件</li>
+<li><strong>开放重定向 Medium 怎么绕</strong>：协议相对 URL <code>//域名</code>，浏览器自动补协议</li>
+<li><strong>SSRF 危害分级</strong>：读文件 → 内网探测 → 打内网应用 → 云元数据窃取</li>
+<li><strong>SSRF 常见参数名</strong>：<code>url</code>、<code>file</code>、<code>img</code>、<code>fetch</code>、<code>redirect</code></li>
+<li><strong>弱会话的根本问题</strong>：ID 可预测（自增/时间戳/简单哈希），要用高熵随机数</li>
+</ul></div>
+      <div class="post-nav"><a class="pn-item prev" href="linux-fu-wu-nfs-wang-luo-wen-jian-xi-tong.html"><span>← 上一篇</span><strong>Linux 服务：NFS 网络文件系统</strong></a><a class="pn-item next" href="web-an-quan-wen-jian-shang-chuan-yu-wen-jian-bao-han.html"><span>下一篇 →</span><strong>Web 安全：文件上传与文件包含</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">一、原理概述</a><a href="#authorisation-bypass-idor" class="toc-lv2">二、越权攻击（Authorisation Bypass / IDOR）</a><a href="#_2" class="toc-lv3">原理</a><a href="#_3" class="toc-lv3">实操方法论（实验提炼）</a><a href="#_4" class="toc-lv3">为什么会有这个洞（面试说清）</a><a href="#insecure-captcha" class="toc-lv2">三、Insecure CAPTCHA（不安全的验证码）</a><a href="#_5" class="toc-lv3">原理</a><a href="#_6" class="toc-lv3">各难度绕过</a><a href="#_7" class="toc-lv3">方法论要点</a><a href="#open-http-redirect" class="toc-lv2">四、Open HTTP Redirect（开放重定向）</a><a href="#_8" class="toc-lv3">原理</a><a href="#_9" class="toc-lv3">各难度绕过（重点记忆）</a><a href="#_10" class="toc-lv3">危害与进阶</a><a href="#ssrf" class="toc-lv2">五、SSRF（服务端请求伪造）</a><a href="#_11" class="toc-lv3">原理</a><a href="#_12" class="toc-lv3">实验中的两种触发函数</a><a href="#_13" class="toc-lv3">实操方法论（四步）</a><a href="#weak-session-ids" class="toc-lv2">六、Weak Session IDs（弱会话标识）</a><a href="#_14" class="toc-lv3">原理</a><a href="#_15" class="toc-lv2">七、防御（面试必答）</a><a href="#_16" class="toc-lv2">八、面试速答卡</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

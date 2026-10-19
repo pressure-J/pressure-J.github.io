@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Misc图片题解题步骤 · pressure-J</title>
+<meta name="description" content="扩展名可能被改。用工具箱 misc\03-文件类型识别与strings.py,拖入文件改 FILE 一行即可。">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/misc-tu-pian-ti-jie-ti-bu-zhou.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Misc图片题解题步骤 · pressure-J">
+<meta property="og:description" content="扩展名可能被改。用工具箱 misc\03-文件类型识别与strings.py,拖入文件改 FILE 一行即可。">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/misc.html">Misc</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>Misc图片题解题步骤</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-misc">Misc</span>
+          <time datetime="2026-09-09">2026-09-09</time>
+          <span>7289 字</span>
+          <span>约 19 分钟</span>
+        </div>
+        <div class="chips post-tags"><span class="chip">misc</span></div>
+      </header>
+      <div class="content"><h2 id="_1">一、三条铁律(先读)</h2>
+<ol>
+<li><strong>先免费检查,再上算法</strong>:strings / 文件头 / binwalk 三连,八成题到这就完了</li>
+<li><strong>图片"看着正常"才考虑 LSB</strong>,有异常先处理异常(宽高错、缺角、变形)</li>
+<li><strong>10 分钟没进展就换思路</strong>,别在一条路上死磕(沿用 crypto 铁律)</li>
+</ol>
+<h2 id="_2">二、排查流程(按顺序走)</h2>
+<h3 id="1">第 1 步:文件头 / 真实类型</h3>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># 看前 4 字节魔数</span>
+<span class="mi">89</span> <span class="mi">50</span> <span class="mi">4</span><span class="n">E</span> <span class="mi">47</span> <span class="o">=</span> <span class="n">PNG</span>    <span class="n">FF</span> <span class="n">D8</span> <span class="n">FF</span> <span class="o">=</span> <span class="n">JPG</span>    <span class="mi">47</span> <span class="mi">49</span> <span class="mi">46</span> <span class="mi">38</span> <span class="o">=</span> <span class="n">GIF</span>    <span class="mi">42</span> <span class="mi">4</span><span class="n">D</span> <span class="o">=</span> <span class="n">BMP</span>
+</code></pre></div></div>
+
+<p>扩展名可能被改。用工具箱 <code>misc\03-文件类型识别与strings.py</code>,拖入文件改 FILE 一行即可。</p>
+<blockquote>
+<p><strong>注意</strong>:改 FILE 时只改引号里的路径,<strong>别把注释一起粘进去</strong>(否则报 FileNotFoundError)。</p>
+</blockquote>
+<h3 id="2-strings">第 2 步:strings + 附加数据</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>strings 图片 | grep -iE 'flag|ctf|key|{'
+</code></pre></div></div>
+
+<p>找文件尾部藏明文 flag;有 binwalk 的话看有没有藏了另一个文件(zip/图片),有就 <code>-e</code> 拆出来。</p>
+<h3 id="3">第 3 步:看图片本身有没有"异常"</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>症状</th>
+<th>处理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>宽高被改(CRC 报错/图片变形)</td>
+<td>修复 IHDR 宽高,恢复后被裁掉的 flag</td>
+</tr>
+<tr>
+<td>二维码缺角/变形</td>
+<td>PS 补角/反色后扫码</td>
+</tr>
+<tr>
+<td>图片"看不出异常"</td>
+<td>进入第 4 步</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="4-exif">第 4 步:Exif 元数据</h3>
+<p><code>exiftool 图片</code> 看注释、作者、GPS——flag 常藏在元数据里。</p>
+<h3 id="5-lsb">第 5 步:LSB 隐写(重点)</h3>
+<p><strong>触发特征</strong>:图看着完全正常,但题目提示"仔细看 / look very closely / 放大镜 / 像素 / LSB / 最低位"。</p>
+<p><strong>原理</strong>:PNG/BMP 无损格式下,每个像素 R/G/B 各取最低 1 位(bit),按行拼成二进制流 → 按 8bit 分组转 ASCII。肉眼看不出的 1-3 级色差,程序能精确还原。</p>
+<p><strong>工具</strong>:<br />
+- Linux: <code>zsteg 图片.png</code>(自动扫所有通道组合,PNG 首选)<br />
+- Windows: 工具箱 <code>misc\06-像素取色与LSB提取.py</code><br />
+  - 默认三通道全取;出乱码就改 <code>CHANNEL = 'R'/'G'/'B'</code> 单独取<br />
+  - 提取结果若是可读文本 → 直接是答案 或 给出密钥<br />
+  - 提取结果若是文件签名(PNG/ZIP)→ 已存 <code>lsb_extracted.bin</code>,再分析</p>
+<blockquote>
+<p><strong>注意</strong>:steghide 只支持 JPEG/BMP,<strong>PNG 用 steghide 无效</strong>,PNG 一律 zsteg。</p>
+</blockquote>
+<h3 id="6">第 6 步:像素取色</h3>
+<p>flag 藏在特定色值/坐标 → 扫描全图找"特殊颜色"像素(工具箱 <code>15-</code> 脚本自带此功能)。</p>
+<h2 id="lsb">三、LSB 提取出"密钥"≠结束,先判断是否就是答案</h2>
+<p>LSB 提取出的内容分两种情况:<br />
+1. <strong>直接是 flag</strong>:<code>flag{...}</code> / <code>picoCTF{...}</code> → 提交<br />
+2. <strong>只是一句提示/密钥</strong>:如 <code>the secret key is: xxx</code> → 密钥可能用于:<br />
+   - steghide 解 JPEG/BMP(此题是 PNG 则不适用)<br />
+   - 解加密压缩包<br />
+   - <strong>但有时密钥本身就是答案</strong>(题目只要求提取,flag 就是那段内容)→ 先别急着找第二层,试试直接提交</p>
+<h2 id="_3">四、实战记录</h2>
+<h3 id="stegpng">例:"镜子里面的世界" steg.png(放大镜图)</h3>
+<ul>
+<li>图片:800×600 PNG,画面是放大镜+文字 "look very closely"(提示 LSB)</li>
+<li>流程:文件头识别=PNG → strings 无明文 → 尺寸/格式正常(24bit RGB,无色异常)</li>
+<li><strong>LSB 全通道提取</strong> → <code>Hey I think we can write safely in this file without anyone seeing it. Anyway, the secret key is: st3g0_saurus_wr3cks</code></li>
+<li>结果:密钥 <code>st3g0_saurus_wr3cks</code> <strong>本身就是答案</strong></li>
+<li>教训:①提示"仔细看"几乎必是 LSB;②PNG 不要用 steghide;③LSB 出的是密钥时,先试直接提交再想第二层</li>
+</ul>
+<h3 id="picoctf-st3g0picoflagpng">例:PicoCTF St3g0(pico.flag.png)</h3>
+<ul>
+<li><code>zsteg pico.flag.png</code> 输出 <code>b1,rgb,lsb,xy .. text: "picoCTF{7h3r3_15_n0_5p00n_xxx}$t3g0"</code></li>
+<li>题名 St3g0 就是 LSB 提示;flag 直接藏在 b1,rgb,lsb,xy 这一行</li>
+</ul>
+<h3 id="keyexedata-uri-base64">例:KEY.exe(data URI 伪装 + base64 + 二维码)</h3>
+<ul>
+<li>拿到 <code>.exe</code>(3.8KB),<strong>别看扩展名,先看魔数</strong> → 内容是 <code>data:image/jpg;base64,iVBORw0KGg...</code></li>
+<li><strong>识别特征</strong>:<code>data:image/...;base64,</code> 开头 = data URI 伪装(文件其实是 base64 编码的图片)</li>
+<li>解法:<br />
+  1. 去掉 <code>data:image/jpg;base64,</code> 前缀<br />
+  2. base64 解码 → 得到 133×133 图片(魔数 <code>89504e47</code> 实际是 PNG,前缀写的 jpg 是迷惑)<br />
+  3. 图片是二维码 → 扫码 → flag</li>
+<li>教训:①文件伪装题(改扩展名/data URI)一律先看魔数;②data URI 的格式名可能与实际不符(写 jpg 实为 png)</li>
+</ul>
+<h2 id="_4">五、做题顺序总结</h2>
+<ol>
+<li>文件头识真类型 → 2. strings/binwalk 找明文 → 3. 看图片有无异常(宽高/二维码)→ 4. Exif → 5. 图正常 → <strong>LSB 提取</strong>(PNG 用 zsteg)→ 6. 结果判断:flag 直接提交 / 密钥再解</li>
+</ol>
+<blockquote>
+<p>这是<strong>线性流程</strong>。若想按"线索 → 手法"直接跳（比如一眼看出是 JPEG 且毫无异常），用第六节的对照表 + 6.3 穷举顺序。</p>
+<p><strong>补充</strong>:拿到任何文件先 <code>12-文件类型识别</code>(看魔数),若开头是 <code>data:image/...;base64,</code> → 是 base64 图片伪装,去掉前缀解码即可</p>
+</blockquote>
+<h2 id="_5">六、常见隐写手法清单（看到什么找什么）</h2>
+<blockquote>
+<p>上一节是"按顺序走一遍"的<strong>流程</strong>，这一节是"线索 → 手法"的<strong>对照表</strong>。<br />
+实战里不用死背流程，先看图和题面给了什么，直接跳到对应手法。</p>
+</blockquote>
+<h3 id="61">6.1 按痕迹大小分类（决定先查哪里）</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>类别</th>
+<th>文件长度</th>
+<th>有无文件签名</th>
+<th>典型手法</th>
+<th>一句话判据</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>追加型</strong></td>
+<td>变长</td>
+<td>有（<code>PK</code>/<code>FFD8</code>/<code>GIF8</code>…）</td>
+<td>尾部藏 zip/图片、多文件拼接</td>
+<td><code>strings</code> 能看到可疑文件名；binwalk 一击即中</td>
+</tr>
+<tr>
+<td><strong>嵌入型</strong></td>
+<td>不变</td>
+<td>无</td>
+<td>LSB、隐写算法改像素/系数、元数据</td>
+<td>图完全正常，<code>strings</code> 干净，只能靠工具扫</td>
+</tr>
+<tr>
+<td><strong>伪装型</strong></td>
+<td>随意</td>
+<td>与扩展名不符</td>
+<td>改扩展名、data URI、多格式缝合</td>
+<td>看魔数，别信扩展名</td>
+</tr>
+</tbody>
+</table></div>
+<p>先量长度再决定方向：<code>stat -c '%s' 图</code> 与"正常出图后应有的大小"对比。</p>
+<h3 id="62">6.2 手法清单（按排查性价比排序）</h3>
+<h4 id="1_1">① 文件尾追加数据（最高频，先查）</h4>
+<p>图到结束标记就"画完了"，后面多出来的字节没人读，可以塞一整个文件。</p>
+<ul>
+<li><strong>判据</strong>：<code>FF D9</code>/<code>IEND</code> 之后还有 <code>PK\x03\x04</code>、<code>FFD8FF</code> 等签名，<code>strings</code> 能读出名（<code>flag.txt</code>、<code>asd/qwe.zip</code>）</li>
+<li><strong>做法</strong>：工具箱 <code>misc\04-PNG结构解析与切附加数据.py</code>（PNG 走 chunk 到 IEND；JPG 走找尾标记）或 <code>misc\11-文件分离.py</code>；等价 binwalk -e / foremost</li>
+<li><strong>坑</strong>：找宿主图片结尾<strong>只用第一个结束标记</strong>，别 <code>rfind</code>——内嵌 ZIP 里还会冒出同样的 <code>FF D9</code>，<code>rfind</code> 会切出残缺片段</li>
+</ul>
+<h4 id="2-zip">② ZIP 伪加密 / 真加密判别（追加型后面常接这步）</h4>
+<p>"压缩包要密码"先别急着爆破，先判真假。</p>
+<ul>
+<li><strong>判据</strong>：压缩方法 <code>store</code> 且 <code>压缩大小 == 原始大小</code> → <strong>伪加密</strong>（数据没变长）；<code>压缩大小 ≈ 原始大小 + 12</code> → <strong>真 ZipCrypto 加密</strong>（每个人头 12 字节）</li>
+<li><strong>伪加密修复</strong>：只改<strong>目录区 CDH</strong>（<code>PK\x01\x02</code> 后第 8 字节）的标志位 <code>01 08</code> → <code>00 08</code>。改本地文件头 LFH 那个没用（软件只看 CDH）</li>
+<li><strong>真加密</strong>：去找密码（线索常在图片隐写或题面里），别一上来字典爆破</li>
+<li><strong>坑</strong>：出题人会把某条目的 CRC32 填坏，<code>zf.read()</code> 抛 <code>BadZipFile("Bad CRC-32")</code>——文件没坏，按 LFH 手工 carve 条目字节流</li>
+</ul>
+<h4 id="3-lsbpng-bmp">③ 色彩通道 LSB（无损格式主力：PNG / BMP）</h4>
+<p>每像素 R/G/B 各取最低 1 位按行拼接 → 8bit 分组转 ASCII。改动只有 ±1 级色阶，肉眼不可能看出。</p>
+<ul>
+<li><strong>判据</strong>：图完全没有其他异常，题面提示"仔细看 / look closely / 像素 / 最低位"</li>
+<li><strong>做法</strong>：<code>misc\06-像素取色与LSB提取.py</code>（默认三通道全取；乱码改成只取 R/G/B 单通道）</li>
+<li><strong>坑</strong>：<strong>PNG 用 steghide 无效</strong>（steghide 不吃 PNG 的像素域），PNG 一律走 LSB / zsteg</li>
+</ul>
+<h4 id="4-jpeg-steghide">④ JPEG 压缩域隐写（steghide —— 最容易漏的一类）</h4>
+<p><strong>这类最"干净"</strong>：文件长度不变、尾部无附加数据、<code>strings</code>/<code>binwalk</code>/010 全空，但确实藏了东西。</p>
+<ul>
+<li><strong>原理</strong>：不做像素 LSB，而是改<strong>量化后的 DCT 系数</strong>（JPEG 压缩时产生的那些系数），用<strong>成对系数交换</strong>（graph matching）保证每个系数值的出现频率几乎不变 → 卡方/RS 一阶统计检测抓不到</li>
+<li><strong>口令的双重作用</strong>：口令既当加密密钥，又当 PRNG 种子决定"哪批系数承载数据、按什么顺序"。所以口令错时读出来是噪音，不是解密失败</li>
+<li><strong>判据</strong>：图看着正常、其他手法全空 → 直接 <code>steghide info</code></li>
+<li><strong>做法</strong>：<br />
+<code>bash
+  steghide info 图.jpg -p ""             # 报 embedded file "ko.txt" 即为有货
+  steghide extract -sf 图.jpg -p "" -f   # 空口令提取（很多题就是空口令）</code></li>
+<li><strong>坑 1（PowerShell）</strong>：PS 5.1 会把<strong>空字符串参数直接丢掉</strong>，<code>-p ""</code> 传到 exe 只剩 <code>-p</code> → 报 <code>the "-p" argument must be followed by the passphrase</code>。三种正确写法：① 加 <code>--%</code> 停止解析（<code>steghide --% extract -sf x.jpg -p "" -f</code>，<strong>推荐</strong>）② 干脆不传 <code>-p</code>，交互提示时直接回车 ③ 换到 cmd.exe 执行。实测 <code>cmd /c "... " ..."</code> 嵌套引号写法反而<strong>传不对</strong>，别用</li>
+<li><strong>坑 2（编码）</strong>：提取出的 <code>ko.txt</code> 之类常是 <strong>GBK 编码</strong>，读数用 <code>open(rb).read().decode('gbk')</code>，别当 UTF-8</li>
+<li><strong>坑 3（版本差异）</strong>：0.5.1 口令错报 <code>could not extract any data with that passphrase!</code>；新版报 <code>extracted data is not valid</code></li>
+</ul>
+<h4 id="5-png-ihdr">⑤ PNG 宽高隐写（改 IHDR 藏被裁掉的部分）</h4>
+<p>把 IHDR 的宽/高改小，图片只显示一部分；改回来露出下方被裁区域里的 flag。</p>
+<ul>
+<li><strong>判据</strong>：图片被截断/变形、CRC 校验错误</li>
+<li><strong>做法</strong>：按 IHDR 的 CRC32 反解正确的宽高（枚举宽高算 CRC 撞中即得），或直接用工具箱 PNG 结构脚本改</li>
+<li><strong>关键</strong>：改完要<strong>同步重算 CRC</strong>，否则多数工具拒绝渲染</li>
+</ul>
+<h4 id="6-exif">⑥ Exif / 元数据</h4>
+<p><code>exiftool 图</code>，flag 常藏在 Comment / ImageDescription / Artist / GPS，也可能整段是 base64。注意有些题会把 EXIF 段本身做成第二层容器。</p>
+<h4 id="7">⑦ 二维码与视觉变形</h4>
+<ul>
+<li>二维码：先扫（工具箱 <code>misc\05-二维码解码.py</code>），扫不出再考虑缺角/变形/反色/反转</li>
+<li><strong>半张或者错位的二维码</strong>：拼接两张互补的图 → 用 PS"正片叠底/叠加"合并；也常见"反色后再扫"</li>
+<li><strong>像素画/色块</strong>：题面给一个很大像素格 → 每个格子的颜色映射成比特</li>
+</ul>
+<h4 id="8-data-uri">⑧ 文件后缀 / data URI 伪装</h4>
+<ul>
+<li><strong>判据</strong>：开头是 <code>data:image/png;base64,</code> 之类 → 文件其实是 base64 文本，不是二进制图</li>
+<li><strong>做法</strong>：去掉前缀 → base64 解码 → 得到真图。注意前缀写的格式可能和真实格式不符（写 jpg 实为 png）</li>
+<li><strong>原则</strong>：<strong>永远先看魔数，不信扩展名</strong>（<code>.exe</code> 可能整个是文本，<code>.jpg</code> 可能整个是 zip）</li>
+</ul>
+<h4 id="9">⑨ 多帧动图 / 多文件拼接</h4>
+<p>GIF/APNG：逐帧翻，某帧只有 flag（一帧一帧看，或用 06 脚本的帧处理）<br />
+多文件：一个文件里拼了若干完整图片，按签名逐个切出来</p>
+<h4 id="10">⑩ 频域 / 抗压缩隐写（低频但会考）</h4>
+<ul>
+<li><strong>outguess</strong>：JPEG，需密钥；<code>outguess -k 'key' -r in.jpg out</code>（题面常给 key 提示，如"abc"）</li>
+<li><strong>F5</strong>：JPEG，<code>java Extract 图.jpg</code></li>
+<li><strong>盲水印</strong>：两张几乎一样的图 → 差分/<code>blind_watermark</code> 提取</li>
+<li><strong>音频才算</strong>：频谱图（<code>Audacity</code> 切 spectrogram）、摩斯、DTMF——但图片题偶尔混进"音频藏图"</li>
+</ul>
+<h4 id="11">⑪ 图片本身是"载体容器"</h4>
+<ul>
+<li><strong>PDF/docx 里嵌图</strong>：解压容器取 <code>word/media/*</code></li>
+<li><strong>图其实是压缩包</strong>：直接改后缀或用 7z 打开</li>
+<li><strong>图是磁盘镜像</strong>：<code>7z x 图.vmdk</code> 展开（是的，CTF 真考过）</li>
+</ul>
+<h3 id="63">6.3 一张图没有线索时的穷举顺序</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>1. 看魔数，确认是真图片（不是改了后缀的 zip / base64 文本）
+   ↓ 是图
+2. strings + 查尾部附加数据（04 / 11 脚本）→ 有 zip 就走「伪加密判别 → 真加密找密码」
+   ↓ 没有
+3. Exif 元数据
+   ↓ 没有
+4. 看画面异常：宽高/缺角/错位二维码/多帧
+   ↓ 都正常
+5. LSB（PNG/BMP）或 steghide（JPEG）
+   ↑ 两类格式分开走，别拿错工具
+   ↓ 还是空
+6. 频域（outguess/F5，题面给了 key 就试）、盲水印、图像差分
+</code></pre></div></div>
+
+<blockquote>
+<p><strong>两个最容易走错的分叉</strong>：<br />
+① 格式决定工具——<strong>PNG 用 LSB/zsteg，JPEG 用 steghide/outguess</strong>，互换必失败；<br />
+② "文件一点都不大、binwalk 也空"不代表没东西，压缩域隐写就是这种特征，直接上 steghide info。</p>
+</blockquote>
+<h3 id="64">6.4 手法 → 工具箱脚本对照</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>手法</th>
+<th>工具箱脚本（<code>~/tools\CTF工具箱\misc\</code>）</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>扩展名伪装 / 看魔数</td>
+<td><code>03-文件类型识别与strings.py</code></td>
+<td>同时给 strings + 可疑串标记</td>
+</tr>
+<tr>
+<td>尾部追加数据</td>
+<td><code>04-PNG结构解析与切附加数据.py</code></td>
+<td>PNG 走 chunk；JPG 找尾标记</td>
+</tr>
+<tr>
+<td>通用文件分离</td>
+<td><code>11-文件分离.py</code></td>
+<td>等价 binwalk -e / foremost</td>
+</tr>
+<tr>
+<td>LSB / 像素取色</td>
+<td><code>06-像素取色与LSB提取.py</code></td>
+<td>两功能合一，默认 RGB 全取</td>
+</tr>
+<tr>
+<td>二维码</td>
+<td><code>05-二维码解码.py</code></td>
+<td>扫不出再考虑变形</td>
+</tr>
+<tr>
+<td>data URI 伪装图</td>
+<td><code>07-dataURI还原图片.py</code></td>
+<td>去掉前缀解码</td>
+</tr>
+<tr>
+<td>Exif</td>
+<td>本机未装 exiftool（可选装）</td>
+<td>也可用 Python <code>PIL.Image._getexif()</code></td>
+</tr>
+<tr>
+<td>JPEG 压缩域</td>
+<td><strong>steghide</strong>（非 Python，~/tools\CTF工具箱\steghide\steghide.exe）</td>
+<td>先 <code>info</code> 再 <code>extract</code></td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="_6">七、综合实战：九连环（追加型 + 压缩域 + 伪加密）</h2>
+<p>完整走一遍"追加型 + 压缩域 + 伪加密"三件套，正好把 6.2 的 ①②③④ 全串一遍。</p>
+<p><strong>题目</strong>：<code>123456cry.jpg</code>（48984 字节，300×300）</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>步骤</th>
+<th>操作</th>
+<th>结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>① 找尾部数据</td>
+<td>搜 <code>FF D9</code> 得两处：<code>0x4C66</code>、<code>0x4D33</code>。<strong>取第一个</strong></td>
+<td><code>0x4C66</code> 后紧跟 <code>50 4B 03 04</code>，即内嵌 ZIP（29424 字节）</td>
+</tr>
+<tr>
+<td>② 判加密真伪</td>
+<td>看 CDH 标志位 <code>01 08</code> + 压缩大小==原始大小</td>
+<td><strong>伪加密</strong>，改 <code>01 08</code>→<code>00 08</code></td>
+</tr>
+<tr>
+<td>③ 解外层</td>
+<td>解出 <code>asd/good-已合并.jpg</code>（29992）+ <code>asd/qwe.zip</code>（184）</td>
+<td>图片长度不变、无附加数据、strings 干净</td>
+</tr>
+<tr>
+<td>④ JPEG 压缩域</td>
+<td>其他手法全空 → <code>steghide info good-已合并.jpg -p ""</code></td>
+<td>命中：<code>embedded file "ko.txt": size 48.0 Byte</code></td>
+</tr>
+<tr>
+<td>⑤ 提取密码</td>
+<td><code>steghide extract -sf good-已合并.jpg -p "" -f</code></td>
+<td><code>ko.txt</code>（GBK）="看到这个图片就是压缩包的密码：<code>bV1g6t5wZDJif^J7</code>"</td>
+</tr>
+<tr>
+<td>⑥ 内层是真加密</td>
+<td><code>qwe.zip</code> 标志位 <code>0x0801</code> + 压缩大小 184 &gt; 原始 22</td>
+<td>确认真加密（ZipCrypto）</td>
+</tr>
+<tr>
+<td>⑦ 解出 flag</td>
+<td><code>7z x qwe.zip -pbV1g6t5wZDJif^J7 -y</code></td>
+<td>*<em>flag{1RTo8w@&amp;4nK@z<em>XL}</em></em></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>这题的三个知识点</strong>：<br />
+1. <code>rfind</code> 找 <code>FF D9</code> 会切坏（ZIP 内部也有该字节对）——用第一个结束标记<br />
+2. 伪加密只改 CDH，改 LFH 无效<br />
+3. 图片"什么都没藏"的样子其实就是藏了——steghide 改的是 DCT 系数，文件长度和统计特征全都不变</p>
+<blockquote>
+<p><strong>reproduce 用脚本</strong>：解题代码见 <code>~/tools\CTF工具箱\challenges\</code> 下的现场脚本（改顶部 <code>SRC</code> 一行即可复用）。</p>
+</blockquote>
+<p><em>最后更新：2026年10月9日</em></p></div>
+      <div class="post-nav"><a class="pn-item prev" href="nei-cun-qu-zheng-ti-mu-jie-ti-bu-zhou.html"><span>← 上一篇</span><strong>内存取证题目解题步骤</strong></a><a class="pn-item next" href="mo-2-de-mi-li-san-dui-shu.html"><span>下一篇 →</span><strong>模2的幂-离散对数</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">一、三条铁律(先读)</a><a href="#_2" class="toc-lv2">二、排查流程(按顺序走)</a><a href="#1" class="toc-lv3">第 1 步:文件头 / 真实类型</a><a href="#2-strings" class="toc-lv3">第 2 步:strings + 附加数据</a><a href="#3" class="toc-lv3">第 3 步:看图片本身有没有&quot;异常&quot;</a><a href="#4-exif" class="toc-lv3">第 4 步:Exif 元数据</a><a href="#5-lsb" class="toc-lv3">第 5 步:LSB 隐写(重点)</a><a href="#6" class="toc-lv3">第 6 步:像素取色</a><a href="#lsb" class="toc-lv2">三、LSB 提取出&quot;密钥&quot;≠结束,先判断是否就是答案</a><a href="#_3" class="toc-lv2">四、实战记录</a><a href="#stegpng" class="toc-lv3">例:&quot;镜子里面的世界&quot; steg.png(放大镜图)</a><a href="#picoctf-st3g0picoflagpng" class="toc-lv3">例:PicoCTF St3g0(pico.flag.png)</a><a href="#keyexedata-uri-base64" class="toc-lv3">例:KEY.exe(data URI 伪装 + base64 + 二维码)</a><a href="#_4" class="toc-lv2">五、做题顺序总结</a><a href="#_5" class="toc-lv2">六、常见隐写手法清单（看到什么找什么）</a><a href="#61" class="toc-lv3">6.1 按痕迹大小分类（决定先查哪里）</a><a href="#62" class="toc-lv3">6.2 手法清单（按排查性价比排序）</a><a href="#63" class="toc-lv3">6.3 一张图没有线索时的穷举顺序</a><a href="#64" class="toc-lv3">6.4 手法 → 工具箱脚本对照</a><a href="#_6" class="toc-lv2">七、综合实战：九连环（追加型 + 压缩域 + 伪加密）</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

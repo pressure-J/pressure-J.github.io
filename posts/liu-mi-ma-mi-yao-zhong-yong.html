@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>流密码密钥重用 · pressure-J</title>
+<meta name="description" content="ks = os.urandom(N) # 一段随机密钥流 c1 = xor(knownplain, ks) # 已知明文的密文（题目会给你） c2 = xor(flag, ks) # flag 密文（题目会给你）">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/liu-mi-ma-mi-yao-zhong-yong.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="流密码密钥重用 · pressure-J">
+<meta property="og:description" content="ks = os.urandom(N) # 一段随机密钥流 c1 = xor(knownplain, ks) # 已知明文的密文（题目会给你） c2 = xor(flag, ks) # flag 密文（题目会给你）">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/crypto.html">密码学</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>流密码密钥重用</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-crypto">密码学</span>
+          <time datetime="2026-09-09">2026-09-09</time>
+          <span>1279 字</span>
+          <span>约 3 分钟</span>
+        </div>
+        <div class="chips post-tags"><span class="chip">crypto</span></div>
+      </header>
+      <div class="content"><h2 id="_1">题型识别（一眼看出）</h2>
+<ul>
+<li>给了<strong>一对「已知明文 + 对应密文」</strong>（如题目说明文、或能猜到是 <code>flag{...}</code>）</li>
+<li>外加<strong>另一段用同一密钥加密的密文</strong>（flag 密文）</li>
+<li>出题脚本形如：</li>
+</ul>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">ks</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">urandom</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>                    <span class="c1"># 一段随机密钥流</span>
+<span class="n">c1</span> <span class="o">=</span> <span class="n">xor</span><span class="p">(</span><span class="n">known_plain</span><span class="p">,</span> <span class="n">ks</span><span class="p">)</span>             <span class="c1"># 已知明文的密文（题目会给你）</span>
+<span class="n">c2</span> <span class="o">=</span> <span class="n">xor</span><span class="p">(</span><span class="n">flag</span><span class="p">,</span>        <span class="n">ks</span><span class="p">)</span>             <span class="c1"># flag 密文（题目会给你）</span>
+</code></pre></div></div>
+
+<p><strong>本质</strong>：密钥流只生成了一次、却被重复使用加密多段明文 → 任取一组明密文对就能反推密钥流。</p>
+<h2 id="_2">攻击条件</h2>
+<ul>
+<li>至少<strong>一组已知明密文对</strong>（明文长度≥想要还原的长度即可）</li>
+<li>两段密文用的是<strong>同一段密钥流</strong></li>
+</ul>
+<h2 id="_3">原理推导</h2>
+<p>异或运算可逆且对称：</p>
+<p>$$c_1 = m_1 \oplus ks \Rightarrow ks = m_1 \oplus c_1$$</p>
+<p>$$flag = c_2 \oplus ks = c_2 \oplus m_1 \oplus c_1$$</p>
+<p>拿到密钥流后，把 flag 密文直接异或回去就是明文，<strong>不需要知道任何关于密钥流来源的信息</strong>。</p>
+<h2 id="_4">解题脚本</h2>
+<p>见 <code>~/tools\CTF工具箱\crypto\18-流密码密钥重用-已知明密文对.py</code>（工具箱版，已按本题写好输入解析；本目录暂无同名 solve.py）</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># 只改顶部三行：</span>
+<span class="n">KNOWN_PLAIN</span>  <span class="o">=</span> <span class="s2">"..."</span>   <span class="c1"># 已知明文（可照抄题目给的）</span>
+<span class="n">KNOWN_CIPHER</span> <span class="o">=</span> <span class="s2">"..."</span>   <span class="c1"># 与之对应的密文</span>
+<span class="n">FLAG_CIPHER</span>  <span class="o">=</span> <span class="s2">"..."</span>   <span class="c1"># flag 的密文</span>
+<span class="c1"># 输入支持：纯 hex / 带空格 hex / 0x 或 \x 前缀 / 直接明文文本</span>
+
+<span class="n">ks</span> <span class="o">=</span> <span class="n">xor</span><span class="p">(</span><span class="n">known_plain</span><span class="p">,</span> <span class="n">known_cipher</span><span class="p">)</span>     <span class="c1"># 密钥流 = 明文 ⊕ 密文</span>
+<span class="n">flag</span> <span class="o">=</span> <span class="n">xor</span><span class="p">(</span><span class="n">flag_cipher</span><span class="p">,</span> <span class="n">ks</span><span class="p">)</span>             <span class="c1"># flag = 密文 ⊕ 密钥流</span>
+</code></pre></div></div>
+
+<p>运行 <code>py 18-流密码密钥重用-已知明密文对.py</code>，自动打印还原结果。</p>
+<h2 id="_5">易错点与注意</h2>
+<ol>
+<li><strong>密钥流长度有限</strong>：密钥流多长就只能还原多长。flag 密文比已知明文长时，只能还原前 N 字节，剩余部分另想办法（找更多明密文对拼接密钥流 / 爆破剩余字节）</li>
+<li><strong>明文密文要一一对应</strong>：同一段的明文和密文对不齐，推导出的密钥流就是错的</li>
+<li><strong>区分 OTP 与流密码</strong>：严格一次性密钥（OTP）密钥不重用就没法打；此题能做是因为<strong>密钥被重用了</strong>——看到"同一密钥加密多段"就是信号</li>
+<li><strong>常用于 RC4 类</strong>：RC4 的密钥流由密钥 KSA/PRGA 生成，若同一 key 加密多条消息即密钥流重用，同法可破</li>
+</ol>
+<h2 id="_6">实战记录</h2>
+<ul>
+<li>题型：已知明文 <code>flag{this_is_a_known_plaintext_for_test}</code> + 其密文，求另一段 flag 密文</li>
+<li>推导密钥流 <code>ba0bc0fe6bc0f860...</code>（40 字节）后还原 <code>flag{reused_keystream_leaks_everything}</code></li>
+<li>提示：若题目只给"已知某明文"而不给密文，需结合另一段密文猜——密钥流可通过 <code>c1 ⊕ c2</code> 抵消（明文已知时）</li>
+</ul>
+<p><em>最后更新：2026年9月9日</em></p></div>
+      <div class="post-nav"><a class="pn-item prev" href="python-shu-ju-jia-mi-bian-ma-han-shu-da-quan.html"><span>← 上一篇</span><strong>Python 数据加密编码函数大全</strong></a><a class="pn-item next" href="wireshark-shi-yong-yu-liu-liang-bao-fen-xi-ji-chu.html"><span>下一篇 →</span><strong>Wireshark使用与流量包分析基础</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">题型识别（一眼看出）</a><a href="#_2" class="toc-lv2">攻击条件</a><a href="#_3" class="toc-lv2">原理推导</a><a href="#_4" class="toc-lv2">解题脚本</a><a href="#_5" class="toc-lv2">易错点与注意</a><a href="#_6" class="toc-lv2">实战记录</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

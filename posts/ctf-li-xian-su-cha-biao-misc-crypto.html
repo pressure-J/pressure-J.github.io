@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CTF 离线速查表（Misc + Crypto） · pressure-J</title>
+<meta name="description" content="&gt; 内存取证题（vmem/mem/raw）：详细步骤见《Misc内存取证解题步骤.md》——vol.exe 用法、华为备份解密、lsadump 提密码。">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/ctf-li-xian-su-cha-biao-misc-crypto.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="CTF 离线速查表（Misc + Crypto） · pressure-J">
+<meta property="og:description" content="&gt; 内存取证题（vmem/mem/raw）：详细步骤见《Misc内存取证解题步骤.md》——vol.exe 用法、华为备份解密、lsadump 提密码。">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/misc.html">Misc</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>CTF 离线速查表（Misc + Crypto）</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-misc">Misc</span>
+          <time datetime="2026-10-13">2026-10-13</time>
+          <span>6061 字</span>
+          <span>约 16 分钟</span>
+        </div>
+        
+      </header>
+      <div class="content"><blockquote>
+<p>内存取证题（vmem/mem/raw）：详细步骤见《Misc内存取证解题步骤.md》——vol.exe 用法、华为备份解密、lsadump 提密码。</p>
+<p>本人用：比赛<strong>不能使用 AI</strong>，一切知识外挂为这份表 + 本地脚本库。<br />
+比赛环境：<strong>线上 + 浏览器可用</strong> → 纯算法在线工具（CyberChef/dCode/Factordb）可现场用；<br />
+但<strong>本地脚本库仍要提前备好</strong>（Writeup 要可复现、录屏要自洽，且防比赛断网/工具打不开）。</p>
+<p><strong>创宇杯硬约束（合规红线）</strong>：<br />
+① 比赛全程只做"看题→查本表→手动改脚本数据→跑"，<strong>不碰 AI/聊天工具/浏览器问答</strong>（全程录屏）；<br />
+② 本表的每个脚本赛前必须<strong>亲手改数据跑通一次</strong>并理解原理——Writeup 要逻辑自洽、可复现、防雷同，不懂原理写不出来；<br />
+③ 只操作赛题给定的 IP/端口，不扫描不越权（违规=取消成绩）；<br />
+④ 赛后用 <code>Get-FileHash 录屏.mp4</code> 算 MD5 写进 Writeup，录屏不可剪辑。</p>
+<p><strong>浏览器红线（线上赛）</strong>：比赛用专用浏览器配置（关 Edge Copilot 侧边栏、卸 AI 插件）；<br />
+禁用一切 LLM 网站与搜索引擎 AI 摘要；只开上面的工具白名单站点。</p>
+</blockquote>
+<hr />
+<h2 id="misc">一、Misc 题型识别 → 工具 → 命令</h2>
+<h3 id="0">0. 万能第一步（每道题必做）</h3>
+<div class="code-block" data-lang="bash"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># Kali：</span>
+file<span class="w"> </span>flag<span class="w">   </span><span class="c1"># 看真实文件类型</span>
+strings<span class="w"> </span>flag<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-iE<span class="w"> </span><span class="s1">'flag|ctf|key|{'</span>
+xxd<span class="w"> </span>flag<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-50<span class="w">   </span><span class="c1"># 看文件头魔数</span>
+binwalk<span class="w"> </span>flag<span class="w">   </span><span class="c1"># 看有没有藏文件</span>
+</code></pre></div></div>
+
+<blockquote>
+<p>Windows 替代：<code>py</code> 跑 python 脚本读文件头 / 010 Editor（已有 BurpSuite 的主机可另装 HxD 绿色版）。</p>
+</blockquote>
+<h3 id="1">1. 文件类型/头损坏</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>症状</th>
+<th>处理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>文件打不开</td>
+<td>对照魔数表修复头部</td>
+</tr>
+<tr>
+<td>图片宽高错误（CRC 报错）</td>
+<td>改宽高（png 用脚本改 IHDR）</td>
+</tr>
+<tr>
+<td>扩展名被改</td>
+<td><code>file</code> 看真实类型改回来</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>常见魔数</strong>：<br />
+<code>89 50 4E 47</code>=PNG、<code>FF D8 FF</code>=JPG、<code>47 49 46 38</code>=GIF、<code>50 4B 03 04</code>=ZIP、<code>7F 45 4C 46</code>=ELF、<code>42 4D</code>=BMP、<code>25 50 44 46</code>=PDF、<code>52 61 72 21</code>=RAR</p>
+<h3 id="2">2. 图片隐写</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>手法</th>
+<th>特征</th>
+<th>工具</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>附加数据</td>
+<td>binwalk 显示有文件</td>
+<td><code>binwalk -e file</code>、<code>foremost</code></td>
+</tr>
+<tr>
+<td>LSB 隐写</td>
+<td>图片看着正常</td>
+<td><code>zsteg</code>（png/bmp）、<code>steghide</code></td>
+</tr>
+<tr>
+<td>steghide</td>
+<td>无明显异常</td>
+<td><code>steghide extract -sf file</code>（可能需密码）</td>
+</tr>
+<tr>
+<td>Exif 信息</td>
+<td>注释/作者字段</td>
+<td><code>exiftool file</code></td>
+</tr>
+<tr>
+<td>二维码</td>
+<td>缺角/变形</td>
+<td>PS 补角 / 微信扫 / 局部反色</td>
+</tr>
+<tr>
+<td>像素取色</td>
+<td>flag 藏在特定色值</td>
+<td>python PIL 脚本提取</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="3">3. 音频隐写</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>手法</th>
+<th>特征</th>
+<th>工具</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>频谱图</td>
+<td>听不出名堂</td>
+<td>Audacity：视图→频谱图，字写在频谱里</td>
+</tr>
+<tr>
+<td>摩斯密码</td>
+<td>波形有长短短间隔</td>
+<td>Audacity 看波形 + 手抄摩斯</td>
+</tr>
+<tr>
+<td>慢速/倒放</td>
+<td>语音含糊</td>
+<td>Audacity 变速/反转</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="4">4. 压缩包</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>症状</th>
+<th>处理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>加密压缩包</td>
+<td><code>zip2john a.zip &gt; h.txt; john h.txt</code>（弱密码字典秒出）</td>
+</tr>
+<tr>
+<td>伪加密</td>
+<td><strong>① 先免费解压：<code>Expand-Archive -LiteralPath a.zip -DestinationPath out -Force</code>（Windows 自带，不看加密位，伪加密秒解）</strong>；② 不行再 python 改加密位清零（<code>09 00</code>→<code>08 00</code>，本地头+中央目录都改）；rar 用 <code>RAR_FILE_HEAD</code> 改 flag 位</td>
+</tr>
+<tr>
+<td>CRC32 爆破</td>
+<td>小文件已知明文+CRC → <code>crc32</code> 爆破脚本</td>
+</tr>
+<tr>
+<td>明文攻击</td>
+<td>知道包内一个文件的内容 → <code>pkcrack</code></td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>伪加密识别</strong>：文件内容实际未加密（压缩后大小≈原大小 / store 存储），只是标志位 bit0=1 吓人。识别=看数据是否真加密，解=先试自带解压。已实战验证（flag{Adm1N-B2G-kU-SZIP}）。</p>
+</blockquote>
+<h3 id="5-pcap">5. 流量分析（pcap）</h3>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>tshark<span class="w"> </span>-r<span class="w"> </span>a.pcap<span class="w"> </span>-Y<span class="w"> </span><span class="s2">"http"</span><span class="w"> </span>-T<span class="w"> </span>fields<span class="w"> </span>-e<span class="w"> </span>http.request.uri<span class="w">   </span><span class="c1"># HTTP</span>
+tshark<span class="w"> </span>-r<span class="w"> </span>a.pcap<span class="w"> </span>-Y<span class="w"> </span><span class="s2">"tcp.payload"</span><span class="w"> </span>-T<span class="w"> </span>fields<span class="w"> </span>-e<span class="w"> </span>tcp.payload<span class="w">   </span><span class="c1"># 原始 payload</span>
+<span class="c1"># 大文件传输：File → Export Objects → HTTP</span>
+<span class="c1"># USB 流量：usb.capdata 提取键盘按键 → 键码转字符（脚本）</span>
+<span class="c1"># 蓝牙/无线：先看协议树有没有 BLE ATT / Radiotap</span>
+</code></pre></div></div>
+
+<blockquote>
+<p>主机已有 Wireshark，直接 GUI 打开：统计→协议分级 先看是什么流量，再过滤。</p>
+</blockquote>
+<h3 id="6-misc">6. 编码/转换（Misc 高频！）</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>编码</th>
+<th>特征</th>
+<th>离线解</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Base64</td>
+<td><code>A-Za-z0-9+/=</code>，长度 4 倍数</td>
+<td><code>echo xxx | base64 -d</code></td>
+</tr>
+<tr>
+<td>十六进制</td>
+<td>全是 0-9a-f</td>
+<td><code>xxd -r -p</code></td>
+</tr>
+<tr>
+<td>Morse</td>
+<td><code>. - /</code> 或 <code>. _</code></td>
+<td>python 查表</td>
+</tr>
+<tr>
+<td>培根</td>
+<td>只有 a/b 两字符（长度 5 倍数）</td>
+<td>python 查表</td>
+</tr>
+<tr>
+<td>栅栏/凯撒</td>
+<td>字母表移位</td>
+<td>python 爆破所有位移</td>
+</tr>
+<tr>
+<td>维吉尼亚</td>
+<td>相对凯撒有密钥、整体 IC≈0.04</td>
+<td>python：IC 定长度 + 逐列卡方（Kasiski 仅供参考）</td>
+</tr>
+<tr>
+<td>Brainfuck/Ook</td>
+<td><code>+-&gt;&lt;[].,</code> 或 <code>Ook.</code></td>
+<td>在线转离线：python 解释器</td>
+</tr>
+<tr>
+<td>&gt;&gt;&gt;&lt;&lt;&lt; 编码</td>
+<td>三个符号</td>
+<td>python</td>
+</tr>
+<tr>
+<td>与佛论禅/社会主义核心价值观</td>
+<td>中文字符串</td>
+<td>离线脚本</td>
+</tr>
+<tr>
+<td>UU/XX 编码</td>
+<td><code>begin/end</code> 头</td>
+<td><code>uudecode</code></td>
+</tr>
+<tr>
+<td>颜文字/JSFuck</td>
+<td><code>[]()!+</code> 组合</td>
+<td>浏览器 console 运行</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>通用万能钥匙</strong>：CyberChef 离线版（提前下载 ZIP 版）→ Recipe 里 <code>From Base64</code>/<code>From Hex</code> 随便拖。<strong>必须提前下载存 U 盘。</strong></p>
+<blockquote>
+<p><strong>线上赛修正</strong>：CyberChef 在线版（gchq.github.io/CyberChef）可直接用；dCode.fr 破解古典密码、<br />
+quipqiup.com 破替换密码、Factordb 查 RSA 分解——全站纯算法非 AI，放心用。</p>
+</blockquote>
+<hr />
+<h2 id="crypto">二、Crypto 题型识别 → 打法</h2>
+<h3 id="1-rsa">1. RSA（你最强项，已有脚本）</h3>
+<p>速查：<strong>共模 / 共素数 rho / Wiener / 低指数广播 / Fermat / 小素数分解 / dp泄露 / MD5爆破</strong></p>
+<blockquote>
+<p>脚本在 <code>~/notes\密码学\02-RSA\*-solve.py</code>（RSA 类）与 <code>密码学\01-基础密码\</code>，赛前全部拷 U 盘 + 每份跑一遍验证。<br />
+笔记总索引：<code>~/notes\密码学\README.md</code>（01-基础密码 / 02-RSA / 03-流密码 / 04-其他）。<br />
+识别四问：① n 能直接分解？② 参数用错了吗（e小/共模/大e）？③ 给了额外信息？④ 素数结构特殊（p-1 光滑/共素数）？<br />
+<strong>铁律：不 ECM 硬啃 500 位大数；一条路超几分钟就换思路。</strong><br />
+Sahil 的 n 先查 factordb（若比赛联网）→ <code>~/\python.exe</code> 跑 sympy.factorint，无 gmpy2 用 py。</p>
+<p><strong>多组 n + 同明文</strong>：优先 <code>17-RSA共素数-gcd分解.py</code>（两两 gcd 秒出共享素数），别先想着硬分解。<br />
+<strong>给了公式 A（含 x,y,z 的幂）+ n + c</strong>：<code>18-RSA-构造A反推参数.py</code>——先整数开根分离 y，再用余数反推 x，最后 sqrt(n/(x*y)) 定位因子。</p>
+</blockquote>
+<h3 id="2_1">2. 古典密码（识别靠特征）</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>密码</th>
+<th>特征</th>
+<th>打法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>凯撒</td>
+<td>字母整体移位</td>
+<td>爆破 25 种位移</td>
+</tr>
+<tr>
+<td>仿射</td>
+<td>单表替换+乘数</td>
+<td>爆破 a(与26互素)×b</td>
+</tr>
+<tr>
+<td><strong>单表替换</strong></td>
+<td>每个字母固定换成另一字母(乱映射)，词长/标点正常、有重复词</td>
+<td><strong><code>16-单表替换-退火求解.py</code></strong>；手推先锚定高频词</td>
+</tr>
+<tr>
+<td>维吉尼亚</td>
+<td>长密文、整体 IC≈0.04、重复片段间距集中</td>
+<td><strong>重合指数(IC)定密钥长度（容差内取最小真周期）→ 逐列卡方求位移</strong>；别用 Kasiski 的单个 gcd（任一脏间隔就把它拉成 1）</td>
+</tr>
+<tr>
+<td>栅栏</td>
+<td>重排</td>
+<td>尝试不同栏数</td>
+</tr>
+<tr>
+<td>Playfair</td>
+<td>双字母一组，5x5 表</td>
+<td>知密钥直接解</td>
+</tr>
+<tr>
+<td>培根</td>
+<td>A/B 双字符</td>
+<td>查表</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="3_1">3. 现代密码</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>题型</th>
+<th>要点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AES/DES ECB</td>
+<td>直接 python <code>Crypto.Cipher</code> 解（key/iv 通常题目给）</td>
+</tr>
+<tr>
+<td>XOR 单字节</td>
+<td>爆破 256 个 key，找可读明文</td>
+</tr>
+<tr>
+<td>XOR 多字节</td>
+<td>密钥长度猜测（重合指数/Kasiski）</td>
+</tr>
+<tr>
+<td>RC4/Rabbit</td>
+<td>pycryptodome 一步解</td>
+</tr>
+<tr>
+<td>给了 key/iv 的流密码</td>
+<td>直接调用库函数</td>
+</tr>
+<tr>
+<td>LFSR 流密码</td>
+<td>给加密脚本+输出文件求初始状态 → <code>19-LFSR状态恢复.py</code>；连续 N 位输出=N步后状态，逆推即得初态</td>
+</tr>
+<tr>
+<td>流密码密钥重用</td>
+<td>同一密钥流加密两段 + 给了一组已知明密文对 → <code>ks = m1⊕c1</code>，flag = c2⊕ks；见 <code>密码学\03-流密码\流密码密钥重用.md</code></td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="4_1">4. 数论杂题</h3>
+<ul>
+<li>离散对数小阶：暴力或 BSGS（脚本）；模 2 的幂特例见 <code>密码学\01-基础密码\模2的幂-离散对数.md</code>（群分解 ±5^b + PH 按位）</li>
+<li>RSA 变种：共私钥、多组n共享素数 → <code>gcd(n1,n2)</code>（脚本已有）</li>
+<li>格密码：低频，比赛遇到先放，最后啃（有 <code>密码学\04-其他\格密码.md</code> 笔记）</li>
+</ul>
+<h3 id="5-toolsctfcrypto">5. 本地脚本库（<code>~/tools\CTF工具箱\crypto\</code>，全部已验证跑通）</h3>
+<blockquote>
+<p>目录 <code>~/tools\CTF工具箱\crypto\</code>（旧写的 <code>~/notes\CTF备赛\crypto_toolkit\</code> 已不存在，别照旧路径找），全部"改一行数据即跑"：<br />
+运行方式 <code>py 文件名.py</code>（或用 <code>~/\python.exe</code>——它是 Miniconda3，不是 SageMath）。08/09 需 pycryptodome。<br />
+<strong>01~05、16 支持两种给法</strong>：<code>FILE</code>（填 txt 绝对路径，<strong>密文有换行/很长就用这个</strong>）或 <code>DATA</code>（短的单行密文直接粘），FILE 非空时以它为准，自动试 UTF-8-BOM/UTF-8/GBK 编码。<br />
+空白处理各不相同：维吉尼亚/单表替换/凯撒/仿射保留换行（分组按字母顺序，不影响结果），栅栏自动去空白（换行会被当普通字符参与重排 → 解错），培根去空白、摩斯按行分单词。</p>
+</blockquote>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>脚本</th>
+<th>当看到什么用</th>
+<th>改哪里</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>01-凯撒爆破.py</td>
+<td>字母整体平移</td>
+<td>DATA</td>
+</tr>
+<tr>
+<td>02-仿射爆破.py</td>
+<td>单表替换但凯撒无果</td>
+<td>DATA</td>
+</tr>
+<tr>
+<td>03-栅栏爆破.py</td>
+<td>字母顺序在但分组乱</td>
+<td>DATA</td>
+</tr>
+<tr>
+<td>04-培根与摩斯.py</td>
+<td>只有 A/B 两字符 / <code>.</code> <code>-</code></td>
+<td>DATA</td>
+</tr>
+<tr>
+<td>05-维吉尼亚.py</td>
+<td>较长密文、重复片段</td>
+<td>DATA + (可选)KNOWN_KEY</td>
+</tr>
+<tr>
+<td>06-XOR单字节爆破.py</td>
+<td>hex 乱码提示 xor</td>
+<td>DATA_HEX</td>
+</tr>
+<tr>
+<td>07-XOR多字节.py</td>
+<td>xor 但单字节无果</td>
+<td>DATA_HEX + KEY(给了就填)</td>
+</tr>
+<tr>
+<td>08-AES解密模板.py</td>
+<td>给了 key/iv 提示 AES</td>
+<td>KEY/IV/DATA/MODE</td>
+</tr>
+<tr>
+<td>09-RC4与Rabbit.py</td>
+<td>提示 RC4/Rabbit</td>
+<td>KEY/DATA</td>
+</tr>
+<tr>
+<td>16-单表替换-退火求解.py</td>
+<td>像英文但字母全乱、凯撒/仿射无果</td>
+<td>FILE（txt 路径，多行用它）/ DATA；结果错词补进 ANCHORS 再跑</td>
+</tr>
+<tr>
+<td>17-RSA共素数-gcd分解.py</td>
+<td>多组 (n,c) 且 e 固定(65537)</td>
+<td>NS / CS / E</td>
+</tr>
+<tr>
+<td>18-RSA-构造A反推参数.py</td>
+<td>给公式 A(x,y,z) + n + c</td>
+<td>A / N / C / E / Y_EXP</td>
+</tr>
+<tr>
+<td>19-LFSR状态恢复.py</td>
+<td>给 LFSR 脚本 + 输出文件，求初始状态</td>
+<td>KEY_FILE / MASK / N_BITS</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>单表替换专项提醒</strong>：<br />
+- 识别：词长分布正常、有空格标点、有重复词（如高频 3 字母词常是 <code>the</code>），但字母被乱映射。<br />
+- 自动跑后约 90% 可读，剩个别词错 → 把确定映射填进 <code>ANCHORS = {}</code> 字典（例 <code>ANCHORS = {'m':'t','j':'h','y':'e'}</code>，即发现 <code>mjy</code> 读 <code>the</code>）再跑一遍即收敛。<br />
+- 完全手推技巧：单字母词只能是 a/i；重复词锁高频锚点；<code>(</code> <code>)</code> <code>;</code> 标点结构暴露句子框架。<br />
+- 离线无忧：统计表+词表已内嵌，零第三方依赖。</p>
+<p><strong>做题流程</strong>：看题 → 对照表格找脚本 → 改数据 → <code>py</code> 跑 → 手动检查输出是否可读英文/flag。<br />
+<strong>注意</strong>：脚本自带示例数据可先跑通验证环境；换题数据前先看每个脚本顶部注释的"触发特征"。<br />
+<strong>比赛当天</strong>：把 crypto_toolkit 整个文件夹拷到比赛机/U 盘；若某脚本报错（缺库），用 <code>pip install pycryptodome</code>（SageMath python 已带无需装）。</p>
+<hr />
+<h2 id="48">三、比赛前 48 小时检查清单</h2>
+<ul>
+<li>[ ] <strong>拷 U 盘</strong>：所有 <code>*-solve.py</code> 脚本 + 本速查表 + 010/HxD（CyberChef 在线可用，离线版可选）</li>
+<li>[ ] <strong>每个脚本重新跑一遍</strong>（换比赛环境也行，确认能出结果）</li>
+<li>[ ] Kali VM 确认可用：<code>binwalk foremost steghide zsteg exiftool</code> 都在</li>
+<li>[ ] Audacity 已装（频谱图）</li>
+<li>[ ] 主机：Wireshark + BurpSuite 已确认</li>
+<li>[ ] <code>~/\python.exe</code> 能跑（sympy/gmpy2/pycryptodome）</li>
+</ul>
+<h2 id="_1">四、比赛当天策略</h2>
+<ol>
+<li><strong>签到题先做</strong>（送分题，别轻敌跳）</li>
+<li><strong>每题限时</strong>：Misc 拆包题 20 分钟内没头绪→跳过换下一题；Crypto RSA 走完速查表 15 分钟没思路→过（<strong>禁止场外求助</strong>，只能自己查表）</li>
+<li><strong>flag 格式</strong>：<code>NSSCTF{...}</code>/<code>flag{...}</code> 大小写敏感，注意掩码样式（<code>xxxxx******xxx</code> 也是真 flag）</li>
+<li><strong>先拿分再深挖</strong>：一道题卡住 30 分钟 = 亏两道简单题</li>
+<li>多解一次的题：把脚本参数写进注释，现场改数据就行</li>
+<li><strong>赛后</strong>：录屏文件算 MD5 写入 Writeup：<br />
+<code>powershell
+   Get-FileHash "~/\xxx.mp4" -Algorithm MD5   # 一次性算多个：Get-ChildItem *.mp4 | Get-FileHash -Algorithm MD5</code></li>
+</ol>
+<h2 id="ai-1">五、不能 AI 的替代记忆法（赛前 1 天）</h2>
+<ul>
+<li>把速查表 Ctrl+P 打印成纸质版（可选）</li>
+<li>手机里存速查表 PDF，随时翻</li>
+<li>每个题型背一句"触发特征"：看到什么→用什么（上面每张表的"特征"列就是）</li>
+</ul></div>
+      <div class="post-nav"><a class="pn-item prev" href="fcsr-xian-xing-hua-gong-ji-f-fcsr-zhuang-tai-hui-fu.html"><span>← 上一篇</span><strong>FCSR线性化攻击-F-FCSR状态恢复</strong></a><a class="pn-item next" href="guo-mi-su-tong-ka.html"><span>下一篇 →</span><strong>国密速通卡</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#misc" class="toc-lv2">一、Misc 题型识别 → 工具 → 命令</a><a href="#0" class="toc-lv3">0. 万能第一步（每道题必做）</a><a href="#1" class="toc-lv3">1. 文件类型/头损坏</a><a href="#2" class="toc-lv3">2. 图片隐写</a><a href="#3" class="toc-lv3">3. 音频隐写</a><a href="#4" class="toc-lv3">4. 压缩包</a><a href="#5-pcap" class="toc-lv3">5. 流量分析（pcap）</a><a href="#6-misc" class="toc-lv3">6. 编码/转换（Misc 高频！）</a><a href="#crypto" class="toc-lv2">二、Crypto 题型识别 → 打法</a><a href="#1-rsa" class="toc-lv3">1. RSA（你最强项，已有脚本）</a><a href="#2_1" class="toc-lv3">2. 古典密码（识别靠特征）</a><a href="#3_1" class="toc-lv3">3. 现代密码</a><a href="#4_1" class="toc-lv3">4. 数论杂题</a><a href="#5-toolsctfcrypto" class="toc-lv3">5. 本地脚本库（~/tools\CTF工具箱\crypto\，全部已验证跑通）</a><a href="#48" class="toc-lv2">三、比赛前 48 小时检查清单</a><a href="#_1" class="toc-lv2">四、比赛当天策略</a><a href="#ai-1" class="toc-lv2">五、不能 AI 的替代记忆法（赛前 1 天）</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

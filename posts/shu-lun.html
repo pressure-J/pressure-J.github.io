@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>数论 · pressure-J</title>
+<meta name="description" content="用于计算两个整数的​​最大公约数​​。基于原理：">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/shu-lun.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="数论 · pressure-J">
+<meta property="og:description" content="用于计算两个整数的​​最大公约数​​。基于原理：">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/crypto.html">密码学</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>数论</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-crypto">密码学</span>
+          <time datetime="2025-10-16">2025-10-16</time>
+          <span>2610 字</span>
+          <span>约 7 分钟</span>
+        </div>
+        <div class="chips post-tags"><span class="chip">crypto</span></div>
+      </header>
+      <div class="content"><p>这个博客不错<br />
+<a href="https://www.cnblogs.com/Cryglz">https://www.cnblogs.com/Cryglz</a></p>
+<h2 id="_1">欧几里德算法与扩展欧几里得算法</h2>
+<h3 id="_2">欧几里得算法</h3>
+<p>基本思想<br />
+用于计算两个整数的​​最大公约数​​。基于原理：<br />
+gcd(a,b)=gcd(b,amodb)<br />
+重复此过程，直到余数为0。</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">gcd</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+     <span class="k">while</span> <span class="n">b</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">a</span> <span class="o">%</span> <span class="n">b</span>
+        <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">b</span><span class="p">,</span> <span class="n">r</span>
+    <span class="k">return</span> <span class="n">a</span>
+</code></pre></div></div>
+
+<p>示例：计算 gcd(1071, 462)：<br />
+1071 ÷ 462 = 2 余 147 → gcd(462, 147)<br />
+462 ÷ 147 = 3 余 21 → gcd(147, 21)<br />
+147 ÷ 21 = 7 余 0 → ​​gcd = 21​​</p>
+<h3 id="_3">扩展欧几里得算法</h3>
+<p>基本思想<br />
+不仅计算 gcd(a, b)，还找到整数 ​​x, y​​ 满足：<br />
+a⋅x+b⋅y=gcd(a,b)</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">gcdext</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">):</span>
+    <span class="n">x0</span><span class="p">,</span> <span class="n">x1</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span>
+    <span class="n">y0</span><span class="p">,</span> <span class="n">y1</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span>
+    <span class="k">while</span> <span class="n">b</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">a</span> <span class="o">//</span> <span class="n">b</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">a</span> <span class="o">%</span> <span class="n">b</span>
+        <span class="n">x0</span><span class="p">,</span> <span class="n">x1</span> <span class="o">=</span> <span class="n">x1</span><span class="p">,</span> <span class="n">x0</span> <span class="o">-</span> <span class="n">q</span> <span class="o">*</span> <span class="n">x1</span>
+        <span class="n">y0</span><span class="p">,</span> <span class="n">y1</span> <span class="o">=</span> <span class="n">y1</span><span class="p">,</span> <span class="n">y0</span> <span class="o">-</span> <span class="n">q</span> <span class="o">*</span> <span class="n">y1</span>
+        <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">b</span><span class="p">,</span> <span class="n">r</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">x0</span><span class="p">,</span> <span class="n">y0</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>密码学应用:​​计算模逆元​​(常见于RSA求私钥d)<br />
+求 a 在模 m 下的逆元，即解：a⋅x≡1(mod m)<br />
+等价于：a⋅x+m⋅y=1<br />
+用扩展欧几里得算法求 x，即为 a⁻¹ mod m<br />
+注：在python库中可以直接调用gcd(a,b)函数与gcdext(a,b)函数。</p>
+<h2 id="_4">模运算</h2>
+<h3 id="_5">基本规则</h3>
+<p>模运算<br />
+加法​<br />
+若 a≡b(modn)，则 a+c≡b+c(modn)<br />
+减法​<br />
+若 a≡b(modn)，则 a−c≡b−c(modn)<br />
+乘法​<br />
+若 a≡b(modn)，则 a×c≡b×c(modn)<br />
+交叉相乘<br />
+若a≡b(modp)且c≡d(modp)<br />
+则ac≡bd(modp)</p>
+<h3 id="_6">费马小定理</h3>
+<p>定理陈述<br />
+如果 p 是素数，且 a 不是 p 的倍数（即 p∤a），则：<br />
+a**(p−1)≡1(modp)<br />
+证明思路<br />
+考虑集合 {a,2a,3a,...,(p−1)a}，在模 p 下，这是一个 1,2,...,p−1的排列。<br />
+因此：<br />
+a×2a×3a×...×(p−1)a≡1×2×3×...×(p−1)(modp)<br />
+由于 (p−1)!与 p 互质，可约去，得证。<br />
+应用：计算模逆元<br />
+当 p 是素数时，a 在模 p 下的逆元为：<br />
+a**(−1)≡a**(p−2)(modp)<br />
+示例：3<em>d≡1(mod 13)<br />
+d=3</em><em>(-1)≡3</em>*(11)(mod 13)<br />
+d=pow(3,11,13)=9</p>
+<h3 id="_7">欧拉定理（费马小定理的推广）</h3>
+<p>定理陈述<br />
+如果 gcd(a,n)=1，则：<br />
+a**ϕ(n) ≡1(modn)<br />
+其中 ϕ(n)是欧拉函数，表示小于n且与n互质的正整数的个数。<br />
+注：在python中可以使用函数invert()求费马小定理逆元</p>
+<h2 id="_8">二次剩余</h2>
+<p><a href="https://blog.csdn.net/weixin_44203780/article/details/104634637">这个文章讲的挺详细的</a></p>
+<h3 id="_9">定义</h3>
+<p>设整数 a和正整数 m&gt;1，如果存在整数 x使得：<br />
+x<strong>2≡a(modm)<br />
+则称 a是模 m的​​二次剩余​​，否则称 a是模 m的​​二次非剩余​​。<br />
+示例<br />
+模 7 的二次剩余：<br />
+1</strong>2=1≡1(mod7)✓<br />
+2<strong>2=4≡4(mod7)✓<br />
+3</strong>2=9≡2(mod7)✓<br />
+4<strong>2=16≡2(mod7)✓<br />
+5</strong>2=25≡4(mod7)✓<br />
+6**2=36≡1(mod7)✓<br />
+所以模 7 的二次剩余为：{1, 2, 4}，二次非剩余为：{3, 5, 6}。</p>
+<h3 id="_10">勒让德符号</h3>
+<p>勒让德符号 (a/p) 表示 a 对模 p 的二次剩余性质。<br />
+对于奇素数 p和整数 a，勒让德符号定义为：<br />
+(a/p)=<br />
+ 0  如果 p∣a<br />
+ 1  如果 a 是模 p 的二次剩余<br />
+-1  如果 a 是模 p 的二次非剩余<br />
+性质：<br />
+- (ab/p) = (a/p) * (b/p)<br />
+- (1/p) = 1<br />
+- (-1/p) = (-1)^((p-1)/2)<br />
+示例：<br />
+(2/7) = 1<br />
+(3/7) = -1<br />
+(14/7) = 0</p>
+<h3 id="-1">-1的二次剩余性质</h3>
+<p>​​推导​​：<br />
+由欧拉准则：pow(-1,(p-1)//2,p)=(-1/p)<br />
+因为左边只能是 1 或 -1，模 p下等于右边<br />
+​​结论​​：<br />
+如果 p≡1(mod4)，则 (−1)<strong>(p−1)/2=1，所以 -1 是二次剩余<br />
+如果 p≡3(mod4)，则 (−1)</strong>(p−1)/2=−1，所以 -1 是二次非剩余</p>
+<h3 id="_11">模平方根</h3>
+<p>问题描述<br />
+当给定一个奇素数 p和一个模 p的二次剩余 a(即存在整数 x满足 x**2≡a(modp))<br />
+求整数x<br />
+Tonelli-Shanks算法可解决问题<br />
+可在python库中使用sqrt_mod(a,p)求出结果</p>
+<h2 id="_12">中国剩余定理</h2>
+<p>中国剩余定理（Chinese Remainder Theorem, CRT）是数论中的一个重要定理，它在密码学、计算机科学等领域有广泛应用。它解决了一组同余方程在模两两互质的整数下的解的存在性和构造问题。<br />
+不多说了直接上链接<br />
+<a href="https://www.bilibili.com/video/BV1gf4y1S7LR/">https://www.bilibili.com/video/BV1gf4y1S7LR/</a><br />
+<a href="https://www.cnblogs.com/MashiroSky/p/5918158.html">https://www.cnblogs.com/MashiroSky/p/5918158.html</a><br />
+算法：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">crt</span><span class="p">(</span><span class="n">a_list</span><span class="p">,</span> <span class="n">m_list</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    中国剩余定理求解</span>
+<span class="sd">    a_list: 余数列表 [a1, a2, ..., ak]</span>
+<span class="sd">    m_list: 模数列表 [m1, m2, ..., mk]（需要两两互质）</span>
+<span class="sd">    返回: x 满足 x ≡ ai (mod mi) 对于所有i</span>
+<span class="sd">    """</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">math</span><span class="w"> </span><span class="kn">import</span> <span class="n">prod</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">reduce</span>
+    <span class="n">M</span> <span class="o">=</span> <span class="n">prod</span><span class="p">(</span><span class="n">m_list</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">m_list</span><span class="p">)):</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">m_list</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="n">gcd</span><span class="p">(</span><span class="n">m_list</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">m_list</span><span class="p">[</span><span class="n">j</span><span class="p">])</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"模数</span><span class="si">{</span><span class="n">m_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s2">和</span><span class="si">{</span><span class="n">m_list</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="si">}</span><span class="s2">不互质"</span><span class="p">)</span>  
+    <span class="n">result</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">m_list</span><span class="p">)):</span>
+        <span class="n">a_i</span> <span class="o">=</span> <span class="n">a_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">m_i</span> <span class="o">=</span> <span class="n">m_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">M_i</span> <span class="o">=</span> <span class="n">M</span> <span class="o">//</span> <span class="n">m_i</span>
+        <span class="n">t_i</span> <span class="o">=</span> <span class="n">invert</span><span class="p">(</span><span class="n">M_i</span><span class="p">,</span> <span class="n">m_i</span><span class="p">)</span>      
+        <span class="n">result</span> <span class="o">=</span> <span class="p">(</span><span class="n">result</span> <span class="o">+</span> <span class="n">a_i</span> <span class="o">*</span> <span class="n">M_i</span> <span class="o">*</span> <span class="n">t_i</span><span class="p">)</span> <span class="o">%</span> <span class="n">M</span> 
+    <span class="k">return</span> <span class="n">result</span>
+</code></pre></div></div></div>
+      <div class="post-nav"><a class="pn-item prev" href="rsa.html"><span>← 上一篇</span><strong>RSA</strong></a><a class="pn-item next" href="ji-chu-mi-ma-xue.html"><span>下一篇 →</span><strong>基础密码学</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">欧几里德算法与扩展欧几里得算法</a><a href="#_2" class="toc-lv3">欧几里得算法</a><a href="#_3" class="toc-lv3">扩展欧几里得算法</a><a href="#_4" class="toc-lv2">模运算</a><a href="#_5" class="toc-lv3">基本规则</a><a href="#_6" class="toc-lv3">费马小定理</a><a href="#_7" class="toc-lv3">欧拉定理（费马小定理的推广）</a><a href="#_8" class="toc-lv2">二次剩余</a><a href="#_9" class="toc-lv3">定义</a><a href="#_10" class="toc-lv3">勒让德符号</a><a href="#-1" class="toc-lv3">-1的二次剩余性质</a><a href="#_11" class="toc-lv3">模平方根</a><a href="#_12" class="toc-lv2">中国剩余定理</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RSA · pressure-J</title>
+<meta name="description" content="RSA 是首个实用的公钥加密算法（1977，Rivest-Shamir-Adleman）：公钥加密、私钥解密，安全性建立在大整数分解的困难性上。">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/rsa.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="RSA · pressure-J">
+<meta property="og:description" content="RSA 是首个实用的公钥加密算法（1977，Rivest-Shamir-Adleman）：公钥加密、私钥解密，安全性建立在大整数分解的困难性上。">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/crypto.html">密码学</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>RSA</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-crypto">密码学</span>
+          <time datetime="2025-10-16">2025-10-16</time>
+          <span>2583 字</span>
+          <span>约 7 分钟</span>
+        </div>
+        <div class="chips post-tags"><span class="chip">crypto</span></div>
+      </header>
+      <div class="content"><h2 id="_1">一句话</h2>
+<p>RSA 是首个实用的公钥加密算法（1977，Rivest-Shamir-Adleman）：<strong>公钥加密、私钥解密</strong>，安全性建立在大整数分解的困难性上。</p>
+<h2 id="_2">数学三件套（必须先懂）</h2>
+<ol>
+<li><strong>模运算</strong>：$a \equiv b \pmod n \iff n \mid (a-b)$。加解密全程在模 $n$ 下进行</li>
+<li><strong>欧拉函数</strong>：$\varphi(n)$ = 1..n 中与 n 互素的个数。<strong>$n = pq$（p、q 素数）时 $\varphi(n) = (p-1)(q-1)$</strong></li>
+<li><strong>欧拉定理</strong>：$\gcd(a,n)=1 \Rightarrow a^{\varphi(n)} \equiv 1 \pmod n$。费马小定理是它的特例（$n$ 为素数时 $a^{p-1} \equiv 1 \pmod p$）<br />
+   - ⭐ <strong>这是 RSA 能还原明文的根基</strong>，理解不了它就看不懂 RSA</li>
+</ol>
+<h2 id="5">密钥生成（5 步，每步都带"为什么"）</h2>
+<ol>
+<li>选两个<strong>大素数</strong> p、q → $n = pq$<br />
+   - 为什么素数：$\varphi(n)$ 才有简单公式 $(p-1)(q-1)$；且<strong>半素数 n 最难分解</strong></li>
+<li>计算 $\varphi(n) = (p-1)(q-1)$</li>
+<li>选公钥指数 e（$1 &lt; e &lt; \varphi(n)$），要求 $\gcd(e, \varphi(n)) = 1$<br />
+   - 为什么互素：保证 e 在模 $\varphi(n)$ 下有逆元（下一步要用）<br />
+   - 工程上常用 $e = 65537$</li>
+<li>求 $d \equiv e^{-1} \pmod{\varphi(n)}$，即 $ed \equiv 1 \pmod{\varphi(n)}$（扩展欧几里得）</li>
+<li><strong>公钥 $(n, e)$ 公开</strong>；<strong>私钥 d 保密</strong>（p、q、$\varphi(n)$ 用完可销毁）</li>
+</ol>
+<h2 id="_3">加密 / 解密</h2>
+<ul>
+<li>加密（用公钥）：$c = m^e \bmod n$</li>
+<li>解密（用私钥）：$m = c^d \bmod n$</li>
+</ul>
+<p><strong>为什么能还原（核心推导，必须会默写）</strong>：<br />
+$$ed \equiv 1 \pmod{\varphi(n)} \Rightarrow ed = 1 + k\varphi(n)$$<br />
+$$c^d \equiv m^{ed} = m^{1+k\varphi(n)} = m \cdot (m^{\varphi(n)})^k \equiv m \cdot 1^k = m \pmod n \quad \text{← 欧拉定理}$$</p>
+<blockquote>
+<p>补充：$m$ 与 $n$ 不互素（即 m 恰好是 p 或 q 的倍数）时上式仍成立，需用中国剩余定理分模证明，实际中概率可忽略。</p>
+</blockquote>
+<h2 id="d">为什么要求 d（把这个问题一次讲透）</h2>
+<ul>
+<li>$d$ 是<strong>私钥 / 解密指数</strong>：唯一能把 $c$ 还原成 $m$ 的东西</li>
+<li>求 $d$ 必须解 $ed \equiv 1 \pmod{\varphi(n)}$ → <strong>必须先知道 $\varphi(n)$</strong></li>
+<li>$\varphi(n)$ 只有<strong>知道 p、q 的人</strong>能算；其他人手里只有 $n$，<strong>分解 $n$ 才能拿到 p、q</strong></li>
+<li>结论链条：<strong>拿到 d ⟺ 拿到 $\varphi(n)$ ⟺ 能分解 $n$</strong></li>
+<li>所以攻击者拿不到 d，就解不了密——<strong>RSA 的全部安全性 = 大数分解的困难性</strong></li>
+</ul>
+<h2 id="e-n">为什么 e 必须与 φ(n) 互素（否则会怎样）</h2>
+<ul>
+<li>$\gcd(e, \varphi(n)) = 1 \iff e$ 在模 $\varphi(n)$ 下<strong>可逆</strong> $\iff$ d <strong>唯一存在</strong></li>
+<li>若 $\gcd(e, \varphi(n)) = g &gt; 1$：$ed \equiv 1$ 无解（解不出唯一 d）</li>
+<li>CTF 实际：$\gcd = 2$ 时退化为 <strong>Rabin 类</strong>问题（模平方根，四个解挑明文）；g 较大时要在各素因子下开 g 次根</li>
+</ul>
+<h2 id="pq-5121024">为什么 p、q 必须是大素数（约 512~1024 位）</h2>
+<ul>
+<li>保证 $n$ 有 1024~2048 位 → 分解不可行（GNFS 亚指数但实际不可达）</li>
+<li>选素数的工程注意（也是 CTF 考法）：</li>
+<li>p、q 太接近 → <strong>Fermat 分解</strong></li>
+<li>p-1 或 p+1 光滑 → <strong>Pollard p-1 / p+1</strong></li>
+<li>p-1、q-1 共享大因子 → <strong>共素数 rho 攻击</strong>（同目录《RSA共素数-PollardRho变体.md》）</li>
+<li>p-1、q-1 求法不当（共模/低指数/参数错用）→ 见同目录《RSA共模攻击.md》</li>
+</ul>
+<h2 id="e-65537">为什么 e 常用 65537</h2>
+<ul>
+<li>费马素数 $F_4 = 2^{16}+1$，素数 → 与 $\varphi(n)$ 互素的概率极高</li>
+<li>二进制只有两个 1 → 快速幂只需 17 次平方乘</li>
+<li>若 e 太小（如 3）：小明文直接开方、广播攻击（CRT）等低指数攻击</li>
+</ul>
+<h2 id="_4">玩具例子（可手算验证）</h2>
+<p>$p=61,\ q=53 \Rightarrow n=3233,\ \varphi(n)=3120,\ e=17 \Rightarrow d=2753$（$17 \cdot 2753 \equiv 1 \pmod{3120}$）<br />
+- 加密 $m=65$：$c = 65^{17} \bmod 3233 = 2790$<br />
+- 解密：$2790^{2753} \bmod 3233 = 65$ ✅</p>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">e</span><span class="p">,</span> <span class="n">m</span> <span class="o">=</span> <span class="mi">61</span><span class="p">,</span> <span class="mi">53</span><span class="p">,</span> <span class="mi">17</span><span class="p">,</span> <span class="mi">65</span>
+<span class="n">n</span><span class="p">,</span> <span class="n">phi</span> <span class="o">=</span> <span class="n">p</span><span class="o">*</span><span class="n">q</span><span class="p">,</span> <span class="p">(</span><span class="n">p</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">q</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">d</span> <span class="o">=</span> <span class="nb">pow</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">phi</span><span class="p">)</span>          <span class="c1"># Python 3.8+</span>
+<span class="n">c</span> <span class="o">=</span> <span class="nb">pow</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">e</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+<span class="k">assert</span> <span class="nb">pow</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span> <span class="o">==</span> <span class="n">m</span>
+</code></pre></div></div>
+
+<h2 id="ctf">易错点 / CTF 常考</h2>
+<ol>
+<li><strong>e 与 φ(n) 不互素</strong>：gcd=2 → Rabin；一般化 → 有限域开根</li>
+<li><strong>d 太小</strong> → Wiener 连分数攻击；<strong>d 部分泄漏</strong> → Coppersmith（格）</li>
+<li>共模、低指数广播、p/q 接近、光滑因子 → 各攻击笔记见本目录</li>
+<li>NSSCTF 部分题 flag 是掩码样式（如 <code>NSSCTF{xxxxx******xxx}</code>），解出带星号 ≠ 解错</li>
+</ol>
+<h2 id="_5">面试速答卡</h2>
+<ul>
+<li><strong>Q: RSA 为什么能解密还原明文？</strong> A: 欧拉定理 + $ed \equiv 1 \pmod{\varphi(n)}$，指数上凑成 $1+k\varphi(n)$</li>
+<li><strong>Q: 私钥 d 为什么安全？</strong> A: 求 d 要先算 $\varphi(n)$，算 $\varphi(n)$ 要先分解 $n$，分解 1024+ 位半素数不可行</li>
+<li><strong>Q: 为什么 e 要和 φ(n) 互素？</strong> A: 保证 e 模 $\varphi(n)$ 可逆、d 唯一存在</li>
+<li><strong>Q: n 能用合数（多素数）吗？</strong> A: 能但要小心，$\varphi(n)$ 公式变 $\prod(p_i-1)$，且可用小素数试除提速</li>
+<li><strong>Q: 公钥能加密多大明文？</strong> A: $0 \le m &lt; n$；实际使用必须加 padding（OAEP），否则语义不安全</li>
+</ul>
+<p><em>最后更新：2026年9月3日</em></p></div>
+      <div class="post-nav"><a class="pn-item prev" href="cyperhack-ji-chu-ti-mu-xiang-jie.html"><span>← 上一篇</span><strong>cyperhack基础题目详解</strong></a><a class="pn-item next" href="shu-lun.html"><span>下一篇 →</span><strong>数论</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">一句话</a><a href="#_2" class="toc-lv2">数学三件套（必须先懂）</a><a href="#5" class="toc-lv2">密钥生成（5 步，每步都带&quot;为什么&quot;）</a><a href="#_3" class="toc-lv2">加密 / 解密</a><a href="#d" class="toc-lv2">为什么要求 d（把这个问题一次讲透）</a><a href="#e-n" class="toc-lv2">为什么 e 必须与 φ(n) 互素（否则会怎样）</a><a href="#pq-5121024" class="toc-lv2">为什么 p、q 必须是大素数（约 512~1024 位）</a><a href="#e-65537" class="toc-lv2">为什么 e 常用 65537</a><a href="#_4" class="toc-lv2">玩具例子（可手算验证）</a><a href="#ctf" class="toc-lv2">易错点 / CTF 常考</a><a href="#_5" class="toc-lv2">面试速答卡</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

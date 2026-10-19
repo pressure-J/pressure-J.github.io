@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>开源蓝队项目清单（GitHub） · pressure-J</title>
+<meta name="description" content="不是工具，是规则的通用格式。所有主流工具（Hayabusa、Chainsaw、Splunk、Elastic、Sentinel）都能吃 Sigma 规则，所以它同时是规则仓库 + 语法标准。">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/kai-yuan-lan-dui-xiang-mu-qing-dan-github.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="开源蓝队项目清单（GitHub） · pressure-J">
+<meta property="og:description" content="不是工具，是规则的通用格式。所有主流工具（Hayabusa、Chainsaw、Splunk、Elastic、Sentinel）都能吃 Sigma 规则，所以它同时是规则仓库 + 语法标准。">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/ir.html">应急响应</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>开源蓝队项目清单（GitHub）</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-ir">应急响应</span>
+          <time datetime="2026-10-18">2026-10-18</time>
+          <span>9215 字</span>
+          <span>约 24 分钟</span>
+        </div>
+        <div class="chips post-tags"><span class="chip">工具</span><span class="chip">蓝队</span><span class="chip">应急响应</span><span class="chip">威胁狩猎</span><span class="chip">Sigma</span></div>
+      </header>
+      <div class="content"><blockquote>
+<p>星数为 2026-10 实时抓取的 GitHub 页面数据。按「能不能马上用上」分三档，不是按名气排。<br />
+蓝队 = 检测 + 响应 + 取证 + 威胁狩猎，核心链路是：<strong>产生日志 → 采日志 → 转格式 → 跑规则 → 出时间线 → 定案</strong>。</p>
+</blockquote>
+<hr />
+<h2 id="_1">一、选型总览</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>环节</th>
+<th>首选</th>
+<th>备选</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>日志采集（Windows）</td>
+<td>Sysmon + sysmon-modular</td>
+<td>SwiftonSecurity/sysmon-config</td>
+</tr>
+<tr>
+<td>日志转 CSV/JSON</td>
+<td>EvtxECmd</td>
+<td>python-evtx</td>
+</tr>
+<tr>
+<td>事件日志分析（跑 Sigma）</td>
+<td><strong>Hayabusa</strong></td>
+<td>Chainsaw、Zircolite</td>
+</tr>
+<tr>
+<td>检测规则</td>
+<td><strong>SigmaHQ/sigma</strong></td>
+<td>Neo23x0/signature-base（IOC）</td>
+</tr>
+<tr>
+<td>端点采集与远程排查</td>
+<td>Velociraptor</td>
+<td>osquery、Wazuh agent</td>
+</tr>
+<tr>
+<td>SIEM / HIDS</td>
+<td>Wazuh</td>
+<td>Security Onion</td>
+</tr>
+<tr>
+<td>网络侧 NSM</td>
+<td>Security Onion</td>
+<td>Malcolm（纯 Docker）、Zeek+Suricata+Arkime 手搭</td>
+</tr>
+<tr>
+<td>威胁情报</td>
+<td>MISP</td>
+<td>OpenCTI（知识图谱）</td>
+</tr>
+<tr>
+<td>案件流转</td>
+<td>TheHive</td>
+<td>—（Excel 是反面教材）</td>
+</tr>
+<tr>
+<td>恶意样本能力分析</td>
+<td>capa</td>
+<td>floss、Loki</td>
+</tr>
+<tr>
+<td>全盘时间线</td>
+<td>plaso</td>
+<td>—</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="windows">二、Windows 单机应急响应（本机立刻能跑，最贴合现有笔记）</h2>
+<h3 id="1-sigmahqsigma-113k">1. SigmaHQ/sigma ★11.3k —— 整个蓝队的「标准库」</h3>
+<p>不是工具，是<strong>规则的通用格式</strong>。所有主流工具（Hayabusa、Chainsaw、Splunk、Elastic、Sentinel）都能吃 Sigma 规则，所以它同时是规则仓库 + 语法标准。</p>
+<p>规则目录按 <code>rules/windows/process_creation/</code>、<code>rules/windows/builtin/</code> 这类结构分，每条 yml 结构固定：</p>
+<div class="code-block" data-lang="yaml"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="nt">title</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">New User Created Via Net.EXE</span>
+<span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cd219ff3-fa99-45d4-8380-a7d15116c6dc</span>
+<span class="nt">status</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">test</span><span class="w">            </span><span class="c1"># stable/test/experimental/deprecated —— 决定误报率</span>
+<span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Identifies the creation of local users via the net.exe command.</span>
+<span class="nt">references</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://eqllib.readthedocs.io/...</span>
+<span class="nt">author</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Endgame, JHasenbusch</span>
+<span class="nt">date</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2018-10-30</span>
+<span class="nt">modified</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2023-02-21</span>
+<span class="nt">tags</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">attack.persistence</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">attack.t1136.001</span><span class="w">       </span><span class="c1"># ATT&amp;CK 编号，工具靠它做战术归类</span>
+<span class="nt">logsource</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">category</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">process_creation</span>
+<span class="w">    </span><span class="nt">product</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">windows</span>
+<span class="nt">detection</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">selection_img</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">Image|endswith</span><span class="p">:</span>
+<span class="w">              </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">'\net.exe'</span>
+<span class="w">              </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">'\net1.exe'</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">OriginalFileName</span><span class="p">:</span>
+<span class="w">              </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">'net.exe'</span>
+<span class="w">              </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">'net1.exe'</span>
+<span class="w">    </span><span class="nt">selection_cli</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">CommandLine|contains|all</span><span class="p">:</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">'user'</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">'add'</span>
+<span class="w">    </span><span class="nt">condition</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">all of selection_*</span><span class="w">      </span><span class="c1"># 布尔表达式，可选 1 of / all of them</span>
+<span class="nt">falsepositives</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Legitimate user creation.</span>
+<span class="nt">level</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">medium</span>
+</code></pre></div></div>
+
+<p><strong>必须记住的三个字段：</strong></p>
+<ul>
+<li><code>logsource</code> —— 决定这条规则扫哪个日志源。Sigma 原文用 <code>service: security</code> 这种抽象写法，Hayabusa 会把它<strong>去抽象化成具体的 Channel + EventID</strong>（因为它要按 channel 过滤提速）</li>
+<li><code>detection</code> —— 修饰符语法是精华：<code>contains</code> <code>startswith</code> <code>endswith</code> <code>all</code> <code>re</code> <code>base64offset</code> <code>windash</code>（把 <code>-</code> 和 <code>/</code> 都兼容，防攻击者换参数前缀）</li>
+<li><code>status</code> + <code>level</code> —— 误报率的两把尺子。<code>stable + high</code> 几乎不误报，<code>experimental + low</code> 满屏噪音</li>
+</ul>
+<p><strong>为什么值得投入</strong>：读规则 = 学检测思路；写规则 = 把 ATT&amp;CK 战术落成可执行判断；提 PR = GitHub 上有可查的 commit 记录。对求职来说这是<strong>可验证的能力凭证</strong>，比证书硬。</p>
+<blockquote>
+<p>实操入口：<code>git clone --depth 1 https://github.com/SigmaHQ/sigma</code>，然后随便挑一条规则，用你手上的日志手动验证它能不能命中。这一步跨过去，才算真会检测工程。</p>
+</blockquote>
+<hr />
+<h3 id="2-yamato-securityhayabusa-34k-evtx">2. Yamato-Security/hayabusa ★3.4k —— EVTX 快速取证时间线（<strong>第一上手工具</strong>）</h3>
+<p>Rust 写的多线程 Windows 事件日志分析器，<strong>号称唯一完整支持 Sigma 的工具（含 v2 关联规则）</strong>。输入一堆 <code>.evtx</code> 或整个 <code>C:\Windows\System32\winevt\Logs</code>，输出一条带告警等级的时间线（CSV / JSON / JSONL）。</p>
+<p><strong>为什么放第一位</strong>：单文件 exe，下载解压即用，不用装 Python、不用配环境，是「0 成本拿到第一条攻击时间线」的最短路径。</p>
+<p>核心命令是 <code>dfir-timeline</code>（新版本默认带<strong>扫描向导</strong>，问你要用哪套规则；想按老方式直接指定参数就加 <code>-w / --no-wizard</code>）：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c"># 扫本机实时日志（最常用）</span>
+<span class="n">hayabusa</span><span class="p">.</span><span class="n">exe</span> <span class="n">dfir-timeline</span> <span class="n">-l</span>
+
+<span class="c"># 扫一个装满 .evtx 的目录</span>
+<span class="n">hayabusa</span><span class="p">.</span><span class="n">exe</span> <span class="n">dfir-timeline</span> <span class="n">-d</span> <span class="n">C</span><span class="p">:\</span><span class="n">cases</span><span class="p">\</span><span class="n">host01</span><span class="p">\</span><span class="n">evtx</span><span class="p">\</span> <span class="n">-o</span> <span class="n">timeline</span><span class="p">.</span><span class="n">csv</span>
+
+<span class="c"># 只保留 high + critical，排除低质量规则</span>
+<span class="n">hayabusa</span><span class="p">.</span><span class="n">exe</span> <span class="n">dfir-timeline</span> <span class="n">-d</span> <span class="p">.\</span><span class="n">evtx</span><span class="p">\</span> <span class="n">-w</span> <span class="p">-</span><span class="n">-min-level</span> <span class="n">high</span> <span class="p">`</span>
+    <span class="p">-</span><span class="n">-exclude-status</span> <span class="n">deprecated</span><span class="p">,</span><span class="n">unsupported</span><span class="p">,</span><span class="n">experimental</span>
+
+<span class="c"># 输出 JSONL 给 Elastic 吃</span>
+<span class="n">hayabusa</span><span class="p">.</span><span class="n">exe</span> <span class="n">dfir-timeline</span> <span class="n">-d</span> <span class="p">.\</span><span class="n">evtx</span><span class="p">\</span> <span class="n">-t</span> <span class="n">jsonl</span> <span class="n">-o</span> <span class="n">out</span><span class="p">.</span><span class="n">jsonl</span>
+
+<span class="c"># 更新规则库（hayabusa-rules 仓库）</span>
+<span class="n">hayabusa</span><span class="p">.</span><span class="n">exe</span> <span class="nb">update-rules</span>
+</code></pre></div></div>
+
+<p><strong>规则集档位（记住这三档就够）：</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>档位</th>
+<th>条件</th>
+<th>等价参数</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Core</td>
+<td>status ∈ {test, stable} 且 level ∈ {high, critical}</td>
+<td><code>--exclude-status deprecated,unsupported,experimental --min-level high</code></td>
+<td>生产环境、初筛，误报极低</td>
+</tr>
+<tr>
+<td>Core+</td>
+<td>status ∈ {test, stable} 且 level ≥ medium</td>
+<td><code>--min-level medium</code></td>
+<td>需要额外调优</td>
+</tr>
+<tr>
+<td>Core++</td>
+<td>status 含 experimental 且 level ≥ medium</td>
+<td><code>--exclude-status deprecated,unsupported --min-level medium</code></td>
+<td>抢新威胁，误报高</td>
+</tr>
+</tbody>
+</table></div>
+<p>外加两类标签规则：<code>detection.emerging_threats</code>（针对当下热点威胁，会随时间失效）、<code>detection.threat_hunting</code>（能挖未知活动，但误报多）。传统模式默认都开，向导里可以关。</p>
+<p><strong>其它好用的分析子命令（不止 dfir-timeline）：</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>命令</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>logon-summary</code></td>
+<td>登录事件汇总（谁在什么时候从哪登录，肉眼找异常最快）</td>
+</tr>
+<tr>
+<td><code>eid-metrics</code></td>
+<td>按 EventID 统计数量和占比（先看分布再决定看什么）</td>
+</tr>
+<tr>
+<td><code>computer-metrics</code></td>
+<td>按主机名统计事件数（多机取证时定位重点）</td>
+</tr>
+<tr>
+<td><code>search</code></td>
+<td>关键词/正则搜索全部事件</td>
+</tr>
+<tr>
+<td><code>pivot-keywords-list</code></td>
+<td>提取可疑关键词（用户名、主机名、路径），用来横向检索</td>
+</tr>
+<tr>
+<td><code>extract-base64</code></td>
+<td>提取并解码事件里的 base64（抓混淆命令）</td>
+</tr>
+<tr>
+<td><code>config-critical-systems</code></td>
+<td>找出域控、文件服务器等关键系统</td>
+</tr>
+<tr>
+<td><code>level-tuning</code></td>
+<td>自定义调整告警等级（降误报）</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>性能机制值得注意</strong>：v2.16.0 起有 <strong>Channel 过滤</strong> —— 先读每个 evtx 第一条记录的 Channel，只加载匹配的规则，也跳过无关的 evtx。基准测试里规则侧提速 20%~10 倍，evtx 侧 10%~60%。副作用：如果 evtx 是被人工合并过（一个文件多 channel），得加 <code>-a / --scan-all-evtx-files</code> 关掉过滤；只有两条规则没定义 Channel（Possible Hidden Shellcode、Mimikatz Use），要扫全部文件得加 <code>-A / --enable-all-rules</code>。</p>
+<hr />
+<h3 id="3-withsecurelabschainsaw-37k-rust">3. WithSecureLabs/chainsaw ★3.7k —— 另一个 Rust 快枪 + 自带取证能力</h3>
+<p>定位和 Hayabusa 重叠，差别在于：<strong>Chainsaw 更偏「规则调试 + 快速搜索」</strong>，它的 <code>search</code> 子命令能像 grep 一样直接在 evtx 上做字段查询，查东西比 Hayabusa 顺手。</p>
+<div class="code-block" data-lang="powershell"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c"># hunt：用 Sigma 规则跑一批 evtx（必须给 mapping，告诉它 Sigma 字段怎么映射到 evtx 字段）</span>
+<span class="p">./</span><span class="n">chainsaw</span> <span class="n">hunt</span> <span class="n">evtx_attack_samples</span><span class="p">/</span> <span class="n">-s</span> <span class="n">sigma</span><span class="p">/</span> <span class="p">-</span><span class="n">-mapping</span> <span class="n">mappings</span><span class="p">/</span><span class="n">sigma-event-logs-all</span><span class="p">.</span><span class="n">yml</span>
+
+<span class="c"># 加上自定义规则、导出 CSV</span>
+<span class="p">./</span><span class="n">chainsaw</span> <span class="n">hunt</span> <span class="n">evtx</span><span class="p">/</span> <span class="n">-s</span> <span class="n">sigma</span><span class="p">/</span> <span class="p">-</span><span class="n">-mapping</span> <span class="n">mappings</span><span class="p">/</span><span class="n">sigma-event-logs-all</span><span class="p">.</span><span class="n">yml</span> <span class="n">-r</span> <span class="n">rules</span><span class="p">/</span> <span class="p">-</span><span class="n">-csv</span> <span class="p">-</span><span class="n">-output</span> <span class="n">results</span>
+
+<span class="c"># 只看 critical</span>
+<span class="p">./</span><span class="n">chainsaw</span> <span class="n">hunt</span> <span class="n">-r</span> <span class="n">rules</span><span class="p">/</span> <span class="n">evtx</span><span class="p">/</span> <span class="n">-s</span> <span class="n">sigma</span><span class="p">/</span><span class="n">rules</span> <span class="p">-</span><span class="n">-mapping</span> <span class="n">mappings</span><span class="p">/</span><span class="n">sigma-event-logs-all</span><span class="p">.</span><span class="n">yml</span> <span class="p">-</span><span class="n">-level</span> <span class="n">critical</span>
+
+<span class="c"># 限定时间窗（做「攻击发生在哪个时间点」的收窄）</span>
+<span class="p">./</span><span class="n">chainsaw</span> <span class="n">hunt</span> <span class="n">evtx</span><span class="p">/</span> <span class="n">-s</span> <span class="n">sigma</span><span class="p">/</span> <span class="p">-</span><span class="n">-mapping</span> <span class="n">mappings</span><span class="p">/</span><span class="n">sigma-event-logs-all</span><span class="p">.</span><span class="n">yml</span> <span class="p">`</span>
+    <span class="p">-</span><span class="n">-from</span> <span class="s2">"2019-03-17T19:09:39"</span> <span class="p">-</span><span class="n">-to</span> <span class="s2">"2019-03-17T19:09:50"</span> <span class="p">-</span><span class="n">-json</span>
+
+<span class="c"># search：不写规则直接查。关键词 / 字段条件 / 正则三态</span>
+<span class="p">./</span><span class="n">chainsaw</span> <span class="n">search</span> <span class="n">mimikatz</span> <span class="n">-i</span> <span class="n">evtx_attack_samples</span><span class="p">/</span>
+<span class="p">./</span><span class="n">chainsaw</span> <span class="n">search</span> <span class="n">-t</span> <span class="s1">'Event.System.EventID: =4104'</span> <span class="n">evtx_attack_samples</span><span class="p">/</span>
+<span class="p">./</span><span class="n">chainsaw</span> <span class="n">search</span> <span class="n">-e</span> <span class="s2">"DC[0-9].insecurebank.local"</span> <span class="n">evtx_attack_samples</span> <span class="p">-</span><span class="n">-json</span>
+
+<span class="c"># dump：把注册表 hive、ESE 数据库、MFT 等转成可读格式</span>
+<span class="p">./</span><span class="n">chainsaw</span> <span class="n">dump</span> <span class="p">./</span><span class="n">SOFTWARE</span><span class="p">.</span><span class="n">hve</span> <span class="p">-</span><span class="n">-json</span> <span class="p">-</span><span class="n">-output</span> <span class="p">./</span><span class="n">output</span><span class="p">.</span><span class="n">json</span>
+</code></pre></div></div>
+
+<p><strong>Hayabusa vs Chainsaw 怎么选</strong>：初筛和出报告用 Hayabusa（时间线最规整、有 level 分档、有汇总命令）；定位具体事件、查可疑字符串、调试自己写的规则用 Chainsaw。<strong>两个都跑一遍同一批日志，对比命中差异</strong> —— 差异往往就是规则边界和误报，这是最快的检测工程训练。</p>
+<hr />
+<h3 id="4-wagga40zircolite-863-sigma">4. wagga40/Zircolite ★863 —— 跨平台的 Sigma 离线扫描器</h3>
+<p>Python 写的，Windows / Linux / macOS 都能跑，支持 EVTX、JSON、Auditd、Sysmon for Linux、XML、SQLite 多种输入，还带 <strong>Web UI（<code>zircolite_web.py</code>）</strong>，把告警结果可视化。适合：</p>
+<ul>
+<li>手上只有 Linux（比如 Kali 里分析拷出来的 evtx）</li>
+<li>要给非技术人员看结果（Web UI 直接出图）</li>
+<li>需要审自己的 Sigma 规则（它有 <code>--package</code> 之类做规则包）</li>
+</ul>
+<hr />
+<h3 id="5-sysmon">5. 日志采集：Sysmon 配置才是第一道坎</h3>
+<p>装了 Sysmon 不等于有可用日志 —— <strong>配置文件决定你采到什么、噪音多大</strong>。</p>
+<ul>
+<li><strong>olafhartong/sysmon-modular</strong> ★3.2k —— 模块化配置，按 ATT&amp;CK 战术拆成一堆小 xml，按需组合，改起来清晰，最适合自己维护</li>
+<li><strong>SwiftonSecurity/sysmon-config</strong> ★5.7k —— 老牌单体配置，覆盖面广，改起来费劲</li>
+</ul>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c"># 装 Sysmon 并套配置（modular 需要先合并，或用其提供的合并脚本）</span>
+<span class="n">sysmon64</span><span class="p">.</span><span class="n">exe</span> <span class="n">-accepteula</span> <span class="n">-i</span> <span class="n">sysmonconfig</span><span class="p">.</span><span class="n">xml</span>
+<span class="n">sysmon64</span><span class="p">.</span><span class="n">exe</span> <span class="n">-c</span> <span class="n">sysmonconfig</span><span class="p">.</span><span class="n">xml</span>     <span class="c"># 更新配置</span>
+</code></pre></div></div>
+
+<p>应急响应里常见的坑：<strong>客户机器上根本没装 Sysmon</strong>，那就只剩 Security/System/Application 三本日志 —— 这时候 <code>4688</code>（进程创建）默认不记录命令行，得靠 <code>ProcessCreationIncludeCmdLine_Enabled</code> 审计策略，而且是<strong>事后没法补</strong>。所以「采日志」这一步的结论是：先查有没有，再看采集了什么。</p>
+<hr />
+<h2 id="docker">三、搭实验环境（虚拟机 / Docker）</h2>
+<h3 id="6-velocidexvelociraptor-44k-edr">6. Velocidex/velociraptor ★4.4k —— 单机自建 EDR，最省事的选择</h3>
+<p>agent + server 架构，客户端跑 VQL（它自己的查询语言）采集端点数据。蓝队最看重的两个能力：</p>
+<ol>
+<li><strong>全量离线采集</strong>：一条 artifact（如 <code>Windows.KapeFiles.Targets</code>）就能把注册表、事件日志、浏览器数据、<code>$MFT</code> 全部打包拉回，不需要人守着</li>
+<li><strong>大规模狩猎</strong>：一次下发 VQL 到上千台，回答「哪些机器上有这个 IOC」</li>
+</ol>
+<p>比 Wazuh 轻得多，单机也能装，是<strong>把「远程取证」从理论变成可操作</strong>的最低门槛工具。</p>
+<h3 id="7-wazuhwazuh-173k-siem-xdr">7. wazuh/wazuh ★17.3k —— 开源 SIEM + XDR</h3>
+<p>HIDS（主机入侵检测）、FIM（文件完整性监控）、漏洞检测、日志集中、合规检查全都有。<strong>Docker 一键部署</strong>（<code>wazuh-docker</code> 仓库），装完就有一个能看告警的 Web 控制台。</p>
+<p>代价是重：agent + manager + indexer + dashboard 四件套，资源吃得凶。适合「我要一个能演示的 SOC 面板」的场景。</p>
+<h3 id="8-security-onion-solutionssecurityonion-49k-soc">8. Security-Onion-Solutions/securityonion ★4.9k —— 一体化 SOC 发行版</h3>
+<p>不是一堆软件的集合，是打磨好的发行版：集成了 Zeek、Suricata、Stenographer、Elastic、Sigma、Strelka 等，装完就是个完整 NSM 平台。适合从头体验「真正的 SOC 长什么样」，但<strong>需要独立机器 + 双网卡</strong>，别在 16GB 主力机上硬装，用 VMware 单开一台。</p>
+<h3 id="9">9. 网络侧三件套</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>项目</th>
+<th>星</th>
+<th>定位</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>zeek/zeek</td>
+<td>8.1k</td>
+<td>把流量解析成结构化日志（conn/http/dns/ssl…），是「协议级事实来源」</td>
+</tr>
+<tr>
+<td>OISF/suricata</td>
+<td>6.7k</td>
+<td>签名式 IDS/IPS，靠规则抓已知攻击</td>
+</tr>
+<tr>
+<td>arkime/arkime</td>
+<td>7.5k</td>
+<td>全流量留存 + 检索（PCAP 索引，点开就能看原始包，排查时救命）</td>
+</tr>
+</tbody>
+</table></div>
+<p>在 CTF 流量题里其实已经用过它们的思路：Zeek 日志看「说了什么」，Suricata 告警看「像什么攻击」，Arkime 看「原始字节是什么」。</p>
+<ul>
+<li><strong>activecm/rita</strong> ★661 —— 吃 Zeek 日志，做<strong>信标检测和横向移动评分</strong>（长连接周期性、DNS 隧道、异常数据量）。做「隐蔽 C2 排查」时很有用</li>
+<li><strong>idaholab/Malcolm</strong> ★490 —— 纯 Docker 把 Zeek + Suricata + Arkime + OpenSearch 打包，<strong>比 Security Onion 更适合本地实验</strong>，一条 <code>docker compose up</code> 起全套</li>
+</ul>
+<h3 id="10">10. 威胁情报与案件管理</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>项目</th>
+<th>星</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MISP/MISP ★6.6k</td>
+<td>情报共享平台</td>
+<td>存 IOC、喂给防火墙/IDS、和同行交换。企业建 IOC 库的标准答案</td>
+</tr>
+<tr>
+<td>OpenCTI-Platform/opencti ★10.2k</td>
+<td>情报知识图谱</td>
+<td>把「组织—攻击者—恶意软件—基础设施—TTP」连成图，ATT&amp;CK 关联可视化最强</td>
+</tr>
+<tr>
+<td>TheHive-Project/TheHive ★3.9k</td>
+<td>案件管理（SIRP）</td>
+<td>把告警变案件、案件变任务，避免「手工应急漏步骤」</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="_2">四、恶意样本与威胁狩猎（理解攻击者才能防守）</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>项目</th>
+<th>星</th>
+<th>说人话</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>mandiant/capa ★6.3k</td>
+<td>6.3k</td>
+<td>读二进制「具备什么能力」（能注入？能加密文件？能反调试？），<strong>恶意样本分析门槛最低的入口</strong>，不用会汇编</td>
+</tr>
+<tr>
+<td>mandiant/flare-floss ★4.2k</td>
+<td>4.2k</td>
+<td>自动从混淆样本里抽字符串（解栈字符串、解 PE 资源），配合 capa 用</td>
+</tr>
+<tr>
+<td>sbousseaden/EVTX-ATTACK-SAMPLES ★2.6k</td>
+<td>2.6k</td>
+<td><strong>现成的攻击模拟日志</strong>。验证规则有没有用，拿它跑一遍就知道 —— 这是整个清单里最实用的「靶子」</td>
+</tr>
+<tr>
+<td>redcanaryco/atomic-red-team ★12.7k</td>
+<td>12.7k</td>
+<td>ATT&amp;CK 原子测试库，红队手法弹药。蓝队用它做<strong>检测覆盖度评估</strong>（哪些 T 编号我根本检测不到）</td>
+</tr>
+<tr>
+<td>OTRF/Security-Datasets ★1.8k</td>
+<td>1.8k</td>
+<td>带标注的仿真数据集（含攻击场景），做检测研究/写论文都靠它</td>
+</tr>
+<tr>
+<td>OTRF/OSSEM ★1.3k</td>
+<td>1.3k</td>
+<td>日志字段标准（数据字典）。跨日志源关联分析前必须先对齐字段，这是方法论</td>
+</tr>
+<tr>
+<td>log2timeline/plaso ★2.2k</td>
+<td>2.2k</td>
+<td>全盘时间线：从磁盘镜像里把所有时间戳抽出来统一排序，<code>log2timeline.py</code> + <code>psort.py</code> 两步</td>
+</tr>
+<tr>
+<td>Neo23x0/Loki ★3.8k</td>
+<td>3.8k</td>
+<td>开源 IOC 扫描器（文件名/YARA/哈希/连接），单文件跑一把做快速体检</td>
+</tr>
+<tr>
+<td>Neo23x0/signature-base ★3.0k</td>
+<td>3.0k</td>
+<td>上面那个的规则库，也是很多工具共用的 YARA 来源</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="_3">五、两周上手路线（能落成简历的版本）</h2>
+<h3 id="1-12">第 1 步：打通「日志 → 时间线」（1~2 天）</h3>
+<ol>
+<li>装 Sysmon + <code>olafhartong/sysmon-modular</code> 合并出的配置</li>
+<li>随便干点可疑事制造日志（<code>net user hacker /add</code>、<code>whoami</code>、<code>certutil -urlcache</code>）</li>
+<li><code>hayabusa.exe dfir-timeline -l</code> 扫本机 → 看到自己的操作被 high/medium 规则命中</li>
+</ol>
+<p><strong>验收</strong>：时间线里能对上你自己那几条命令的 EventID、规则名、ATT&amp;CK 编号。</p>
+<h3 id="2-35">第 2 步：规则验证 + 写规则（3~5 天）</h3>
+<ol>
+<li>用 <code>EVTX-ATTACK-SAMPLES</code> 的样本跑 Hayabusa 和 Chainsaw，<strong>对比两边命中差异</strong></li>
+<li>挑一个差异项，打开对应 Sigma 规则，看清是哪个字段/修饰符导致的</li>
+<li>找一个自己演练里<strong>没被检测到</strong>的行为，写一条 Sigma 规则，用样本日志验证能命中</li>
+<li>提 PR 到 SigmaHQ/sigma（先看 CONTRIBUTING，规则要过 lint）</li>
+</ol>
+<p><strong>验收</strong>：手上有 1 条能跑通、能过 lint、能解释为什么这样写的规则。</p>
+<h3 id="3-1">第 3 步：完整单机排查记录（1 周）</h3>
+<ol>
+<li>Velociraptor 采本机全量数据（或手工打包 <code>C:\Windows\System32\winevt\Logs</code>）</li>
+<li>Hayabusa 出时间线 + <code>logon-summary</code> 看登录 → 定异常时间窗</li>
+<li>Chainsaw <code>search</code> 在该时间窗内定位具体命令/进程</li>
+<li>Plaso / EvtxECmd 补充文件系统时间线</li>
+<li>写成一份完整的应急报告（现象 → 证据 → 时间线 → 结论 → 处置建议）</li>
+</ol>
+<p><strong>验收</strong>：报告里每个结论都能指回具体 EventID + 时间 + 主机。</p>
+<hr />
+<h2 id="_4">六、踩坑记录（边用边补）</h2>
+<ul>
+<li>Hayabusa / Chainsaw 都是 Rust 单文件，<strong>优先下 release 压缩包</strong>，别自己编译</li>
+<li>Chainsaw 的 <code>hunt</code> <strong>必须给 <code>--mapping</code></strong>，否则字段对不上，规则全部空转</li>
+<li>Hayabusa 的 Channel 过滤会让「人工合并过的 evtx」漏扫 → 用 <code>-a</code> 关掉；要扫全部规则用 <code>-A</code></li>
+<li>Sigma 规则不要原样搬进 SIEM：<code>logsource</code> 是抽象的，得映射到实际索引/字段（Sigma 官方有 pySigma + backend 做转换）</li>
+<li><code>pivot-keywords-list</code> 输出的关键词拿去横向检索时，<strong>先用 <code>logon-summary</code> 确认哪些主机真被登过</strong>，不然检索面爆炸</li>
+<li>星数 ≠ 适用性：<code>osquery</code>（★23.6k）和 <code>falco</code>（★9.5k）星都高，但一个偏 Linux 端点查询、一个偏容器运行时安全，普通 Windows 应急用不上</li>
+</ul>
+<hr />
+<h2 id="_5">相关笔记</h2>
+<ul>
+<li>[Windows日志分析基础](</li>
+<li>[Windows安全日志分析-RDP暴力破解](</li>
+<li>[Webshell查杀方法](</li>
+<li>[恶意程序应急响应-Linux离线分析](</li>
+</ul></div>
+      <div class="post-nav"><a class="pn-item prev" href="li-san-dui-shu-wen-ti-dlp.html"><span>← 上一篇</span><strong>离散对数问题（DLP）</strong></a><a class="pn-item next" href="linux-ji-chu-wsl-xia-de-linux-ru-shou-cao-zuo.html"><span>下一篇 →</span><strong>Linux 基础：WSL 下的 Linux 入手操作</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">一、选型总览</a><a href="#windows" class="toc-lv2">二、Windows 单机应急响应（本机立刻能跑，最贴合现有笔记）</a><a href="#1-sigmahqsigma-113k" class="toc-lv3">1. SigmaHQ/sigma ★11.3k —— 整个蓝队的「标准库」</a><a href="#2-yamato-securityhayabusa-34k-evtx" class="toc-lv3">2. Yamato-Security/hayabusa ★3.4k —— EVTX 快速取证时间线（第一上手工具）</a><a href="#3-withsecurelabschainsaw-37k-rust" class="toc-lv3">3. WithSecureLabs/chainsaw ★3.7k —— 另一个 Rust 快枪 + 自带取证能力</a><a href="#4-wagga40zircolite-863-sigma" class="toc-lv3">4. wagga40/Zircolite ★863 —— 跨平台的 Sigma 离线扫描器</a><a href="#5-sysmon" class="toc-lv3">5. 日志采集：Sysmon 配置才是第一道坎</a><a href="#docker" class="toc-lv2">三、搭实验环境（虚拟机 / Docker）</a><a href="#6-velocidexvelociraptor-44k-edr" class="toc-lv3">6. Velocidex/velociraptor ★4.4k —— 单机自建 EDR，最省事的选择</a><a href="#7-wazuhwazuh-173k-siem-xdr" class="toc-lv3">7. wazuh/wazuh ★17.3k —— 开源 SIEM + XDR</a><a href="#8-security-onion-solutionssecurityonion-49k-soc" class="toc-lv3">8. Security-Onion-Solutions/securityonion ★4.9k —— 一体化 SOC 发行版</a><a href="#9" class="toc-lv3">9. 网络侧三件套</a><a href="#10" class="toc-lv3">10. 威胁情报与案件管理</a><a href="#_2" class="toc-lv2">四、恶意样本与威胁狩猎（理解攻击者才能防守）</a><a href="#_3" class="toc-lv2">五、两周上手路线（能落成简历的版本）</a><a href="#1-12" class="toc-lv3">第 1 步：打通「日志 → 时间线」（1~2 天）</a><a href="#2-35" class="toc-lv3">第 2 步：规则验证 + 写规则（3~5 天）</a><a href="#3-1" class="toc-lv3">第 3 步：完整单机排查记录（1 周）</a><a href="#_4" class="toc-lv2">六、踩坑记录（边用边补）</a><a href="#_5" class="toc-lv2">相关笔记</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>基础密码学 · pressure-J</title>
+<meta name="description" content="ASCII 是一种 7 位编码标准，允许使用整数 0-127 表示文本。">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/ji-chu-mi-ma-xue.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="基础密码学 · pressure-J">
+<meta property="og:description" content="ASCII 是一种 7 位编码标准，允许使用整数 0-127 表示文本。">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/crypto.html">密码学</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>基础密码学</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-crypto">密码学</span>
+          <time datetime="2025-10-16">2025-10-16</time>
+          <span>2648 字</span>
+          <span>约 7 分钟</span>
+        </div>
+        <div class="chips post-tags"><span class="chip">crypto</span></div>
+      </header>
+      <div class="content"><p>注：以下所展示题目皆来自cryptohack</p>
+<h2 id="ascll">ASCLL码</h2>
+<p>ASCII 是一种 7 位编码标准，允许使用整数 0-127 表示文本。<br />
+如以下列表<br />
+[99, 114, 121, 112, 116, 111, 123, 65, 83, 67, 73, 73, 95, 112, 114, 49, 110, 116, 52, 98, 108, 51, 125]<br />
+可以通过使用函数chr()与ord()可以实现单个字节与整数的转换，可以通过bytes()将整数序列转换成字节。</p>
+<h2 id="16">16进制</h2>
+<p>十六进制可以用来表示 ASCII 字符串。首先，每个字母根据 ASCII 表转换为序数。然后将十进制数转换为以 16 为基数的数字，也称为十六进制。这些数字可以组合在一起，形成一个长十六进制字符串。<br />
+63727970746f7b596f755f77696c6c5f62655f776f726b696e675f776974685f6865785f737472696e67735f615f6c6f747d<br />
+可以通过函数bytes.fromhex()与.hex()实现16进制字符串与字节序列的转换<br />
+python中的进制转换,表示将字符串m从n进制转换成10进制</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="nb">print</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">m</span><span class="p">,</span><span class="n">n</span><span class="p">))</span>
+</code></pre></div></div>
+
+<h2 id="base64">Base64</h2>
+<p>Base64，它允许我们使用 64 个字符的字母表将二进制数据表示为 ASCII 字符串。Base64 字符串的一个字符编码 6 个二进制数字（位）<br />
+ 此 Base64 的 4 个字符编码三个 8 位字节。<br />
+ Base64 最常在线使用，因此可以轻松地将图像等二进制数据包含在 HTML 或 CSS 文件中。<br />
+ 在 Python 中，<code>import base64</code> 后：<code>base64.b64encode(data)</code> 是<strong>编码</strong>（bytes → base64 字节串），<code>base64.b64decode(s)</code> 才是<strong>解码</strong>（base64 → 原始 bytes）。做题常见流程：<code>bytes.fromhex(hex密文)</code> → <code>b64encode</code> → 得到 crypto{...}</p>
+<h2 id="_1">字节和大整数</h2>
+<p>像 RSA 这样的密码系统处理数字，但消息由字符组成。我们应该如何将我们的信息转换为数字以便可以应用数学运算？<br />
+最常见的方法是获取消息的序号字节，将它们转换为十六进制，然后连接起来。这可以解释为以 16 为基数/十六进制数，也可以以 10 为基数/十进制表示。例如<br />
+消息：HELLO<br />
+ASCII 字节：[72、69、76、76、79]<br />
+十六进制字节：[0x48、0x45、0x4c、0x4c、0x4f]<br />
+base-16：0x48454c4c4f<br />
+base-10：310400273487<br />
+函数bytes_to_long() long_to_bytes() from Crypto.Util.number import *可以实现字节序列与长整数的转换</p>
+<h2 id="_2">哈希</h2>
+<p>哈希是将信息转换为固定长度密文的算法</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">hashlib</span><span class="o">.</span><span class="n">md5</span><span class="p">()</span>        <span class="c1"># MD5，128位，已不安全，仅用于校验</span>
+<span class="n">hashlib</span><span class="o">.</span><span class="n">sha1</span><span class="p">()</span>       <span class="c1"># SHA-1，160位，已不推荐</span>
+<span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">()</span>     <span class="c1"># SHA-256，256位，目前最常用 ✅</span>
+<span class="n">hashlib</span><span class="o">.</span><span class="n">sha512</span><span class="p">()</span>     <span class="c1"># SHA-512，512位，更安全但更慢</span>
+<span class="n">hashlib</span><span class="o">.</span><span class="n">sha3_256</span><span class="p">()</span>   <span class="c1"># SHA-3 系列，新一代标准</span>
+</code></pre></div></div>
+
+<h2 id="_3">异或</h2>
+<p>XOR 是一个按位运算符，如果位相同，则返回 0，否则返回 1。在教科书中，异或运算符用⊕表示，但在大多数挑战和编程语言中，您会看到使用插入符号。 ^<br />
+对于较长的二进制数，我们逐位异或： 我们可以通过首先将整数从十进制转换为二进制来对整数进行异或或。我们可以通过首先将每个字符转换为表示 Unicode 字符的整数来对字符串进行异或。<br />
+Python 库有一个方便的函数，可以将不同类型和长度的数据进行异或。但首先，您可能想要实现自己的函数来解决这个问题。pwntools xor()</p>
+<h3 id="xor">xor的用法</h3>
+<p><code>from pwn import xor</code> 后调用 <code>xor(data, key)</code>：</p>
+<ul>
+<li><code>data</code>：输入数据（<code>bytes</code> 或 <code>int</code>）</li>
+<li><code>key</code>：密钥（<code>bytes</code>、<code>int</code> 或列表/元组）</li>
+<li>返回：异或结果，<strong>类型与 data 一致</strong></li>
+</ul>
+<p>⚠️ <strong>统一成 bytes 最省心</strong>：题干给 hex 串就先 <code>bytes.fromhex()</code>，给可见字符串就先 <code>.encode()</code>，别把 str 和 bytes 混着传。本题的 <code>c = 'crypto{'</code> 是 str，靠 pwnlib 隐式编码才跑通——<strong>只是能跑，不代表是好习惯</strong>。</p>
+<h3 id="_4">异或的属性</h3>
+<p>交换：A ⊕ B = B ⊕ A<br />
+联想：A ⊕ （B ⊕ C） = （A ⊕ B） ⊕ C<br />
+恒等式：A ⊕ 0 = A<br />
+自逆：A ⊕ A = 0<br />
+我们可以通过这些属性化简题目<br />
+推论：如果A ⊕ B = C 那么A ⊕ C = B<br />
+通过推论我们可以知道如果知道：如果知道密文和明文头，可以得出部分密钥。例如：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">pwn</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>
+<span class="n">n</span><span class="o">=</span><span class="s1">'0e0b213f26041e480b26217f27342e175d0e070a3c5b103e2526217f27342e175d0e077e263451150104'</span>
+<span class="n">m</span><span class="o">=</span><span class="nb">bytes</span><span class="o">.</span><span class="n">fromhex</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+<span class="n">c</span><span class="o">=</span><span class="s1">'crypto{'</span>
+<span class="n">b</span><span class="o">=</span><span class="n">xor</span><span class="p">(</span><span class="n">m</span><span class="p">,</span><span class="n">c</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+</code></pre></div></div>
+
+<h3 id="_5">对图片的异或</h3>
+<p>基本原理：图片由许多像素点排列组成，我们可以把每个像素点的灰度或RGB(red,green,blue,可以认为每个像素点的颜色是由这三种颜色不同比例混合而成的)的数值当作异或的对象。将异或得到的数值再转化为灰度或RGB，形成新的图片。<br />
+常用的工具：python的PIL库</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">PIL</span><span class="w"> </span><span class="kn">import</span> <span class="n">Image</span>
+<span class="n">image1</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="sa">r</span><span class="s2">"~/ 图片\flag_7ae18c704272532658c10b5faad06d74.png"</span><span class="p">)</span>
+<span class="n">image2</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="sa">r</span><span class="s2">"~/ 图片\lemur_ed66878c338e662d3473f0d98eedbd0d.png"</span><span class="p">)</span>
+<span class="c1">#生成可操作的对象，pim类似于矩阵，通过坐标值来操控每个像素</span>
+<span class="n">pim1</span> <span class="o">=</span> <span class="n">image1</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+<span class="n">pim2</span> <span class="o">=</span> <span class="n">image2</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+<span class="n">width</span><span class="p">,</span><span class="n">height</span><span class="o">=</span><span class="n">image1</span><span class="o">.</span><span class="n">size</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">width</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">height</span><span class="p">):</span>
+        <span class="n">r1</span><span class="p">,</span><span class="n">g1</span><span class="p">,</span><span class="n">b1</span> <span class="o">=</span> <span class="n">pim1</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">]</span>
+        <span class="n">r2</span><span class="p">,</span><span class="n">g2</span><span class="p">,</span><span class="n">b2</span> <span class="o">=</span> <span class="n">pim2</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">]</span>
+        <span class="n">pim1</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">r1</span><span class="o">^</span><span class="n">r2</span><span class="p">,</span> <span class="n">g1</span><span class="o">^</span><span class="n">g2</span><span class="p">,</span> <span class="n">b1</span><span class="o">^</span><span class="n">b2</span><span class="p">)</span>
+<span class="n">image1</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div></div></div>
+      <div class="post-nav"><a class="pn-item prev" href="shu-lun.html"><span>← 上一篇</span><strong>数论</strong></a><a class="pn-item next" href="ji-ben-shu-ju-lei-xing.html"><span>下一篇 →</span><strong>基本数据类型</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#ascll" class="toc-lv2">ASCLL码</a><a href="#16" class="toc-lv2">16进制</a><a href="#base64" class="toc-lv2">Base64</a><a href="#_1" class="toc-lv2">字节和大整数</a><a href="#_2" class="toc-lv2">哈希</a><a href="#_3" class="toc-lv2">异或</a><a href="#xor" class="toc-lv3">xor的用法</a><a href="#_4" class="toc-lv3">异或的属性</a><a href="#_5" class="toc-lv3">对图片的异或</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

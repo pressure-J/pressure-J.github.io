@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Python · pressure-J</title>
+<meta name="description" content="语法坑、编码、正则、subprocess 与 CTF 数据处理">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/category/python.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Python · pressure-J">
+<meta property="og:description" content="语法坑、编码、正则、subprocess 与 CTF 数据处理">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html">文章</a><a href="../category/index.html" class="on">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap section">
+  <nav class="breadcrumb"><a href="../index.html">首页</a><span>/</span>分类</nav>
+  <header class="page-head page-head-cat">
+    <h1><span class="cat-badge cat-python">Python</span> 8 篇</h1>
+    <p>语法坑、编码、正则、subprocess 与 CTF 数据处理</p>
+  </header>
+  <div class="post-list"><article class="post-card" data-cat="python"
+     data-hay="python 与终端交互（subprocess 与 pty） print(r.stdout) # 实测 512 位密钥打印 2097 字符，直接正则抽 n/e/d python subprocess 终端">
+  <div class="card-top">
+    <a class="cat-badge cat-python" href="../category/python.html">Python</a>
+    <time datetime="2026-10-15">2026-10-15</time>
+  </div>
+  <h3><a href="../posts/python-yu-zhong-duan-jiao-hu-subprocess-yu-pty.html">Python 与终端交互（subprocess 与 pty）</a></h3>
+  <p class="card-desc">print(r.stdout) # 实测 512 位密钥打印 2097 字符，直接正则抽 n/e/d</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">python</span><span class="chip">subprocess</span><span class="chip">终端</span></div>
+    <span class="reading">21 min · 7858 字</span>
+  </div>
+</article><article class="post-card" data-cat="python"
+     data-hay="python 数据加密编码函数大全 &gt; 来源：ctf 密码学 / 通用开发中需要对数据进行编码、哈希、对称加密、非对称加密的场景。 python crypto">
+  <div class="card-top">
+    <a class="cat-badge cat-python" href="../category/python.html">Python</a>
+    <time datetime="2026-09-08">2026-09-08</time>
+  </div>
+  <h3><a href="../posts/python-shu-ju-jia-mi-bian-ma-han-shu-da-quan.html">Python 数据加密编码函数大全</a></h3>
+  <p class="card-desc">&gt; 来源：CTF 密码学 / 通用开发中需要对数据进行编码、哈希、对称加密、非对称加密的场景。</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">python</span><span class="chip">crypto</span></div>
+    <span class="reading">10 min · 3776 字</span>
+  </div>
+</article><article class="post-card" data-cat="python"
+     data-hay="文本文件读取与正则提取 文件内容是这种格式（顶部声明一个 e，下面每块一个 n/c）： python">
+  <div class="card-top">
+    <a class="cat-badge cat-python" href="../category/python.html">Python</a>
+    <time datetime="2026-09-08">2026-09-08</time>
+  </div>
+  <h3><a href="../posts/wen-ben-wen-jian-du-qu-yu-zheng-ze-ti-qu.html">文本文件读取与正则提取</a></h3>
+  <p class="card-desc">文件内容是这种格式（顶部声明一个 e，下面每块一个 n/c）：</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">python</span></div>
+    <span class="reading">6 min · 2106 字</span>
+  </div>
+</article><article class="post-card" data-cat="python"
+     data-hay="数字串处理技巧（ctf） 题目常给一长串数字，如 83 89 78 84 ...。很多人第一反应是手动加逗号拼成 python 列表： python ctf">
+  <div class="card-top">
+    <a class="cat-badge cat-python" href="../category/python.html">Python</a>
+    <time datetime="2026-09-07">2026-09-07</time>
+  </div>
+  <h3><a href="../posts/shu-zi-chuan-chu-li-ji-qiao-ctf.html">数字串处理技巧（CTF）</a></h3>
+  <p class="card-desc">题目常给一长串数字，如 83 89 78 84 ...。很多人第一反应是手动加逗号拼成 Python 列表：</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">python</span><span class="chip">ctf</span></div>
+    <span class="reading">3 min · 1095 字</span>
+  </div>
+</article><article class="post-card" data-cat="python"
+     data-hay="str与bytes编码 python 2 到 python 3 最大的区别之一：字符串的&quot;身份&quot;变了。 python">
+  <div class="card-top">
+    <a class="cat-badge cat-python" href="../category/python.html">Python</a>
+    <time datetime="2026-09-04">2026-09-04</time>
+  </div>
+  <h3><a href="../posts/str-yu-bytes-bian-ma.html">str与bytes编码</a></h3>
+  <p class="card-desc">Python 2 到 Python 3 最大的区别之一：字符串的&quot;身份&quot;变了。</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">python</span></div>
+    <span class="reading">5 min · 1900 字</span>
+  </div>
+</article><article class="post-card" data-cat="python"
+     data-hay="python class（类）知识总结 类（class）是创建对象的模板/蓝图，定义了对象拥有的属性（数据）和方法（行为）。 ">
+  <div class="card-top">
+    <a class="cat-badge cat-python" href="../category/python.html">Python</a>
+    <time datetime="2026-08-28">2026-08-28</time>
+  </div>
+  <h3><a href="../posts/python-class-lei-zhi-shi-zong-jie.html">Python Class（类）知识总结</a></h3>
+  <p class="card-desc">类（Class）是创建对象的模板/蓝图，定义了对象拥有的属性（数据）和方法（行为）。</p>
+  <div class="card-foot">
+    <div class="chips"></div>
+    <span class="reading">8 min · 2983 字</span>
+  </div>
+</article><article class="post-card" data-cat="python"
+     data-hay="数据操作 切片（slicing）是 python 中用于​​提取序列子集​​的核心操作，适用于所有序列类型（字符串、列表、元组等）。它通过指定起始、结束位置和步长来灵活截取数据片段 python">
+  <div class="card-top">
+    <a class="cat-badge cat-python" href="../category/python.html">Python</a>
+    <time datetime="2025-10-18">2025-10-18</time>
+  </div>
+  <h3><a href="../posts/shu-ju-cao-zuo.html">数据操作</a></h3>
+  <p class="card-desc">切片（Slicing）是 Python 中用于​​提取序列子集​​的核心操作，适用于所有序列类型（字符串、列表、元组等）。它通过指定起始、结束位置和步长来灵活截取数据片段</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">python</span></div>
+    <span class="reading">5 min · 2078 字</span>
+  </div>
+</article><article class="post-card" data-cat="python"
+     data-hay="基本数据类型 在python中除int,float,char三中类型之外，还有字节(bytes)，元组(tuple)，列表(list),集合(set)和字典(dict)等类型 python">
+  <div class="card-top">
+    <a class="cat-badge cat-python" href="../category/python.html">Python</a>
+    <time datetime="2025-10-16">2025-10-16</time>
+  </div>
+  <h3><a href="../posts/ji-ben-shu-ju-lei-xing.html">基本数据类型</a></h3>
+  <p class="card-desc">在python中除int,float,char三中类型之外，还有字节(bytes)，元组(tuple)，列表(list),集合(set)和字典(dict)等类型</p>
+  <div class="card-foot">
+    <div class="chips"><span class="chip">python</span></div>
+    <span class="reading">17 min · 6415 字</span>
+  </div>
+</article></div>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

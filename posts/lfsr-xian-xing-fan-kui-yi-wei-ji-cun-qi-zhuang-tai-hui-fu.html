@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LFSR线性反馈移位寄存器-状态恢复 · pressure-J</title>
+<meta name="description" content="LFSR（线性反馈移位寄存器）是最简单的密钥流生成器：">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/lfsr-xian-xing-fan-kui-yi-wei-ji-cun-qi-zhuang-tai-hui-fu.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="LFSR线性反馈移位寄存器-状态恢复 · pressure-J">
+<meta property="og:description" content="LFSR（线性反馈移位寄存器）是最简单的密钥流生成器：">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/crypto.html">密码学</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>LFSR线性反馈移位寄存器-状态恢复</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-crypto">密码学</span>
+          <time datetime="2026-09-08">2026-09-08</time>
+          <span>3233 字</span>
+          <span>约 9 分钟</span>
+        </div>
+        <div class="chips post-tags"><span class="chip">crypto</span></div>
+      </header>
+      <div class="content"><h2 id="_1">一、流密码是什么（先建立直觉）</h2>
+<p><strong>对称密码分两大类</strong>：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>类型</th>
+<th>原理</th>
+<th>代表</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>分组密码</td>
+<td>明文按块(如16字节)整体加密</td>
+<td>AES / DES</td>
+</tr>
+<tr>
+<td><strong>流密码</strong></td>
+<td>生成一串<strong>伪随机密钥流</strong>，与明文逐位异或</td>
+<td>RC4、LFSR 系(A5/1、Trivium)</td>
+</tr>
+</tbody>
+</table></div>
+<p>流密码的核心是一个<strong>密钥流生成器</strong>：输入密钥(种子)，输出无限长的伪随机比特流。加密/解密都只是"把明文和密钥流逐位异或"，密钥流一样就互为逆。</p>
+<p><strong>CTF 里常见的流密码题</strong>：给你生成器代码 + 生成的密钥流文件(如 <code>key</code>)，让你反推<strong>种子</strong>(常就是 flag)。</p>
+<h2 id="lfsr">二、LFSR 是怎么当"流密码"用的</h2>
+<p>**LFSR（线性反馈移位寄存器）**是最简单的密钥流生成器：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>寄存器 R (32位)  ← 初值 = 种子(flag)
+       │
+       │  ① 整体左移一位
+       ▼
+   最高位移出丢弃 ← 用 mask 抽头位做异或 ──→ 反馈位 lastbit
+       │                                         │
+       └── 反馈位补进最低位 ────────────────────────┘
+                      ↓
+               lastbit 同时作为本步输出(密钥流1bit)
+</code></pre></div></div>
+
+<p>对应代码：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">lfsr</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
+    <span class="n">output</span> <span class="o">=</span> <span class="p">(</span><span class="n">R</span> <span class="o">&lt;&lt;</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="mh">0xffffffff</span>   <span class="c1"># ① 左移，最高位顶掉</span>
+    <span class="n">lastbit</span> <span class="o">=</span> <span class="n">parity</span><span class="p">(</span><span class="n">R</span> <span class="o">&amp;</span> <span class="n">mask</span><span class="p">)</span>       <span class="c1"># ② mask 选中的位全部异或 → 反馈位</span>
+    <span class="n">output</span> <span class="o">^=</span> <span class="n">lastbit</span>                <span class="c1"># ③ 反馈位补到最低位</span>
+    <span class="k">return</span> <span class="n">output</span><span class="p">,</span> <span class="n">lastbit</span>
+</code></pre></div></div>
+
+<ul>
+<li><code>mask</code>（抽头多项式）决定"用哪些位做异或"，是 LFSR 的结构参数（本题 <code>0b101001...</code>）</li>
+<li>每跑一步输出 1 bit；脚本每 8 步打包成 1 字节写入 <code>key</code> → 100 字节 = 800 bit 密钥流</li>
+</ul>
+<h2 id="lfsr_1">三、为什么能破解：LFSR 是"线性+无混淆"的</h2>
+<p>这是 LFSR 的核心弱点，也是所有攻击的入口：</p>
+<ol>
+<li><strong>线性</strong>：每个输出位都是寄存器若干位的异或组合，没有非线性运算（无混淆），结构完全可逆</li>
+<li><strong>输出泄露内部状态</strong>：每步输出的 <code>lastbit</code> <strong>恰好就是将要移入寄存器的那一位</strong></li>
+</ol>
+<p>由 2 直接得出关键洞察——<strong>输出的位会一路滚进寄存器</strong>：</p>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>第0步输出 b0 → 移入，寄存器=[b0, ...]
+第1步输出 b1 → 移入，寄存器=[b0, b1, ...]
+...
+第31步后     → 寄存器=[b0, b1, ..., b31]  (32位正好装满)
+</code></pre></div></div>
+
+<p>所以：<strong>连续 32 个输出位拼起来 = 32 步之后的寄存器状态</strong>，无需知道任何中间过程。<br />
+$$R_{32} = b_0 b_1 \cdots b_{31}$$</p>
+<p>拿到 <code>R_32</code> 后，因为整个变换是线性的、可逆的，<strong>逆推 32 步</strong>就回到初始状态 <code>R_0</code>（即 flag）。</p>
+<h2 id="_2">四、逆推原理（解密核心）</h2>
+<p>已知 <code>R_next</code> 还原 <code>R</code>，抓住三点：</p>
+<ul>
+<li>反馈位就在最低位：<code>b = R_next &amp; 1</code></li>
+<li><code>R_next &gt;&gt; 1</code> = 原 <code>R</code> 的低 31 位（最高位被移丢，先补 0 占位）→ <code>low</code></li>
+<li>被移丢的最高位 <code>top</code> 是唯一未知量。用反馈关系约束它：<br />
+$$b = top \oplus parity(low \&amp; mask) \;\Rightarrow\; top = b \oplus parity(low \&amp; mask)$$<br />
+  （<strong>必须 mask 最高位 = 1</strong>，否则 b 里不含 top 的信息，解不出）</li>
+</ul>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">rev</span><span class="p">(</span><span class="n">R_next</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
+    <span class="n">lastbit</span> <span class="o">=</span> <span class="n">R_next</span> <span class="o">&amp;</span> <span class="mi">1</span>
+    <span class="n">low</span> <span class="o">=</span> <span class="n">R_next</span> <span class="o">&gt;&gt;</span> <span class="mi">1</span>
+    <span class="n">top</span> <span class="o">=</span> <span class="n">lastbit</span> <span class="o">^</span> <span class="n">parity</span><span class="p">(</span><span class="n">low</span> <span class="o">&amp;</span> <span class="n">mask</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">low</span> <span class="o">|</span> <span class="p">(</span><span class="n">top</span> <span class="o">&lt;&lt;</span> <span class="mi">31</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>重复 32 次 → <code>R_0</code>。</p>
+<blockquote>
+<p>现实中不这么手动逆推也行：LFSR 是线性系统，输出位与初态的关系可用<strong>线性方程组</strong>(GF(2))表达，或直接用 <strong>Berlekamp-Massey 算法</strong>求最短 LFSR。CTF 里"给脚本+输出"的题，用上面的逆推最直观。</p>
+</blockquote>
+<h2 id="_3">题型识别（一眼看出）</h2>
+<p>题目给<strong>一段 LFSR 加密脚本 + 一个输出文件</strong>，脚本形如：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">lfsr</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
+    <span class="n">output</span> <span class="o">=</span> <span class="p">(</span><span class="n">R</span> <span class="o">&lt;&lt;</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="mh">0xffffffff</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="n">R</span> <span class="o">&amp;</span> <span class="n">mask</span>
+    <span class="n">lastbit</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">while</span> <span class="n">i</span><span class="p">:</span>
+        <span class="n">lastbit</span> <span class="o">^=</span> <span class="p">(</span><span class="n">i</span> <span class="o">&amp;</span> <span class="mi">1</span><span class="p">)</span>   <span class="c1"># 抽头异或</span>
+        <span class="n">i</span> <span class="o">&gt;&gt;=</span> <span class="mi">1</span>
+    <span class="n">output</span> <span class="o">^=</span> <span class="n">lastbit</span>
+    <span class="k">return</span> <span class="n">output</span><span class="p">,</span> <span class="n">lastbit</span>
+
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">):</span>          <span class="c1"># 每 8 步打包成一个字节</span>
+    <span class="n">tmp</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">8</span><span class="p">):</span>
+        <span class="n">R</span><span class="p">,</span> <span class="n">out</span> <span class="o">=</span> <span class="n">lfsr</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span>
+        <span class="n">tmp</span> <span class="o">=</span> <span class="p">(</span><span class="n">tmp</span> <span class="o">&lt;&lt;</span> <span class="mi">1</span><span class="p">)</span> <span class="o">^</span> <span class="n">out</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">chr</span><span class="p">(</span><span class="n">tmp</span><span class="p">))</span>
+</code></pre></div></div>
+
+<p><strong>本质</strong>：已知 mask（抽头）和输出位流，求<strong>初始状态 R</strong>（R 通常就是 flag 的 hex，如 <code>flag{xxxxxxxx}</code>）。</p>
+<h2 id="_4">五、攻击条件</h2>
+<ul>
+<li>已知 mask（反馈抽头多项式）</li>
+<li>已知足够长的输出位流（≥ 寄存器位宽即可，本题 32 位）</li>
+<li>寄存器位宽已知（本题 flag hex 8 位 → 32 bit）</li>
+</ul>
+<h2 id="_5">原理推导（承接上文"四、逆推原理"的完整推导）</h2>
+<p><strong>核心洞察</strong>：每步输出的 <code>lastbit</code> 正是<strong>移入寄存器的新位</strong>。设输出位序列 <code>b0, b1, b2, ...</code>（bi 是第 i 步的 lastbit）。</p>
+<p>寄存器递推：<code>R_{t+1} = (R_t &lt;&lt; 1) | b_t</code>，展开：<br />
+$$R_{32} = b_0 b_1 \cdots b_{31}$$</p>
+<p>即<strong>连续 N 位输出拼起来，就是 N 步之后的寄存器状态</strong>（本题 N=32）。</p>
+<p><strong>逆推</strong>：已知 <code>R_next</code>，要还原 <code>R</code>：<br />
+- 反馈位 <code>b = R_next &amp; 1</code><br />
+- <code>low = R_next &gt;&gt; 1</code>（= R 的低 31 位，最高位补 0）<br />
+- 被移出的最高位 <code>top</code> 满足 <code>b = top XOR parity(low &amp; mask)</code><br />
+  → <code>top = b XOR parity(low &amp; mask)</code>（<strong>要求 mask 最高位 = 1</strong>，否则不可唯一恢复）<br />
+- <code>R = low | (top &lt;&lt; 31)</code></p>
+<p>逆推 32 步即得初始状态 <code>R0</code>。</p>
+<h2 id="_6">六、解题步骤</h2>
+<ol>
+<li><strong>字节流 → 位流</strong>：每字节 MSB 优先（<code>(byte &gt;&gt; j) &amp; 1</code>, j=7..0）</li>
+<li><strong>取前 32 位</strong>拼成 <code>R32</code>（第一位为 MSB）</li>
+<li><strong>逆推 32 步</strong> → <code>R0</code></li>
+<li><strong>验证</strong>：用 <code>R0</code> 正推，应复现整个 key 文件</li>
+<li><code>flag = "flag{" + format(R0, '08x') + "}"</code></li>
+</ol>
+<h2 id="_7">七、解题脚本</h2>
+<p>（该脚本已随旧目录移除。同类问题的通用做法见 <code>~/tools\CTF工具箱\crypto\23-FCSR线性化攻击.py</code> 的事件扫描框架，以及本目录 <code>FCSR线性化攻击-F-FCSR状态恢复.md</code>）</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">rev</span><span class="p">(</span><span class="n">R_next</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
+    <span class="n">lastbit</span> <span class="o">=</span> <span class="n">R_next</span> <span class="o">&amp;</span> <span class="mi">1</span>
+    <span class="n">low</span> <span class="o">=</span> <span class="n">R_next</span> <span class="o">&gt;&gt;</span> <span class="mi">1</span>
+    <span class="n">top</span> <span class="o">=</span> <span class="n">lastbit</span> <span class="o">^</span> <span class="n">parity</span><span class="p">(</span><span class="n">low</span> <span class="o">&amp;</span> <span class="n">mask</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">low</span> <span class="o">|</span> <span class="p">(</span><span class="n">top</span> <span class="o">&lt;&lt;</span> <span class="p">(</span><span class="n">mask</span><span class="o">.</span><span class="n">bit_length</span><span class="p">()</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+<span class="c1"># 取前 N 位 -&gt; 逆推 N 步 -&gt; R0</span>
+</code></pre></div></div>
+
+<h2 id="_8">八、易错点</h2>
+<ol>
+<li><strong>位序</strong>：打包时 <code>tmp = (tmp &lt;&lt; 1) ^ out</code>，所以每字节是 MSB 优先，读位流别搞反</li>
+<li><strong>mask 最高位必须为 1</strong>：否则逆推时被移出的最高位无法确定（本题 mask 最高位恰好是 1）</li>
+<li><strong>逆推步数 = 寄存器位宽</strong>：多推少推都得不到初态</li>
+<li><strong>一定正推验证</strong>：这是唯一能确认 R0 正确的办法</li>
+<li><strong>更通用的做法</strong>：若 mask 未知/结构复杂，可用 Berlekamp-Massey 算法求最短 LFSR；本题结构简单，直接逆推即可</li>
+</ol>
+<h2 id="_9">九、实战记录</h2>
+<ul>
+<li>来源：[CISCN 2018] oldstreamgame</li>
+<li>mask = <code>0b10100100000010000000100010010100</code>，32 位寄存器</li>
+<li>key 100 字节 → 位流前 32 位 = <code>0x20fdeef8</code>（32 步后状态）</li>
+<li>逆推 32 步 → R0 = <code>0x926201d7</code></li>
+<li>正推复现 key：True</li>
+<li>结果：<code>flag{926201d7}</code></li>
+</ul>
+<p><em>最后更新：2026年9月8日</em></p></div>
+      <div class="post-nav"><a class="pn-item prev" href="wen-ben-wen-jian-du-qu-yu-zheng-ze-ti-qu.html"><span>← 上一篇</span><strong>文本文件读取与正则提取</strong></a><a class="pn-item next" href="python-shu-ju-jia-mi-bian-ma-han-shu-da-quan.html"><span>下一篇 →</span><strong>Python 数据加密编码函数大全</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">一、流密码是什么（先建立直觉）</a><a href="#lfsr" class="toc-lv2">二、LFSR 是怎么当&quot;流密码&quot;用的</a><a href="#lfsr_1" class="toc-lv2">三、为什么能破解：LFSR 是&quot;线性+无混淆&quot;的</a><a href="#_2" class="toc-lv2">四、逆推原理（解密核心）</a><a href="#_3" class="toc-lv2">题型识别（一眼看出）</a><a href="#_4" class="toc-lv2">五、攻击条件</a><a href="#_5" class="toc-lv2">原理推导（承接上文&quot;四、逆推原理&quot;的完整推导）</a><a href="#_6" class="toc-lv2">六、解题步骤</a><a href="#_7" class="toc-lv2">七、解题脚本</a><a href="#_8" class="toc-lv2">八、易错点</a><a href="#_9" class="toc-lv2">九、实战记录</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Python 与终端交互（subprocess 与 pty） · pressure-J</title>
+<meta name="description" content="print(r.stdout) # 实测 512 位密钥打印 2097 字符，直接正则抽 n/e/d">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/python-yu-zhong-duan-jiao-hu-subprocess-yu-pty.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Python 与终端交互（subprocess 与 pty） · pressure-J">
+<meta property="og:description" content="print(r.stdout) # 实测 512 位密钥打印 2097 字符，直接正则抽 n/e/d">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/python.html">Python</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>Python 与终端交互（subprocess 与 pty）</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-python">Python</span>
+          <time datetime="2026-10-15">2026-10-15</time>
+          <span>7858 字</span>
+          <span>约 21 分钟</span>
+        </div>
+        <div class="chips post-tags"><span class="chip">python</span><span class="chip">subprocess</span><span class="chip">终端</span></div>
+      </header>
+      <div class="content"><blockquote>
+<p>来源：问「Py 脚本能不能跟终端交互」。答案：<strong>能</strong>，但要分清三种"交互"——只要结果、喂输入、真·一步步对话。<strong>本文所有代码在本机（py 3.12.6 / Win11）实测过</strong>，包括踩出来的坑。</p>
+</blockquote>
+<h2 id="0">0. 结论速览</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>需求</th>
+<th>用什么</th>
+<th>难度</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>跑命令、拿输出</td>
+<td><code>subprocess.run(..., capture_output=True)</code></td>
+<td>一行</td>
+</tr>
+<tr>
+<td>跑命令、给输入</td>
+<td><code>run(input=b"...")</code> / <code>Popen.communicate()</code></td>
+<td>一行</td>
+</tr>
+<tr>
+<td>长时间任务、实时看输出</td>
+<td><code>Popen</code> + <code>for line in p.stdout</code></td>
+<td>简单</td>
+</tr>
+<tr>
+<td>纯 Python 程序互相调用（subprocess）</td>
+<td><code>Popen</code> + <code>stdin.write/flush</code></td>
+<td><strong>本机踩坑，见 §4</strong></td>
+</tr>
+<tr>
+<td>真交互式程序（<code>input()</code> 一问一答、密码提示、ssh/ftp）</td>
+<td><code>pywinpty</code> 伪终端</td>
+<td>需要驱动循环，见 §5</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="1-subprocessrun">1. 只要结果：<code>subprocess.run</code></h2>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">subprocess</span>
+<span class="n">r</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="s2">"openssl"</span><span class="p">,</span> <span class="s2">"version"</span><span class="p">],</span> <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">r</span><span class="o">.</span><span class="n">returncode</span>     <span class="c1"># 0</span>
+<span class="n">r</span><span class="o">.</span><span class="n">stdout</span>         <span class="c1"># 'OpenSSL 3.5.5 ...\n'</span>
+<span class="n">r</span><span class="o">.</span><span class="n">stderr</span>         <span class="c1"># ''</span>
+</code></pre></div></div>
+
+<ul>
+<li><code>capture_output=True</code> = 收 stdout+stderr（不打印到屏幕）。</li>
+<li><code>text=True</code> 让它按<strong>系统默认编码</strong>解码成 str → <strong>Windows 上默认 GBK，中文输出会炸</strong>（见 §3）。</li>
+<li>想直接看输出就别加 <code>capture_output</code>。</li>
+</ul>
+<p>密码题实战：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># 一条命令把 n/e/d/p/q 全取回来</span>
+<span class="n">r</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="s2">"openssl"</span><span class="p">,</span> <span class="s2">"rsa"</span><span class="p">,</span> <span class="s2">"-in"</span><span class="p">,</span> <span class="s2">"k.pem"</span><span class="p">,</span> <span class="s2">"-noout"</span><span class="p">,</span> <span class="s2">"-text"</span><span class="p">],</span>
+                   <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">stdout</span><span class="p">)</span>      <span class="c1"># 实测 512 位密钥打印 2097 字符，直接正则抽 n/e/d</span>
+</code></pre></div></div>
+
+<p>先分两步：①<code>subprocess.run</code> 拿文本；② <code>re</code> 抽参数 —— 比手工 <code>int(open().read())</code> 稳。</p>
+<h2 id="2-input-communicate">2. 给子进程喂输入：<code>input=</code> 和 <code>communicate</code></h2>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># ① 一次性喂完（推荐，官方最稳）</span>
+<span class="n">r</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="s2">"openssl"</span><span class="p">,</span> <span class="s2">"dgst"</span><span class="p">,</span> <span class="s2">"-sm3"</span><span class="p">],</span> <span class="nb">input</span><span class="o">=</span><span class="sa">b</span><span class="s2">"hello world"</span><span class="p">,</span> <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">r</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+<span class="c1"># 'SM3(stdin)= 44f0061e69fa6fdfc290c494654a05dc0c053da7e5c52b84ef93a9d67d3fff88'</span>
+
+<span class="c1"># ② 多行输入</span>
+<span class="n">p</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">([</span><span class="n">sys</span><span class="o">.</span><span class="n">executable</span><span class="p">,</span> <span class="s2">"-c"</span><span class="p">,</span> <span class="s2">"a=input();b=input();print('GOT',a,b)"</span><span class="p">],</span>
+                     <span class="n">stdin</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span>
+<span class="n">out</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">communicate</span><span class="p">(</span><span class="s2">"one</span><span class="se">\n</span><span class="s2">two</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+<span class="n">out</span>          <span class="c1"># 'GOT one two\n'</span>
+</code></pre></div></div>
+
+<p><strong><code>input=</code> / <code>communicate</code> 会自己处理"写完关闭 stdin"，所以永远不会踩 §4 的坑。</strong></p>
+<p>需要口令的命令，<strong>别去交互</strong>，用命令行选项一次给完（实测）：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="s2">"openssl"</span><span class="p">,</span> <span class="s2">"genrsa"</span><span class="p">,</span> <span class="s2">"-aes128"</span><span class="p">,</span> <span class="s2">"-passout"</span><span class="p">,</span> <span class="s2">"pass:123456"</span><span class="p">,</span>
+                <span class="s2">"-out"</span><span class="p">,</span> <span class="s2">"enc.pem"</span><span class="p">,</span> <span class="s2">"512"</span><span class="p">],</span> <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">r</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="s2">"openssl"</span><span class="p">,</span> <span class="s2">"rsa"</span><span class="p">,</span> <span class="s2">"-in"</span><span class="p">,</span> <span class="s2">"enc.pem"</span><span class="p">,</span> <span class="s2">"-passin"</span><span class="p">,</span> <span class="s2">"pass:123456"</span><span class="p">,</span>
+                    <span class="s2">"-noout"</span><span class="p">,</span> <span class="s2">"-text"</span><span class="p">],</span> <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">r</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">splitlines</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>     <span class="c1"># 'Private-Key: (512 bit, 2 primes)'</span>
+</code></pre></div></div>
+
+<p>类似地有 <code>-b</code>（browser 密码）、<code>-certin</code> 等。<strong>能一次性给参数就别开交互</strong>，这是最省事的路线。</p>
+<h2 id="3-texttrue-windows">3. 编码坑：<code>text=True</code> 在 Windows 会炸</h2>
+<p>实测：</p>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="s2">"cmd"</span><span class="p">,</span> <span class="s2">"/c"</span><span class="p">,</span> <span class="s2">"echo"</span><span class="p">,</span> <span class="s2">"中文测试"</span><span class="p">],</span> <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="c1"># UnicodeDecodeError: 'utf-8' codec can't decode byte 0xd6 in position 0</span>
+</code></pre></div></div>
+
+<p>原因：Windows 下子进程按本地代码页（GBK）输出，<code>text=True</code> 却按 UTF-8 解。</p>
+<p>三种解法（全部实测）：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># ① 拿 bytes 自己解（最可控，知道对端编码就用这个）</span>
+<span class="n">r</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="o">...</span><span class="p">],</span> <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">r</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">"gbk"</span><span class="p">,</span> <span class="s2">"replace"</span><span class="p">)</span>      <span class="c1"># → '中文测试'</span>
+
+<span class="c1"># ② 明确指定编码</span>
+<span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="o">...</span><span class="p">],</span> <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"gbk"</span><span class="p">)</span>
+
+<span class="c1"># ③ 官方推荐的兜底写法（不炸）</span>
+<span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="o">...</span><span class="p">],</span> <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"replace"</span><span class="p">)</span>
+<span class="c1"># 内容是乱码但程序不会崩 —— 抓不到就看不出问题，适合"只关心 rc 和关键词"的场景</span>
+</code></pre></div></div>
+
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>写法</th>
+<th>结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>text=True</code>（默认）</td>
+<td>GBK 字节 → <strong>直接抛 UnicodeDecodeError</strong></td>
+</tr>
+<tr>
+<td><code>decode("gbk")</code></td>
+<td><code>中文测试</code> ✅</td>
+</tr>
+<tr>
+<td><code>text=True, encoding="gbk"</code></td>
+<td><code>'中文测试'</code> ✅</td>
+</tr>
+<tr>
+<td><code>text=True, encoding="utf-8", errors="replace"</code></td>
+<td><code>'���Ĳ���'</code>（乱码但不崩）</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>结论</strong>：抓中文用 <code>encoding="gbk"</code>，抓英文/机器信息用 <code>text=True</code> 默认即可。</p>
+<h2 id="4-pstdin">4. ⚠️ 逐行写 <code>p.stdin</code>：本机实测有个"要么翻车要么秒过"的分界</h2>
+<p>想让 Python 脚本<strong>一步步</strong>和子进程对话（读提示符 → 应答 → 再读）时，直觉写法是：</p>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">p</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span><span class="n">CHILD</span><span class="p">,</span> <span class="n">stdin</span><span class="o">=</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">STDOUT</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span>
+<span class="n">prompt</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>     <span class="c1"># 阻塞读到提示符</span>
+<span class="n">p</span><span class="o">.</span><span class="n">stdin</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">"xu</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+<span class="n">p</span><span class="o">.</span><span class="n">stdin</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>                  <span class="c1"># ← 问题在这</span>
+</code></pre></div></div>
+
+<p><strong>实测结果（同一份代码，只改读提示符的方式）</strong>：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>读提示符的方式</th>
+<th>结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>p.stdout.readline()</code>（阻塞读）</td>
+<td><code>write</code> <strong>成功</strong>，紧接着 <code>flush</code> 抛 <code>OSError: [Errno 22] Invalid argument</code>；子进程卡死，只能 kill</td>
+</tr>
+<tr>
+<td>先 <code>time.sleep(0.5)</code>，再非阻塞 <code>os.read(p.stdout.fileno(), n)</code></td>
+<td><code>write OK</code> + <code>flush OK</code>，应答正常 <code>b'HI xu\r\n'</code>，<code>rc=0</code> ✅</td>
+</tr>
+</tbody>
+</table></div>
+<p>两种读法拿到的提示符内容完全一样（都是 <code>b'N? '</code>），<strong>差别只在"读完之后管道状态"</strong>。对子进程是 <code>-c "..."</code> 字符串还是脚本文件、是不是 <code>text=True</code>、<code>bufsize=0</code>，都不改变这个结论。</p>
+<p><strong>内网/环境差异提醒</strong>：同一条 <code>p.stdout.readline()</code> 版本，在无头/服务化环境里也可能直接正常（我这边在 git-bash 前台 PTY 下能跑通、在 <code>execute_code</code> 内核里会挂）。所以<strong>别指望"我的机器能跑"</strong>——写成不阻塞的读法最保险。</p>
+<h3 id="41">4.1 可靠的两种写法</h3>
+<p><strong>写法一（推荐）：不阻塞读提示符</strong></p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">subprocess</span><span class="o">,</span><span class="w"> </span><span class="nn">sys</span><span class="o">,</span><span class="w"> </span><span class="nn">os</span><span class="o">,</span><span class="w"> </span><span class="nn">time</span>
+
+<span class="n">p</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">([</span><span class="n">sys</span><span class="o">.</span><span class="n">executable</span><span class="p">,</span> <span class="s2">"-u"</span><span class="p">,</span> <span class="s2">"-c"</span><span class="p">,</span> <span class="s2">"n=input('N? '); print('HI '+n)"</span><span class="p">],</span>
+                     <span class="n">stdin</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">STDOUT</span><span class="p">)</span>
+<span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span>
+<span class="n">os</span><span class="o">.</span><span class="n">set_blocking</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">fileno</span><span class="p">(),</span> <span class="kc">False</span><span class="p">)</span>     <span class="c1"># 关掉阻塞</span>
+<span class="n">prompt</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>                      <span class="c1"># 拿到 b'N? '</span>
+<span class="n">os</span><span class="o">.</span><span class="n">set_blocking</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">fileno</span><span class="p">(),</span> <span class="kc">True</span><span class="p">)</span>
+
+<span class="n">p</span><span class="o">.</span><span class="n">stdin</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">b</span><span class="s2">"xu</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+<span class="n">p</span><span class="o">.</span><span class="n">stdin</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>                               <span class="c1"># ✅ 实测 OK</span>
+<span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span>
+<span class="n">os</span><span class="o">.</span><span class="n">set_blocking</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">fileno</span><span class="p">(),</span> <span class="kc">False</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>                        <span class="c1"># b'HI xu\r\n'</span>
+<span class="n">p</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+</code></pre></div></div>
+
+<p>要点：<code>-u</code>（子进程不缓冲）、<code>sleep</code> 给子进程启动时间、非阻塞读避免卡死。密码学脚本里想驱动外部程序就用这个。</p>
+<p><strong>写法二（最省事）：不要逐行，直接 <code>communicate</code></strong></p>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">p</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span><span class="n">CHILD</span><span class="p">,</span> <span class="n">stdin</span><span class="o">=</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">PIPE</span><span class="p">)</span>
+<span class="n">out</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">communicate</span><span class="p">(</span><span class="sa">b</span><span class="s2">"xu</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>      <span class="c1"># 内部：写 → 关 stdin → 读全部</span>
+</code></pre></div></div>
+
+<p>只要你不需"看一句答一句"，就用它。<strong>90% 的场景它够了。</strong></p>
+<h3 id="42">4.2 什么时候必须逐行</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>场景</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>长任务进度</td>
+<td><code>for line in p.stdout:</code>（配合 <code>python -u</code>），实测能实时打时间戳</td>
+</tr>
+<tr>
+<td>输出很大</td>
+<td>边读边处理，避免 <code>communicate</code> 把几十 MB 堆内存</td>
+</tr>
+<tr>
+<td>一问一答协议</td>
+<td>程序按提示符分步问 → 见 §5，真交互建议上 pty</td>
+</tr>
+</tbody>
+</table></div>
+<p>实测流式读：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">p</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">([</span><span class="n">sys</span><span class="o">.</span><span class="n">executable</span><span class="p">,</span> <span class="s2">"-u"</span><span class="p">,</span> <span class="s2">"-c"</span><span class="p">,</span>
+                      <span class="s2">"import time</span><span class="se">\n</span><span class="s2">for i in range(3):</span><span class="se">\n</span><span class="s2">    print('进度', i, flush=True); time.sleep(0.3)"</span><span class="p">],</span>
+                     <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">stdout</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+<span class="c1"># 进度 0 / 进度 1 / 进度 2，每 0.3 秒一条</span>
+</code></pre></div></div>
+
+<p><code>python -u</code> 或子进程里 <code>flush=True</code> 是必须的，否则 Python 子进程缓冲到结束才吐。</p>
+<h2 id="5-pty">5. 真交互式程序 → 伪终端（pty）</h2>
+<p><strong>为什么普通管道不够用</strong>：<code>input()</code> 这类程序会判 <code>sys.stdin.isatty()</code>，发现不是终端就改行为（提示符不打、回显关闭、有时直接报错退出）；<code>getpass</code>、<code>ssh</code>、<code>ftp</code>、<code>mysql</code> 更是硬要求有 tty。</p>
+<ul>
+<li>Linux/macOS：标准库 <code>pty</code> 直接可用（<code>pty.spawn</code>/<code>pexpect</code>）。</li>
+<li><strong>Windows：标准库没有 <code>pty</code></strong>（实测 <code>import pty</code> → ModuleNotFoundError），需要第三方。</li>
+</ul>
+<h3 id="51-pywinpty-305">5.1 装 <code>pywinpty</code>（本机已装 3.0.5）</h3>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>py<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>pywinpty
+</code></pre></div></div>
+
+<p>实测 API：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">winpty</span><span class="w"> </span><span class="kn">import</span> <span class="n">PtyProcess</span>
+<span class="n">p</span> <span class="o">=</span> <span class="n">PtyProcess</span><span class="o">.</span><span class="n">spawn</span><span class="p">([</span><span class="s2">"~/</span><span class="se">\\</span><span class="s2">python.exe"</span><span class="p">,</span> <span class="s2">"-u"</span><span class="p">,</span> <span class="s2">"child.py"</span><span class="p">],</span> <span class="n">dimensions</span><span class="o">=</span><span class="p">(</span><span class="mi">24</span><span class="p">,</span> <span class="mi">80</span><span class="p">))</span>
+<span class="n">p</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>      <span class="c1"># 写入（写到终端，不是管道）</span>
+<span class="n">p</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">4096</span><span class="p">)</span>      <span class="c1"># 读（**阻塞**，没有数据会挂住 → 必须放后台线程）</span>
+<span class="n">p</span><span class="o">.</span><span class="n">isalive</span><span class="p">()</span>
+<span class="n">p</span><span class="o">.</span><span class="n">terminate</span><span class="p">(</span><span class="n">force</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</code></pre></div></div>
+
+<h3 id="52">5.2 ⚠️ 两个实测致命坑</h3>
+<p><strong>坑 1：必须发 <code>\r</code>（CR），不能只发 <code>\n</code></strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>发送内容</th>
+<th>子进程是否收到</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>"xu\n"</code></td>
+<td>❌ 卡在提示符，<code>input()</code> 不返回</td>
+</tr>
+<tr>
+<td><code>"xu\r\n"</code></td>
+<td>✅ <code>HI xu</code></td>
+</tr>
+<tr>
+<td><code>"xu\r"</code></td>
+<td>✅ <code>HI xu</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>终端里回车是 CR。<strong>只发 <code>\n</code> 会被终端吞掉</strong>——这是交互式驱动最容易卡住的地方。</p>
+<p><strong>坑 2：<code>read()</code> 会阻塞，必须后台线程持续读</strong></p>
+<p>主线程"发一句 → 读一句"很容易在等待时死锁。正确结构（实测可跑通）：</p>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">threading</span><span class="o">,</span><span class="w"> </span><span class="nn">time</span><span class="o">,</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">winpty</span><span class="w"> </span><span class="kn">import</span> <span class="n">PtyProcess</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">Driver</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">argv</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">buf</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lock</span> <span class="o">=</span> <span class="s2">""</span><span class="p">,</span> <span class="n">threading</span><span class="o">.</span><span class="n">Lock</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">p</span> <span class="o">=</span> <span class="n">PtyProcess</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="n">argv</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alive</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_reader</span><span class="p">,</span> <span class="n">daemon</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_reader</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>                       <span class="c1"># 后台不停收</span>
+        <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">alive</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">4096</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="k">break</span>
+            <span class="k">if</span> <span class="n">c</span><span class="p">:</span>
+                <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">lock</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">buf</span> <span class="o">+=</span> <span class="n">c</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">wait_for</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">8</span><span class="p">):</span>  <span class="c1"># 主线程按正则等</span>
+        <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="k">while</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span> <span class="o">&lt;</span> <span class="n">timeout</span><span class="p">:</span>
+            <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">lock</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">buf</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="kc">True</span>
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.05</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">clean</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>                          <span class="c1"># 去掉 ANSI 控制序列</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">lock</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s2">"\x1b\[[0-9;?]*[A-Za-z]"</span><span class="p">,</span> <span class="s2">""</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">buf</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alive</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="o">.</span><span class="n">terminate</span><span class="p">(</span><span class="n">force</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>用法：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">d</span> <span class="o">=</span> <span class="n">Driver</span><span class="p">([</span><span class="sa">r</span><span class="s2">"~/\python.exe"</span><span class="p">,</span> <span class="s2">"-u"</span><span class="p">,</span> <span class="s2">"_child.py"</span><span class="p">])</span>
+<span class="n">d</span><span class="o">.</span><span class="n">wait_for</span><span class="p">(</span><span class="s2">"请输入名字"</span><span class="p">)</span>      <span class="c1"># 等提示</span>
+<span class="n">d</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="s2">"pressure-J</span><span class="se">\r</span><span class="s2">"</span><span class="p">)</span>            <span class="c1"># ★ CR</span>
+<span class="n">d</span><span class="o">.</span><span class="n">wait_for</span><span class="p">(</span><span class="s2">"HI"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">clean</span><span class="p">())</span>              <span class="c1"># 干净文本</span>
+<span class="n">d</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</code></pre></div></div>
+
+<p>实测跑通的两个场景：<br />
+- 普通 <code>input()</code> 提示符 → 应答 → 回显 <code>HI pressure-J</code><br />
+- <code>getpass.getpass('Password: ')</code>（<strong>不回显的密码提示</strong>）→ 送 <code>s3cret\r</code> → <code>len = 6</code> ✅</p>
+<p>原始读到的东西长这样（含终端控制码，所以必须 <code>clean()</code>）：</p>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>'\x1b[1t\x1b[c\x1b[?1004h\x1b[?9001hPass: \r\r\nLEN 6\r\n'
+</code></pre></div></div>
+
+<h2 id="6">6. 杂项（都实测过）</h2>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="n">subprocess</span><span class="o">.</span><span class="n">call</span><span class="p">([</span><span class="o">...</span><span class="p">])</span>                     <span class="c1"># 只要退出码，输出直接进屏幕</span>
+<span class="n">subprocess</span><span class="o">.</span><span class="n">check_output</span><span class="p">([</span><span class="o">...</span><span class="p">],</span> <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># 非 0 抛 CalledProcessError（可当"这命令成功了吗"用）</span>
+<span class="n">subprocess</span><span class="o">.</span><span class="n">getoutput</span><span class="p">(</span><span class="s2">"echo hi | tr a-z A-Z"</span><span class="p">)</span>  <span class="c1"># 字符串命令 + 管道，返回 str（最省事，2 秒上手）</span>
+<span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">"..."</span><span class="p">)</span>                           <span class="c1"># 老式，只能拿退出码</span>
+</code></pre></div></div>
+
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code><span class="c1"># 注入环境变量</span>
+<span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="s2">"cmd"</span><span class="p">,</span> <span class="s2">"/c"</span><span class="p">,</span> <span class="s2">"echo"</span><span class="p">,</span> <span class="s2">"%MYVAR%"</span><span class="p">],</span> <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+               <span class="n">env</span><span class="o">=</span><span class="p">{</span><span class="o">**</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">,</span> <span class="s2">"MYVAR"</span><span class="p">:</span> <span class="s2">"injected"</span><span class="p">})</span>     <span class="c1"># → 'injected'</span>
+
+<span class="c1"># 指定工作目录</span>
+<span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="s2">"cmd"</span><span class="p">,</span> <span class="s2">"/c"</span><span class="p">,</span> <span class="s2">"cd"</span><span class="p">],</span> <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cwd</span><span class="o">=</span><span class="s2">"C:/"</span><span class="p">)</span>  <span class="c1"># → 'C:\\'</span>
+
+<span class="c1"># 超时（卡住的命令必须设，别让它吊死脚本）</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="o">...</span><span class="p">],</span> <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="k">except</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">TimeoutExpired</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"超时了"</span><span class="p">)</span>
+
+<span class="c1"># 自定义管道计数器（pycryptodome CTR 用）</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">Crypto.Util</span><span class="w"> </span><span class="kn">import</span> <span class="n">Counter</span>
+<span class="n">Counter</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="n">initial_value</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>     <span class="c1"># 键名: counter_len / initial_value / prefix / suffix / little_endian</span>
+</code></pre></div></div>
+
+<ul>
+<li><code>shell=True</code> + 字符串才能用管道/重定向；否则一律传<strong>列表</strong>（避免路径带空格出问题）。</li>
+<li><code>p.kill()</code> 只杀直接子进程，孙进程可能残留（Windows 上用 <code>taskkill /T /F /PID</code> 或 <code>psutil</code>）。</li>
+</ul>
+<h2 id="7">7. 直接跑的例子</h2>
+<p><code>~/tools\CTF工具箱\misc\终端交互demo.py</code>（本文 A/B/C/D 四个场景的可运行版）：</p>
+<div class="code-block" data-lang="text"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>py<span class="w"> </span><span class="s2">"~/tools\CTF工具箱\misc\终端交互demo.py"</span>
+</code></pre></div></div>
+
+<p>输出（实测）：</p>
+<div class="code-block" data-lang="python"><button class="copy-btn" type="button">复制</button><div class="highlight"><pre><span></span><code>[A] 调外部命令拿输出      rc = 0 | OpenSSL 3.5.5 ...
+[B] 喂 stdin             SM3(stdin)= 44f0061e...
+[C] 实时流式读输出        [0.0s] 进度 0 / [0.3s] 进度 1 / [0.6s] 进度 2
+[D] 驱动交互式程序        等到提示符: True | 子进程回应: True | HI pressure-J
+                        交互式口令: True | len = 6
+</code></pre></div></div>
+
+<h2 id="8">8. 一句话选型</h2>
+<blockquote>
+<p><strong>能一次给完参数（<code>input=</code>/<code>communicate</code>）就别交互；要读进度用 <code>Popen</code> + <code>for line in stdout</code>；非交互不可（<code>input()</code>/密码/ssh）才上 <code>pywinpty</code>，且记住发 <code>\r</code>、后台线程收。</strong></p>
+</blockquote>
+<hr />
+<h2 id="_1">相关</h2>
+<ul>
+<li><a href="../posts/python-shu-ju-jia-mi-bian-ma-han-shu-da-quan.html">Python 数据加密编码函数大全</a> —— 里面用 <code>subprocess</code> 调 openssl 的部分</li>
+<li><a href="../posts/str-yu-bytes-bian-ma.html">str 与 bytes 编码</a> —— §3 的编码坑延伸</li>
+<li>密码学常用函数速查：<code>~/notes\密码学\常用函数.md</code>（§9 命令行工具）</li>
+</ul></div>
+      <div class="post-nav"><a class="pn-item prev" href="gu-dian-mi-ma.html"><span>← 上一篇</span><strong>古典密码</strong></a><a class="pn-item next" href="mi-ma-xue-chang-yong-han-shu-su-cha.html"><span>下一篇 →</span><strong>密码学常用函数速查</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#0" class="toc-lv2">0. 结论速览</a><a href="#1-subprocessrun" class="toc-lv2">1. 只要结果：subprocess.run</a><a href="#2-input-communicate" class="toc-lv2">2. 给子进程喂输入：input= 和 communicate</a><a href="#3-texttrue-windows" class="toc-lv2">3. 编码坑：text=True 在 Windows 会炸</a><a href="#4-pstdin" class="toc-lv2">4. ⚠️ 逐行写 p.stdin：本机实测有个&quot;要么翻车要么秒过&quot;的分界</a><a href="#41" class="toc-lv3">4.1 可靠的两种写法</a><a href="#42" class="toc-lv3">4.2 什么时候必须逐行</a><a href="#5-pty" class="toc-lv2">5. 真交互式程序 → 伪终端（pty）</a><a href="#51-pywinpty-305" class="toc-lv3">5.1 装 pywinpty（本机已装 3.0.5）</a><a href="#52" class="toc-lv3">5.2 ⚠️ 两个实测致命坑</a><a href="#6" class="toc-lv2">6. 杂项（都实测过）</a><a href="#7" class="toc-lv2">7. 直接跑的例子</a><a href="#8" class="toc-lv2">8. 一句话选型</a><a href="#_1" class="toc-lv2">相关</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

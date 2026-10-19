@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Web 渗透测试：DVWA 与 Burp Suite 与暴力破解 · pressure-J</title>
+<meta name="description" content="一句话原理：登录认证的本质是&quot;把用户输入的口令和数据库里存的比对，一样就放行&quot;。只要口令空间是有限的、可枚举的，攻击者就能逐个尝试直到撞对一个——这就是暴力破解。它不依赖任何代码漏洞，只要口令弱，协议再安全也没用。">
+<meta name="author" content="pressure-J">
+<meta name="color-scheme" content="dark light">
+<link rel="canonical" href="https://pressure-j.github.io/posts/web-shen-tou-ce-shi-dvwa-yu-burp-suite-yu-bao-li-po-jie.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Web 渗透测试：DVWA 与 Burp Suite 与暴力破解 · pressure-J">
+<meta property="og:description" content="一句话原理：登录认证的本质是&quot;把用户输入的口令和数据库里存的比对，一样就放行&quot;。只要口令空间是有限的、可枚举的，攻击者就能逐个尝试直到撞对一个——这就是暴力破解。它不依赖任何代码漏洞，只要口令弱，协议再安全也没用。">
+<meta property="og:site_name" content="pressure-J">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="pressure-J" href="../rss.xml">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/highlight.css">
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+</head>
+<body class="has-toc">
+<div class="progress-bar" id="progress"></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">$</span><span class="brand-name">pressure-J</span><span class="brand-caret">_</span>
+    </a>
+    <nav class="site-nav" id="site-nav"><a href="../index.html">首页</a><a href="../posts.html" class="on">文章</a><a href="../category/index.html">分类</a><a href="../about.html">关于</a></nav>
+    <div class="header-tools">
+      <a class="icon-btn" href="../posts.html#search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      </a>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.2v2.2M12 19.6v2.2M2.2 12h2.2M19.6 12h2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M19.1 4.9l-1.6 1.6M6.5 17.5l-1.6 1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.9A8.6 8.6 0 1 1 11.1 3a6.6 6.6 0 0 0 9.9 9.9z"/></svg>
+      </button>
+      <button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="菜单" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main class="wrap post-layout">
+  <div class="post-main">
+    <nav class="breadcrumb">
+      <a href="../index.html">首页</a><span>/</span>
+      <a href="../category/web.html">Web 安全</a>
+    </nav>
+    <article class="post">
+      <header class="post-header">
+        <h1>Web 渗透测试：DVWA 与 Burp Suite 与暴力破解</h1>
+        <div class="post-meta">
+          <span class="cat-badge cat-web">Web 安全</span>
+          <time datetime="2026-08-28">2026-08-28</time>
+          <span>3886 字</span>
+          <span>约 10 分钟</span>
+        </div>
+        
+      </header>
+      <div class="content"><blockquote>
+<p>来源：课程实验《渗透测试DVWA平台、Burp Suite与Brute Force攻击》（Kali Linux，2025-2026 第二学期）<br />
+定位：渗透测试入门三件套——靶场搭建、代理抓包、口令爆破；是所有后续实验的地基，面试讲项目必提<br />
+实战场景：任何登录表单、后台入口的弱口令测试；Burp 是 Web 渗透的"瑞士军刀"</p>
+</blockquote>
+<hr />
+<h2 id="_1">一、原理概述</h2>
+<h3 id="brute-force">暴力破解（Brute Force）为什么存在</h3>
+<p><strong>一句话原理</strong>：登录认证的本质是"把用户输入的口令和数据库里存的比对，一样就放行"。只要口令空间是有限的、可枚举的，攻击者就能<strong>逐个尝试</strong>直到撞对一个——这就是暴力破解。它不依赖任何代码漏洞，<strong>只要口令弱，协议再安全也没用</strong>。</p>
+<p><strong>为什么值得研究</strong>：<br />
+- 大量站点的后台仍用弱口令（admin/admin123、123456），爆破成功率远高于想象<br />
+- 爆破不只是"撞密码"，还是<strong>枚举用户名</strong>（用户名错误和密码错误的提示不同）、<strong>枚举 token/验证码</strong>的手段<br />
+- 破解工具 = 字典（口令候选集）× 自动化发包引擎 × 结果判断（响应差异）</p>
+<h3 id="burp-suite">Burp Suite 为什么能爆破</h3>
+<p>Burp 是<strong>中间人代理</strong>：浏览器把流量交给 Burp（默认监听 <code>127.0.0.1:8080</code>），Burp 看到、可以修改后再转发给服务器。因为攻击者的每个请求都要经过 Burp，Burp 就能<strong>批量改参数、批量发包（Intruder）、批量重放（Repeater）</strong>——爆破就是在 Intruder 里把"口令那一格"换成字典循环发送。</p>
+<h3 id="dvwa">DVWA 是什么</h3>
+<p>DVWA（Damn Vulnerable Web Application）是<strong>故意留了一堆漏洞的 PHP 靶场</strong>，每个漏洞都提供 Low / Medium / High / Impossible 四个安全级别，用来对比"有漏洞的写法"和"安全的写法"——是整个课程所有攻击实验的共同平台。</p>
+<hr />
+<h2 id="dvwa_1">二、DVWA 靶场搭建（方法论）</h2>
+<ol>
+<li><strong>放代码</strong>：解压 DVWA.zip，把整个 DVWA 文件夹放进 Web 根目录 <code>/var/www/html/</code></li>
+<li><strong>改配置</strong>：<code>config/</code> 下把 <code>config.inc.php.dist</code> 重命名为 <code>config.inc.php</code></li>
+<li><strong>建库</strong>：启动 MySQL，按 DVWA 要求创建数据库和用户</li>
+<li><strong>调 PHP</strong>：编辑 <code>/etc/php/8.x/apache2/php.ini</code>，消除 setup 页面标红的项（如 <code>allow_url_include</code>、GD 库扩展等）</li>
+<li><strong>补依赖</strong>：PHP module gd 缺失就 <code>apt install php-gd</code>（记得换国内源）；reCAPTCHA key 缺失就把官方示例 key 填进 config 的两个空字符串</li>
+<li><strong>给写权限</strong>：<code>hackable/uploads/</code> 和 <code>config/</code> 目录要对 www-data 可写（<code>chmod</code>/<code>chown</code>）</li>
+<li><strong>验收</strong>：访问 <code>/DVWA/setup.php</code>，所有红色项全消 → 登录默认账号 admin/password</li>
+</ol>
+<blockquote>
+<p>常见坑：PHP 版本号因更新从 8.2 变 8.4，php.ini 路径要对上实际版本；所有"标红项"本质是权限/扩展/配置三类问题，逐个对症下药。</p>
+</blockquote>
+<hr />
+<h2 id="burp-suite_1">三、Burp Suite 核心模块（面试速记）</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>模块</th>
+<th>作用</th>
+<th>本实验用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Proxy</strong></td>
+<td>拦截/查看/修改 HTTP 请求；<code>Open Browser</code> 起自带浏览器（自动走代理，省去手动配代理）</td>
+<td>抓登录包，看参数结构</td>
+</tr>
+<tr>
+<td><strong>Intruder</strong></td>
+<td>自动化批量请求：把参数标记为 payload 位置，循环发送字典</td>
+<td>暴力破解核心工具</td>
+</tr>
+<tr>
+<td><strong>Repeater</strong></td>
+<td>手动重放/微调单个请求</td>
+<td>测试 token、改数据试验</td>
+</tr>
+<tr>
+<td><strong>Decoder / Comparer</strong></td>
+<td>编解码 / 响应对比</td>
+<td>辅助分析</td>
+</tr>
+<tr>
+<td>插件体系</td>
+<td>如 CSRF Token Tracker</td>
+<td>自动化处理动态 token</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="_2">四、实操/利用流程（方法论）</h2>
+<h3 id="low">暴力破解五步（Low 级别）</h3>
+<ol>
+<li><strong>抓包定靶</strong>：Proxy 开拦截（Intercept on），登录页随便输个账号密码点提交 → 抓到 POST 请求，确认参数名（实验里是 <code>username=admin&amp;password=xxx</code>）</li>
+<li><strong>送进 Intruder</strong>：请求右键 → Send to Intruder；<strong>Attack type 选 Cluster Bomb</strong>（有两组独立字典要组合：用户名 × 密码，适合"用户名密码都不知道"的场景）</li>
+<li><strong>标 payload 位置</strong>：选中 <code>admin</code> 和 <code>password</code> 两个参数值，点 Add 变成 <code>§admin§</code>、<code>§password§</code></li>
+<li><strong>配字典</strong>：Payload Sets 一（用户名）、二（密码）分别 Paste 粘贴或 Load 加载字典文件</li>
+<li><strong>跑 &amp; 判定</strong>：Start attack → 看响应<strong>长度/状态码/响应文本</strong>的差异——实验里绝大多数结果长度是 4620，唯一一条 4663 的就是成功的那组（内容多出错/成功提示）</li>
+</ol>
+<blockquote>
+<p><strong>判定技巧</strong>：爆破成果不看"响应 200"，看<strong>长度异常值</strong>（成功页比错误页内容多）、<strong>状态码分组</strong>、以及响应体关键词（Welcome/Login failed）。先跑小字典看基线，再放大字典。</p>
+</blockquote>
+<hr />
+<h2 id="_3">五、绕过与进阶（各难度）</h2>
+<h3 id="medium">Medium：加了延迟照样爆</h3>
+<p>后端代码只是做了人为延迟（sleep），<strong>参数结构没变</strong>——用和 Low 一样的方法爆即可，只是<strong>慢很多</strong>。要点：Intruder 里可以调线程数、设超时，耐心等。</p>
+<h3 id="highanti-csrf-token">High：Anti-CSRF Token 防重放的正面硬刚（重点）</h3>
+<p><strong>难点</strong>：登录请求里多了一个 <code>user_token</code>，每次请求页面 token 都变，且服务器<strong>先验 token 再验口令</strong>——直接把抓包的旧 token 循环发，全部被拒。<strong>核心矛盾：每次尝试新密码前，都必须先"重新请求一次登录页"拿到最新 token。</strong></p>
+<p><strong>工具化四步（记住这个流程，面试讲得出来）</strong>：</p>
+<ol>
+<li><strong>Attack type 改 Pitchfork</strong>（两组 payload 并行逐一配对）：payload 位置标记 <code>password</code> 和 <code>user_token</code> 两个参数</li>
+<li><strong>Resource pool 里把并发（Maximum concurrent requests）设为 1</strong> —— 必须串行：每次尝试都是"先取 token 再试密码"，并发会导致 token 错位</li>
+<li><strong>Settings → Grep - Extract</strong>：配置从响应中提取 <code>user_token</code> 的值（正则抓 <code>&lt;input type='hidden' name='user_token' value='(.*)' /&gt;</code>）——这是"新一轮 token 从哪来"</li>
+<li><strong>第二个 Payload 类型选 Recursive grep</strong>：把最初抓包得到的 token 值填进 initial payload——之后每轮自动用"上一轮响应里提取的新 token"替换，形成"取 token→试密码→再取新 token"闭环</li>
+</ol>
+<p>跑起来后 Intruder 每一轮都先 GET 页面拿新 token 再 POST 尝试，token 防线被自动化击穿。</p>
+<p><strong>这段的本质</strong>：token 把"无状态爆破"变成了"有状态爆破"——工具必须像真人一样"每次都先刷新页面"。脚本/工具能做到，只是麻烦了一点。<strong>防御价值在于：token + 失败次数锁定 + 速率限制叠加后，爆破成本才会高到不划算。</strong></p>
+<hr />
+<h2 id="_4">六、防御（面试必答）</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>攻击点</th>
+<th>防御</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>批量枚举</td>
+<td><strong>失败次数锁定</strong>：连续 N 次失败冻结账号/IP 一段时间</td>
+<td>直接掐断"无限尝试"</td>
+</tr>
+<tr>
+<td>自动化请求</td>
+<td><strong>验证码/CAPTCHA</strong>（且校验必须在服务端、不可预测）</td>
+<td>拦自动化，不拦真人</td>
+</tr>
+<tr>
+<td>高速穷举</td>
+<td><strong>速率限制</strong>：同一 IP/账号单位时间限请求次数</td>
+<td>把爆破速度降到不可用</td>
+</tr>
+<tr>
+<td>撞库成功</td>
+<td><strong>双因素认证（2FA）</strong></td>
+<td>口令只是第一道门</td>
+</tr>
+<tr>
+<td>弱口令本身</td>
+<td>强口令策略 + 定期改密 + <strong>密码库泄露检测</strong>（Have I Been Pwned API）</td>
+<td>从根上减少"候选集命中"</td>
+</tr>
+<tr>
+<td>事后发现</td>
+<td>登录日志 + 异常告警（异地/高频失败）</td>
+<td>让爆破行为可被发现</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>终极一句话</strong>：爆破防不住"口令本身弱"，防御的核心是 <strong>"让尝试变得又慢又贵 + 让弱口令不存在"</strong>。</p>
+<hr />
+<h2 id="_5">七、面试速答卡</h2>
+<ul>
+<li><strong>Burp 代理原理</strong>：浏览器流量经 127.0.0.1:8080 中转，Burp 可看可改再转发</li>
+<li><strong>Intruder 四种模式</strong>：Sniper（单字典逐位替换）、Battering ram（同值多位）、Pitchfork（多字典并行配对）、Cluster Bomb（多字典笛卡尔积组合）</li>
+<li><strong>用户名密码都不知道时</strong>：Cluster Bomb；只知道密码时：Sniper</li>
+<li><strong>怎么判断爆破成功</strong>：响应长度/状态码/响应关键词的差异，不是看 200</li>
+<li><strong>token 为什么难爆</strong>：每次请求 token 都变，必须"先取 token 再尝试"，有状态爆破</li>
+<li><strong>Pitchfork + Recursive grep 是干嘛的</strong>：并行配对两组字典 + 每轮自动从响应提取新 token 替换</li>
+<li><strong>爆破的防御组合</strong>：锁定 + 验证码 + 限速 + 2FA + 强口令策略</li>
+<li><strong>DVWA 的四个级别</strong>：Low（无防护）/ Medium（有简单防护）/ High（较强防护）/ Impossible（正确代码，用于学习防御）</li>
+</ul></div>
+      <div class="post-nav"><a class="pn-item prev" href="python-class-lei-zhi-shi-zong-jie.html"><span>← 上一篇</span><strong>Python Class（类）知识总结</strong></a><a class="pn-item next" href="web-zhu-ru-gong-ji-sql-zhu-ru-yu-ming-ling-zhu-ru.html"><span>下一篇 →</span><strong>Web 注入攻击：SQL 注入与命令注入</strong></a></div>
+      <div class="post-end">
+        <a href="../posts.html">← 返回文章列表</a>
+        <a href="https://github.com/pressure-J" target="_blank" rel="noopener">在 GitHub 上找我</a>
+      </div>
+    </article>
+  </div>
+  <aside class="toc" id="toc">
+  <div class="toc-title">目录</div>
+  <nav><a href="#_1" class="toc-lv2">一、原理概述</a><a href="#brute-force" class="toc-lv3">暴力破解（Brute Force）为什么存在</a><a href="#burp-suite" class="toc-lv3">Burp Suite 为什么能爆破</a><a href="#dvwa" class="toc-lv3">DVWA 是什么</a><a href="#dvwa_1" class="toc-lv2">二、DVWA 靶场搭建（方法论）</a><a href="#burp-suite_1" class="toc-lv2">三、Burp Suite 核心模块（面试速记）</a><a href="#_2" class="toc-lv2">四、实操/利用流程（方法论）</a><a href="#low" class="toc-lv3">暴力破解五步（Low 级别）</a><a href="#_3" class="toc-lv2">五、绕过与进阶（各难度）</a><a href="#medium" class="toc-lv3">Medium：加了延迟照样爆</a><a href="#highanti-csrf-token" class="toc-lv3">High：Anti-CSRF Token 防重放的正面硬刚（重点）</a><a href="#_4" class="toc-lv2">六、防御（面试必答）</a><a href="#_5" class="toc-lv2">七、面试速答卡</a></nav>
+</aside>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-col footer-about">
+      <div class="footer-brand">pressure-J<span class="brand-caret">_</span></div>
+      <p>网络安全 · 应急响应 · 流量分析<br>写能复现、能讲清楚的东西。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">导航</div>
+      <a href="../index.html">首页</a>
+      <a href="../posts.html">全部文章</a>
+      <a href="../category/index.html">分类</a>
+      <a href="../about.html">关于</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">在别处</div>
+      <a href="https://github.com/pressure-J" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:1489955298@qq.com">Email</a>
+      <a href="../rss.xml">RSS</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© 2026 pressure-J</span>
+    <span class="footer-build">Build 2026-10-19 · Python + Markdown</span>
+  </div>
+</footer>
+<button class="to-top" id="to-top" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<script src="../assets/app.js" defer></script>
+</body>
+</html>
