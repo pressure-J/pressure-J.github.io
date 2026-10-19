@@ -101,7 +101,7 @@
     <guid isPermaLink="true">https://pressure-j.github.io/posts/ctf-li-xian-su-cha-biao-misc-crypto.html</guid>
     <pubDate>Tue, 13 Oct 2026 00:00:00 +0800</pubDate>
     <category>Misc</category>
-    <description>&gt; 内存取证题（vmem/mem/raw）：详细步骤见《Misc内存取证解题步骤.md》——vol.exe 用法、华为备份解密、lsadump 提密码。</description>
+    <description>内存取证题（vmem/mem/raw）：详细步骤见《Misc内存取证解题步骤.md》——vol.exe 用法、华为备份解密、lsadump 提密码。</description>
   </item>
   <item>
     <title>FCSR线性化攻击-F-FCSR状态恢复</title>
@@ -109,7 +109,7 @@
     <guid isPermaLink="true">https://pressure-j.github.io/posts/fcsr-xian-xing-hua-gong-ji-f-fcsr-zhuang-tai-hui-fu.html</guid>
     <pubDate>Mon, 12 Oct 2026 00:00:00 +0800</pubDate>
     <category>密码学</category>
-    <description>&gt; 考点：滤波式 FCSR 的线性化攻击（Hell–Johansson），把非线性进位寄存器&quot;冻住&quot;后整个密码退化成线性系统。</description>
+    <description>考点：滤波式 FCSR 的线性化攻击（Hell–Johansson），把非线性进位寄存器&quot;冻住&quot;后整个密码退化成线性系统。</description>
   </item>
   <item>
     <title>Web安全 · PHP 反序列化 + `__wakeup` 绕过 WriteUp —「I have a cat!」</title>
@@ -117,7 +117,7 @@
     <guid isPermaLink="true">https://pressure-j.github.io/posts/web-an-quan-php-fan-xu-lie-hua-wakeup-rao-guo-writeup-i-have-a-cat.html</guid>
     <pubDate>Sun, 11 Oct 2026 00:00:00 +0800</pubDate>
     <category>Web 安全</category>
-    <description>&gt; 考点：源码泄露（备份文件）→ PHP 对象注入 → 私有属性序列化名 → 魔术方法 wakeup 绕过（CVE-2016-7124）</description>
+    <description>考点：源码泄露（备份文件）→ PHP 对象注入 → 私有属性序列化名 → 魔术方法 wakeup 绕过（CVE-2016-7124）</description>
   </item>
   <item>
     <title>Misc视频隐写解题步骤</title>
@@ -133,7 +133,7 @@
     <guid isPermaLink="true">https://pressure-j.github.io/posts/liu-liang-fen-xi-an-zhong-lei-su-cha.html</guid>
     <pubDate>Fri, 09 Oct 2026 00:00:00 +0800</pubDate>
     <category>Misc</category>
-    <description>&gt; 定位：CTF Misc / 应急响应流量题的按类型查表文档。看到什么流量，翻到对应一节。</description>
+    <description>定位：CTF Misc / 应急响应流量题的按类型查表文档。看到什么流量，翻到对应一节。</description>
   </item>
   <item>
     <title>Misc-秘密文件-FTP流量提取加密RAR</title>

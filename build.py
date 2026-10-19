@@ -171,7 +171,7 @@ def make_summary(body, limit=116):
         text = ""
         for line in body.split("\n"):
             s = tidy(line)
-            s = re.sub(r"^([-*+]\s|\d+[.)]\s|#+\s*)", "", s)
+            s = re.sub(r"^\s*(?:[-*+>]\s*|\d+[.)]\s*|#+\s*)+", "", s)
             if (cjk(s) >= 18
                     and not re.search(r"[=(){}\[\]]|///|\bdef \b|^\w+\(", s)
                     and not s.startswith(("注：", "注意"))):
