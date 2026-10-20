@@ -42,11 +42,22 @@ SITE = {
     "url": "https://pressure-j.github.io",
     "github": "https://github.com/pressure-J",
     "email": "1489955298@qq.com",
-    "build": datetime.date.today().isoformat(),
+    "build": "",          # 由 build() 填入内容指纹（见 stamp()）
     # 是否在"关于"页显示真名。默认关：和 scrub() 的脱敏口径保持一致
     "show_realname": False,
     "realname": "徐利杰",
 }
+
+
+def stamp(posts):
+    """内容指纹：只由「标题 + 日期 + 字数」决定。
+
+    页脚、sitemap 的 lastmod 都用它而不是当天日期 —— 否则每次构建
+    全站 109 个文件都会因为一个日期字符变化被重写，git 里全是假改动。
+    """
+    import hashlib
+    key = "|".join(f"{p['slug']}:{p['date']}:{p['words']}" for p in posts)
+    return hashlib.sha1(key.encode()).hexdigest()[:8]
 
 # ---------------------------------------------------------------- 收录白名单
 # (笔记子目录, 展示名, 分类 slug, 一句话介绍)
@@ -422,8 +433,8 @@ def page(*, title, desc, body, active="", root="", canonical="", body_class=""):
     </div>
   </div>
   <div class="wrap footer-bottom">
-    <span>© {datetime.date.today().year} {esc(SITE['name'])}</span>
-    <span class="footer-build">Build {SITE['build']} · Python + Markdown</span>
+    <span>© 2026 {esc(SITE['name'])}</span>
+    <span class="footer-build">Build {SITE['build']}</span>
   </div>
 </footer>
 <button class="to-top" id="to-top" type="button" aria-label="回到顶部">
@@ -483,6 +494,7 @@ def cat_card(name, slug, desc, count, root=""):
 def build():
     t0 = datetime.datetime.now()
     posts, warnings = discover()
+    SITE["build"] = stamp(posts)
     build_markdown(posts)
 
     for d in (POSTS_DIR, CAT_DIR):
@@ -794,20 +806,25 @@ def build():
   <link>{SITE['url']}/</link>
   <description>{esc(SITE['desc'])}</description>
   <language>zh-CN</language>
-  <lastBuildDate>{rfc822(SITE['build'])}</lastBuildDate>
+  <lastBuildDate>{rfc822(max(p['date'] for p in posts))}</lastBuildDate>
   <atom:link href="{SITE['url']}/rss.xml" rel="self" type="application/rss+xml"/>
 {items}</channel>
 </rss>
 """)
 
     # ---------- sitemap / robots / .nojekyll
-    urls = [("", "1.0"), ("posts.html", "0.9"), ("category/index.html", "0.7"),
-            ("about.html", "0.6")]
-    urls += [(f"category/{s}.html", "0.6") for _, s, _ in cats]
-    urls += [(f"posts/{p['slug']}.html", "0.8") for p in posts]
+    # lastmod 用"这篇内容的日期"，不是构建日期 —— 否则每次构建整个 sitemap 都变，
+    # 对搜索引擎而言等于全部页面都在更新，等于没给信号。
+    urls = [("", "1.0", max(p["date"] for p in posts)),
+            ("posts.html", "0.9", max(p["date"] for p in posts)),
+            ("category/index.html", "0.7", max(p["date"] for p in posts)),
+            ("about.html", "0.6", max(p["date"] for p in posts))]
+    urls += [(f"category/{s}.html", "0.6", max(p["date"] for p in by_cat[s]))
+             for _, s, _ in cats]
+    urls += [(f"posts/{p['slug']}.html", "0.8", p["date"]) for p in posts]
     sm = "".join(f'  <url><loc>{SITE["url"]}/{u}</loc>'
-                 f'<lastmod>{SITE["build"]}</lastmod><priority>{pr}</priority></url>\n'
-                 for u, pr in urls)
+                 f'<lastmod>{lm}</lastmod><priority>{pr}</priority></url>\n'
+                 for u, pr, lm in urls)
     open(os.path.join(OUT, "sitemap.xml"), "w", encoding="utf-8").write(
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
