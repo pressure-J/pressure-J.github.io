@@ -206,8 +206,29 @@ def slugify(title, used):
     return s
 
 
+def load_slugmap():
+    """slug 记忆表：笔记路径 → 已发布过的 slug。
+
+    没有它的话，改一次标题就会换 URL，旧链接（别人收藏的、搜索引擎收录的）全部失效。
+    有了它，标题随便改，网址保持不变。文件不存在时返回空表。
+    """
+    path = os.path.join(ROOT, "_slugmap.json")
+    if os.path.exists(path):
+        try:
+            return json.load(open(path, encoding="utf-8"))
+        except Exception:
+            return {}
+    return {}
+
+
+def save_slugmap(mapping):
+    with open(os.path.join(ROOT, "_slugmap.json"), "w", encoding="utf-8") as f:
+        json.dump(mapping, f, ensure_ascii=False, indent=1, sort_keys=True)
+
+
 def discover():
     posts, used, warnings = [], set(SLUG_OVERRIDE.values()), []
+    memory = load_slugmap()
     for dirname, cat_name, cat_slug, cat_desc in SOURCES:
         base = os.path.join(SRC, dirname)
         if not os.path.isdir(base):
@@ -244,7 +265,12 @@ def discover():
                 imgs = re.findall(r"!\[[^\]]*\]\(([^)\s]+)", body)
                 broken = [i for i in imgs if not re.match(r"^https?://", i)]
 
-                slug = SLUG_OVERRIDE.get(rel) or slugify(title, used)
+                slug = (SLUG_OVERRIDE.get(rel)
+                        or memory.get(rel)          # 改过标题也沿用第一次发布的网址
+                        or slugify(title, used))
+                if slug in used and memory.get(rel) != slug:
+                    slug = slugify(title, used)
+                used.add(slug)
                 posts.append({
                     "src": full, "rel": rel, "title": title, "date": date,
                     "tags": tags, "words": words, "slug": slug,
@@ -510,6 +536,9 @@ def build():
 
     total_words = sum(p["words"] for p in posts)
     total_min = sum(p["minutes"] for p in posts)
+
+    # 记住每个笔记文件用过的 slug，下次改标题也不会换网址
+    save_slugmap({p["rel"]: p["slug"] for p in posts})
 
     # ---------- 文章页
     for i, p in enumerate(posts):
@@ -874,12 +903,20 @@ def serve():
 if __name__ == "__main__":
     if "--check" in sys.argv:
         ps, ws = discover()
-        print(f"将发布 {len(ps)} 篇")
-        for w in ws:
-            print(" !", w)
+        by_cat = {}
         for p in ps:
-            if p["broken"]:
-                print(f" ! 断图 {len(p['broken'])} 张: {p['title']}")
+            by_cat.setdefault(p["cat"], []).append(p)
+        print(f"将发布 {len(ps)} 篇：\n")
+        for cat, items in by_cat.items():
+            print(f"■ {cat}（{len(items)} 篇）")
+            for p in sorted(items, key=lambda x: x["date"], reverse=True):
+                flag = f"  ⚠ {len(p['broken'])} 张图不显示" if p["broken"] else ""
+                print(f"   {p['date']}  {p['words']:>5} 字  {p['title'][:40]}{flag}")
+            print()
+        if ws:
+            print(f"跳过 {len(ws)} 项：")
+            for w in ws:
+                print("   -", w)
     else:
         build()
         if "--serve" in sys.argv:
