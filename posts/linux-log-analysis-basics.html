@@ -61,7 +61,7 @@
         <div class="post-meta">
           <span class="cat-badge cat-ir">应急响应</span>
           <time datetime="2026-07-08">2026-07-08</time>
-          <span>1615 字</span>
+          <span>1655 字</span>
           <span>约 4 分钟</span>
         </div>
         <div class="chips post-tags"><span class="chip">应急响应</span><span class="chip">日志分析</span><span class="chip">Linux</span></div>
@@ -240,7 +240,9 @@ grep<span class="w"> </span>-c<span class="w"> </span><span class="s2">"Failed"<
 <p>查某小时访问最多ip</p>
 <p>grep "06/Jul/2026:10:" access.log | awk '{print $1}' | sort | uniq -c | sort -rn | head</p>
 <p>提出黑客ip的user-agent</p>
-<p>grep "192.168.200.2" access.log.1 | awk -F'"' '{print $6}' | sort | uniq -c | sort -rn</p></div>
+<p>grep "192.168.200.2" access.log.1 | awk -F'"' '{print $6}' | sort | uniq -c | sort -rn</p>
+<h2 id="_6">附录：修改流程测试</h2>
+<p>这是一行临时内容，用来验证「改笔记 → 一键发布」链路是否通。</p></div>
       <div class="post-nav"><a class="pn-item prev" href="php-fan-xu-lie-hua-lou-dong.html"><span>← 上一篇</span><strong>PHP反序列化漏洞</strong></a><a class="pn-item next" href="dns-wai-dai-sql-zhu-ru-jie-ti-si-lu.html"><span>下一篇 →</span><strong>DNS外带SQL注入解题思路</strong></a></div>
       <div class="post-end">
         <a href="../posts.html">← 返回文章列表</a>
@@ -250,7 +252,7 @@ grep<span class="w"> </span>-c<span class="w"> </span><span class="s2">"Failed"<
   </div>
   <aside class="toc" id="toc">
   <div class="toc-title">目录</div>
-  <nav><a href="#linux" class="toc-lv2">Linux常见目录</a><a href="#_1" class="toc-lv2">一、全局通用（所有发行版几乎一致）</a><a href="#_2" class="toc-lv2">二、日志文件速查（重点）</a><a href="#_3" class="toc-lv2">三、日志查询命令</a><a href="#grep" class="toc-lv3">grep的使用</a><a href="#_4" class="toc-lv3">常用管道搭配参数</a><a href="#_5" class="toc-lv3">常用命令</a></nav>
+  <nav><a href="#linux" class="toc-lv2">Linux常见目录</a><a href="#_1" class="toc-lv2">一、全局通用（所有发行版几乎一致）</a><a href="#_2" class="toc-lv2">二、日志文件速查（重点）</a><a href="#_3" class="toc-lv2">三、日志查询命令</a><a href="#grep" class="toc-lv3">grep的使用</a><a href="#_4" class="toc-lv3">常用管道搭配参数</a><a href="#_5" class="toc-lv3">常用命令</a><a href="#_6" class="toc-lv2">附录：修改流程测试</a></nav>
 </aside>
 </main>
 <footer class="site-footer">
@@ -275,7 +277,7 @@ grep<span class="w"> </span>-c<span class="w"> </span><span class="s2">"Failed"<
   </div>
   <div class="wrap footer-bottom">
     <span>© 2026 pressure-J</span>
-    <span class="footer-build">Build b98b9b18</span>
+    <span class="footer-build">Build 1c743d2b</span>
   </div>
 </footer>
 <button class="to-top" id="to-top" type="button" aria-label="回到顶部">
