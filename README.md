@@ -43,7 +43,15 @@ Markdown 笔记  ──build.py──▶  HTML/CSS/JS  ──git push──▶  
 py build.py            # 重新生成整站
 py build.py --serve    # 生成后起本地预览 http://127.0.0.1:8000
 py build.py --check    # 只体检，不写盘（看哪些笔记会被收/被跳过）
+
+py publish.py          # 一条命令：编译 + 提交 + 推送（日常就用这个）
+py publish.py -m "说明"  # 带提交信息
+py publish.py --dry-run  # 看看会发生什么，不动仓库
 ```
+
+`publish.py` 会先试原生 `git push`，被网络重置时自动切到 GitHub REST API 推送，
+凭据从 Windows 凭据管理器读取（不落盘）。推送失败时改动已安全提交在本地，
+网络恢复后重跑即可，不会重复提交。
 
 依赖：`markdown`、`pygments`、`pypinyin`。
 
