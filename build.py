@@ -434,7 +434,7 @@ def page(*, title, desc, body, active="", root="", canonical="", body_class=""):
   </div>
   <div class="wrap footer-bottom">
     <span>© 2026 {esc(SITE['name'])}</span>
-    <span class="footer-build">Build {SITE['build']}</span>
+    <span class="footer-build">用 Python 从 Markdown 编译</span>
   </div>
 </footer>
 <button class="to-top" id="to-top" type="button" aria-label="回到顶部">
